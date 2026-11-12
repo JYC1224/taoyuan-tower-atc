@@ -1,0 +1,14 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+.vite/
+*.log
+.npm-cache/
+tmp/
+*-qa/
+Taoyuan-Tower-*.zip
+Taoyuan-Tower-*.zip.sha256
+.env
+.env.*
+!.env.example

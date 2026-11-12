@@ -1,0 +1,38 @@
+Real-world airline branding — personal game configuration
+
+Airline names, marks, wordmarks and livery identities remain the property of
+their respective rights holders. This game configuration uses them to depict
+real-world aircraft at the user's request for a personal, noncommercial game.
+No airline endorsement or permission for commercial use or public redistribution
+is claimed. Noncommercial use alone does not establish permission.
+
+The local sources, source-page URLs, owners, rights labels, byte counts and
+SHA-256 digests are recorded in manifest.json. The THAI tail orchid is a
+symbol-only derivative of the cited THAI logo vector; the complete lockup stays
+on the fuselage. No airline artwork is fetched at runtime; the game composes
+local vectors into its own existing aircraft UV maps.
+
+The four Taiwan-core carrier identities continue to use their original local
+assets. Existing vector artwork also covers Air India, Cathay Pacific, Singapore
+Airlines, Korean Air and Emirates. This update adds local vector marks for Thai
+Airways, Turkish Airlines, Japan Airlines, Air New Zealand, ANA, KLM and Peach.
+
+Source pages label the cited Commons logos as public-domain simple text/logo
+artwork. The Japan Airlines Tsurumaru SVG is from Simple Icons, whose artwork
+is CC0. Those labels apply only to the respective source files; trademarks and
+other brand rights remain separate. Tigerair Taiwan and STARLUX artwork comes
+from their official websites and is not described as CC0 or openly licensed.
+
+The China Airlines plum blossom is the original embedded PNG extracted without
+resampling from its source SVG. That source page labels the artwork Fair use;
+this is recorded as a source label, not as a transferable license or a claim
+that this game qualifies for the same exception.
+
+Peach's current aircraft-era livery is shown with its older aircraft wordmark.
+Peach says the new aircraft design is planned for spring 2027; the new 2026
+brand mark is therefore not substituted onto the pre-refresh aircraft livery.
+
+Reference photos and official airline pages are used for visual research only;
+they are not bundled as runtime textures. Tail marks and wordmarks are local
+vectors, while paint placement is adapted to the game's existing simplified
+aircraft UVs. This is not a registration-specific manufacturer paint kit.

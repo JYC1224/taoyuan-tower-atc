@@ -1,0 +1,25 @@
+{
+  "name": "taoyuan-tower",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/sync-docs.mjs && vite --configLoader native --host 127.0.0.1",
+    "build": "node scripts/sync-docs.mjs && tsc --noEmit && vite build --configLoader native",
+    "preview": "vite preview --configLoader native --host 127.0.0.1",
+    "test": "tsx --test tests/*.test.ts",
+    "test:browser": "playwright test",
+    "start": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.180.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "tsx": "^4.20.5",
+    "@types/node": "^24.3.1",
+    "@playwright/test": "^1.55.0"
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "metadata": {
+    "source": "https://api.openstreetmap.org/api/0.6/map",
+    "attribution": "© OpenStreetMap contributors",
+    "license": "https://opendatacommons.org/licenses/odbl/1-0/",
+    "copyright": "https://www.openstreetmap.org/copyright",
+    "retrieved": "2026-10-28",
+    "unchangedBefore": "2026-09-06T04:00:00Z",
+    "method": "Current objects whose way and every node were last edited before the cutoff. Incomplete subset, not a historical snapshot.",
+    "projection": "RCTP AIP tangent plane, metres; visual only; no aircraft route changes."
+  },
+  "counts": {
+    "road": 454,
+    "apron": 17,
+    "parking": 29
+  },
+  "tiles": [
+    {
+      "tile": "tile-0-0.xml",
+      "sha256": "4b9ab8ff26b64dc0b7c16da3d7f4243b597fd7f28042bf48a0950f8baeb6dfab",
+      "bounds": {
+        "minlat": "25.0550000",
+        "minlon": "121.1950000",
+        "maxlat": "25.0750000",
+        "maxlon": "121.2150000"
+      }
+    },
+    {
+      "tile": "tile-0-1.xml",
+      "sha256": "fab884b69d799fbe9df049fa7e275f6c9d51af0dd043da6b70e00ebc68237269",
+      "bounds": {
+        "minlat": "25.0550000",
+        "minlon": "121.2150000",
+        "maxlat": "25.0750000",
+        "maxlon": "121.2350000"
+      }
+    },
+    {
+      "tile": "tile-0-2.xml",
+      "sha256": "260c0f6dd2807eed6cd79ffa342ea3363a196569b9919af6e4366332ecf25d87",
+      "bounds": {
+        "minlat": "25.0550000",
+        "minlon": "121.2350000",
+        "maxlat": "25.0750000",
+        "maxlon": "121.2550000"
+      }
+    },
+    {
+      "tile": "tile-0-3.xml",
+      "sha256": "9383ec812e099fc5b0dec35e7e97b300ce6642c9315057c54467a789294f2a54",
+      "bounds": {
+        "minlat": "25.0550000",
+        "minlon": "121.2550000",
+        "maxlat": "25.0750000",
+        "maxlon": "121.2750000"
+      }
+    },
+    {
+      "tile": "tile-1-0.xml",
+      "sha256": "7d68b68d6d9f658e2e0fcfbbd98f94bb02211ef30d2e94bac3688b3332581eae",
+      "bounds": {
+        "minlat": "25.0750000",
+        "minlon": "121.1950000",
+        "maxlat": "25.0950000",
+        "maxlon": "121.2150000"
+      }
+    },
+    {
+      "tile": "tile-1-1.xml",
+      "sha256": "1653d93fdb4e4b6edc27bd6f84ed7bd2fed51afe72194cec854365587e1ed40e",
+      "bounds": {
+        "minlat": "25.0750000",
+        "minlon": "121.2150000",
+        "maxlat": "25.0950000",
+        "maxlon": "121.2350000"
+      }
+    },
+    {
+      "tile": "tile-1-2.xml",
+      "sha256": "2cc6cc679302b34dbd22bc0fec9ac8ef593d5f15786b58ef6eaf35d7aa2efcc7",
+      "bounds": {
+        "minlat": "25.0750000",
+        "minlon": "121.2350000",
+        "maxlat": "25.0950000",
+        "maxlon": "121.2550000"
+      }
+    },
+    {
+      "tile": "tile-1-3.xml",
+      "sha256": "567aa1520275a90e2a037e5ac159a8a0d44754395b15202ef472964f69762ac8",
+      "bounds": {
+        "minlat": "25.0750000",
+        "minlon": "121.2550000",
+        "maxlat": "25.0950000",
+        "maxlon": "121.2750000"
+      }
+    },
+    {
+      "tile": "tile-2-0.xml",
+      "sha256": "0aa292a55441988067def5b09ed1f214bbae79de7cbefb71f1745aa3a54542b1",
+      "bounds": {
+        "minlat": "25.0950000",
+        "minlon": "121.1950000",
+        "maxlat": "25.1150000",
+        "maxlon": "121.2150000"
+      }
+    },
+    {
+      "tile": "tile-2-1.xml",
+      "sha256": "8f3001091f178948a4c29955c8a7ecd4eb64d082bc10131368d100e02323cf16",
+      "bounds": {
+        "minlat": "25.0950000",
+        "minlon": "121.2150000",
+        "maxlat": "25.1150000",
+        "maxlon": "121.2350000"
+      }
+    },
+    {
+      "tile": "tile-2-2.xml",
+      "sha256": "c5812c448b647cd2875c9f8dff8c663596fb108f5b9b87d7bd271b2975ef41be",
+      "bounds": {
+        "minlat": "25.0950000",
+        "minlon": "121.2350000",
+        "maxlat": "25.1150000",
+        "maxlon": "121.2550000"
+      }
+    },
+    {
+      "tile": "tile-2-3.xml",
+      "sha256": "76f0e756b3e32e4045a9eec3c2d90bc776ef357484b944786b42f128cba524f9",
+      "bounds": {
+        "minlat": "25.0950000",
+        "minlon": "121.2550000",
+        "maxlat": "25.1150000",
+        "maxlon": "121.2750000"
+      }
+    }
+  ]
+}

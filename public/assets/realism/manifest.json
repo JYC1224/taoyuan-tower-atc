@@ -1,0 +1,199 @@
+{
+  "provider": "Poly Haven",
+  "credit": "Powered by Poly Haven",
+  "downloadedAt": "2026-10-27T15:27:35.243Z",
+  "runtimeNetworkDependency": false,
+  "assets": [
+    {
+      "id": "concrete_floor_worn_001",
+      "name": "Concrete Floor Worn 001",
+      "authors": {
+        "Dimitrios Savva": "Photography",
+        "Rico Cilliers": "Processing"
+      },
+      "assetPage": "https://polyhaven.com/a/concrete_floor_worn_001",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_diff_1k.jpg",
+      "file": "assets/realism/concrete_floor_worn_001-Diffuse.jpg",
+      "bytes": 118806,
+      "sha256": "6e40c0fc908f4d66431836f5abe203f3a4eb064e88824378a91a46a26e2f464c"
+    },
+    {
+      "id": "concrete_floor_worn_001",
+      "name": "Concrete Floor Worn 001",
+      "authors": {
+        "Dimitrios Savva": "Photography",
+        "Rico Cilliers": "Processing"
+      },
+      "assetPage": "https://polyhaven.com/a/concrete_floor_worn_001",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_nor_gl_1k.jpg",
+      "file": "assets/realism/concrete_floor_worn_001-nor_gl.jpg",
+      "bytes": 110906,
+      "sha256": "523bd94a1be5dd2f11c2ae2b7d7c77445cf5bd9e41604db515a7c8364dcba067"
+    },
+    {
+      "id": "concrete_floor_worn_001",
+      "name": "Concrete Floor Worn 001",
+      "authors": {
+        "Dimitrios Savva": "Photography",
+        "Rico Cilliers": "Processing"
+      },
+      "assetPage": "https://polyhaven.com/a/concrete_floor_worn_001",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_rough_1k.jpg",
+      "file": "assets/realism/concrete_floor_worn_001-Rough.jpg",
+      "bytes": 181942,
+      "sha256": "069efe4ca018e0ef61fd8cc9964395ba8272284ae239da68d7f87988e2e9f488"
+    },
+    {
+      "id": "kloppenheim_06_puresky",
+      "name": "Kloppenheim 06 (Pure Sky)",
+      "authors": {
+        "Greg Zaal": "Original",
+        "Jarod Guest": "Sky edits"
+      },
+      "assetPage": "https://polyhaven.com/a/kloppenheim_06_puresky",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloppenheim_06_puresky_2k.hdr",
+      "file": "assets/realism/kloppenheim_06_puresky-hdri.hdr",
+      "bytes": 4434394,
+      "sha256": "99451201586489ef3288c97bfac2a2ac232a5491c51a1faf0ec8ea39f3ccd533",
+      "resolution": "2k"
+    },
+    {
+      "id": "asphalt_01",
+      "name": "Asphalt 01",
+      "authors": {
+        "Dario Barresi": "Processing ",
+        "Charlotte Baglioni": "Photography"
+      },
+      "assetPage": "https://polyhaven.com/a/asphalt_01",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_01/asphalt_01_diff_1k.jpg",
+      "file": "assets/realism/asphalt_01-Diffuse.jpg",
+      "bytes": 739513,
+      "sha256": "99b6f6bdfbd09279f3f550ac9593336df541aa2319537566eeb3e737d8512010"
+    },
+    {
+      "id": "asphalt_01",
+      "name": "Asphalt 01",
+      "authors": {
+        "Dario Barresi": "Processing ",
+        "Charlotte Baglioni": "Photography"
+      },
+      "assetPage": "https://polyhaven.com/a/asphalt_01",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_01/asphalt_01_nor_gl_1k.jpg",
+      "file": "assets/realism/asphalt_01-nor_gl.jpg",
+      "bytes": 1237059,
+      "sha256": "b745fd20cfb775ae907786ff0ffe200cedf73f3a6ef4e60c637b85b08e0a4f9a"
+    },
+    {
+      "id": "asphalt_01",
+      "name": "Asphalt 01",
+      "authors": {
+        "Dario Barresi": "Processing ",
+        "Charlotte Baglioni": "Photography"
+      },
+      "assetPage": "https://polyhaven.com/a/asphalt_01",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_01/asphalt_01_rough_1k.jpg",
+      "file": "assets/realism/asphalt_01-Rough.jpg",
+      "bytes": 344964,
+      "sha256": "147891957807bb03cc565c9daa8a16a4af7713449a0f475c638f78f833ad0646"
+    },
+    {
+      "id": "aerial_asphalt_01",
+      "name": "Aerial Asphalt 01",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "assetPage": "https://polyhaven.com/a/aerial_asphalt_01",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_asphalt_01/aerial_asphalt_01_diff_2k.jpg",
+      "file": "assets/realism/aerial_asphalt_01-Diffuse-2k.jpg",
+      "bytes": 2802005,
+      "sha256": "a85ce28b8e6ed90acb0234832969b27f5b73fe055a0d5b94f34fc2943d319fb5",
+      "resolution": "2k"
+    },
+    {
+      "id": "aerial_asphalt_01",
+      "name": "Aerial Asphalt 01",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "assetPage": "https://polyhaven.com/a/aerial_asphalt_01",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_asphalt_01/aerial_asphalt_01_nor_gl_2k.jpg",
+      "file": "assets/realism/aerial_asphalt_01-NormalGL-2k.jpg",
+      "bytes": 2751902,
+      "sha256": "cb7e5b75ff47ad672ab820f71b77566419b612e52e7791c5ed90a7fa27b71807",
+      "resolution": "2k"
+    },
+    {
+      "id": "aerial_asphalt_01",
+      "name": "Aerial Asphalt 01",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "assetPage": "https://polyhaven.com/a/aerial_asphalt_01",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/aerial_asphalt_01/aerial_asphalt_01_rough_2k.jpg",
+      "file": "assets/realism/aerial_asphalt_01-Rough-2k.jpg",
+      "bytes": 1392536,
+      "sha256": "20fdcdc9fc2a3efef83fd8a3453d2bc0a8543ee3ebb2badf148e4c142704eeff",
+      "resolution": "2k"
+    },
+    {
+      "id": "rectangular_facade_tiles_02",
+      "name": "Rectangular Facade Tiles 02 — diffuse",
+      "authors": {"Charlotte Baglioni": "Author"},
+      "assetPage": "https://polyhaven.com/a/rectangular_facade_tiles_02",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rectangular_facade_tiles_02/rectangular_facade_tiles_02_diff_1k.jpg",
+      "file": "assets/realism/rectangular_facade_tiles_02-Diffuse-1k.jpg",
+      "bytes": 700098,
+      "sha256": "146f98ad9f724faeff81836e585ed109e5efce99325d752ed1961b764c03a27c",
+      "resolution": "1k"
+    },
+    {
+      "id": "rectangular_facade_tiles_02",
+      "name": "Rectangular Facade Tiles 02 — OpenGL normal",
+      "authors": {"Charlotte Baglioni": "Author"},
+      "assetPage": "https://polyhaven.com/a/rectangular_facade_tiles_02",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rectangular_facade_tiles_02/rectangular_facade_tiles_02_nor_gl_1k.jpg",
+      "file": "assets/realism/rectangular_facade_tiles_02-NormalGL-1k.jpg",
+      "bytes": 724249,
+      "sha256": "3ecfc429f92bc539fe7a70da3836f2d2bd6cb14992e641a694b8e4cc418e0d45",
+      "resolution": "1k"
+    },
+    {
+      "id": "rectangular_facade_tiles_02",
+      "name": "Rectangular Facade Tiles 02 — roughness",
+      "authors": {"Charlotte Baglioni": "Author"},
+      "assetPage": "https://polyhaven.com/a/rectangular_facade_tiles_02",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rectangular_facade_tiles_02/rectangular_facade_tiles_02_rough_1k.jpg",
+      "file": "assets/realism/rectangular_facade_tiles_02-Rough-1k.jpg",
+      "bytes": 754648,
+      "sha256": "61f4e83667ed28ebb3be8e0ac3247dc01190d3a8861fb34c398c84aa5f3c51d1",
+      "resolution": "1k"
+    }
+  ],
+  "updatedAt": "2026-11-11T00:00:00.000Z"
+}

@@ -1,0 +1,39 @@
+Local visual materials — Powered by Poly Haven
+
+These thirteen image files are CC0 1.0 public-domain assets published by Poly Haven.
+They may be used, modified and redistributed, including in commercial works.
+Provider license: https://polyhaven.com/license
+CC0 legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+Concrete Floor Worn 001 (1k diffuse / OpenGL normal / roughness)
+https://polyhaven.com/a/concrete_floor_worn_001
+Dimitrios Savva — Photography
+Rico Cilliers — Processing
+
+Asphalt 01 (1k diffuse / OpenGL normal / roughness)
+https://polyhaven.com/a/asphalt_01
+Charlotte Baglioni — Photography
+Dario Barresi — Processing
+
+Aerial Asphalt 01 (2k diffuse / OpenGL normal / roughness)
+https://polyhaven.com/a/aerial_asphalt_01
+Rob Tuytel — Original
+
+Kloppenheim 06 (Pure Sky), 2k HDR
+https://polyhaven.com/a/kloppenheim_06_puresky
+Greg Zaal — Original
+Jarod Guest — Sky edits
+
+Rectangular Facade Tiles 02 (1k diffuse / OpenGL normal / roughness)
+https://polyhaven.com/a/rectangular_facade_tiles_02
+Charlotte Baglioni — Author
+
+The unmodified downloaded bytes, original download URLs, author metadata,
+sizes and SHA-256 digests are listed in manifest.json. Official MD5 digests
+and sizes were checked at download. All runtime files are served locally;
+no Poly Haven API call or Internet connection is required while playing.
+
+Material color, scale, surface seams and day/night appearance are adjusted by
+project shaders. The HDR is a generic lighting/cloud reference, not a photograph
+of Taoyuan Airport or live local weather. These assets do not set the license
+of the project's code, aircraft geometry, branding or other dependencies.

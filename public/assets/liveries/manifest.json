@@ -1,0 +1,243 @@
+{
+  "purpose": "Real-world standard airline liveries requested for a personal noncommercial game",
+  "runtimeNetworkDependency": false,
+  "notCC0": true,
+  "files": [
+    {
+      "file": "starlux-symbol.png",
+      "sourceUrl": "https://www.starlux-airlines.com/favicon.png",
+      "owner": "STARLUX Airlines",
+      "rights": "Brand artwork; no open-content license claimed",
+      "bytes": 2310,
+      "sha256": "15f6876f13cc9a1c43e5433fdaa18bf63e27c3c020636610709d13e3e5565cf2"
+    },
+    {
+      "file": "tigerair-brand.svg",
+      "sourceUrl": "https://www.tigerairtw.com/assets/en-US-DD7mS0TT.svg",
+      "owner": "Tigerair Taiwan",
+      "rights": "Brand artwork; no open-content license claimed",
+      "bytes": 10231,
+      "sha256": "70db099687c7748f94af1d72a290f99aef5ccdc1d0636d3abb5631bcdc93f286"
+    },
+    {
+      "file": "starlux-wordmark.svg",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Starlux_wordmark.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "owner": "STARLUX Airlines",
+      "rights": "Commons lists this wordmark as public-domain simple geometry/text; trademark rights remain",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Starlux_wordmark.svg",
+      "bytes": 4732,
+      "sha256": "f66956f8c50657ca72bdd655dfd2d94fe6accacc7adef20b9ae614a7e2e20a2b"
+    },
+    {
+      "file": "cal-wordmark.svg",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5d/China_Airlines_wordmark.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "owner": "China Airlines",
+      "rights": "Commons lists this wordmark as public-domain simple geometry/text; trademark rights remain",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:China_Airlines_wordmark.svg",
+      "bytes": 7414,
+      "sha256": "70a67bcf7ed14be9c693f4786e4a478ff1a205b351e5c461ab790d3c028731e2"
+    },
+    {
+      "file": "eva-wordmark.svg",
+      "owner": "EVA Air",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Logo_EVA_Air.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_EVA_Air.svg",
+      "rights": "Source page lists public-domain logo artwork; trademark rights remain",
+      "bytes": 1018,
+      "sha256": "b898d57f25081d06cf506cbfdbaaf45e6385f4fae16b9ae6ac043f3c4f46f173"
+    },
+    {
+      "file": "eva-symbol.svg",
+      "owner": "EVA Air",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/5/54/Logo_EVA_Air_02.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Logo_EVA_Air_02.svg",
+      "rights": "Source page lists public-domain logo artwork; trademark rights remain",
+      "bytes": 6836,
+      "sha256": "b1a422cb210ea333ddcf69dd9a344d5ae39c9d0d6f472d3992d15b153c01098b"
+    },
+    {
+      "file": "cal-plum.png",
+      "owner": "China Airlines",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/zh/a/a7/China_Airlines.svg?utm_source=zh.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+      "sourcePage": "https://zh.wikipedia.org/wiki/File:China_Airlines.svg",
+      "rights": "Source page labels Fair use; no transferable license or permission for this game claimed",
+      "bytes": 22569,
+      "sha256": "8ae1564b96168437937f4edca1596e908398a8d0bddbe41ab4af7a25aec53178",
+      "modification": "Original embedded PNG bytes extracted from the source SVG; no resampling or image redraw",
+      "parentSvgSha256": "acae2339d9c077f61e0d205d4854f74e89b65eef675dee107cce06dcddb32919"
+    },
+    {
+      "file": "air-india-2023.svg",
+      "owner": "Air India",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Air_India_2023.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Air_India_2023.svg",
+      "rights": "Commons lists the current wordmark as simple text-logo artwork; Air India trademark rights remain",
+      "bytes": 3958,
+      "sha256": "82c6b022a6de8aa75bd4c83b2417a2daeab34a775b1dd96c68fb8931283a01f9"
+    },
+    {
+      "file": "cathay-pacific-logo.svg",
+      "owner": "Cathay Pacific",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Cathay_Pacific_Ltd._logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Cathay_Pacific_Ltd._logo.svg",
+      "rights": "Commons lists this official Cathay wordmark/Brushwing artwork as simple text-logo geometry; trademark rights remain",
+      "bytes": 10987,
+      "sha256": "9278a88fc6b6651a4a57c55f19e17753bb64bb281305fbad3ca7536177bc93db"
+    },
+    {
+      "file": "singapore-airlines-logo.svg",
+      "owner": "Singapore Airlines",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Singapore_Airlines_Logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Singapore_Airlines_Logo.svg",
+      "rights": "Commons lists the official wordmark as simple logo geometry; Singapore Airlines trademark rights remain",
+      "bytes": 11645,
+      "sha256": "48bc9ed08f3a43a9204dd910459d4266f6f47e1ff738fd299b72dc5f88012916"
+    },
+    {
+      "file": "singapore-airlines-wordmark.svg",
+      "owner": "Singapore Airlines",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Singapore_Airlines_wordmark.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Singapore_Airlines_wordmark.svg",
+      "rights": "Commons lists this official wordmark as public-domain simple geometry/text; Singapore Airlines trademark rights remain",
+      "bytes": 10169,
+      "sha256": "445a696fd9c74b07468c189eb38e660577a89edffebc30bea582f16f4b4465dc"
+    },
+    {
+      "file": "singapore-airlines-bird.svg",
+      "owner": "Singapore Airlines",
+      "sourceUrl": "https://cdn.simpleicons.org/singaporeairlines/fdb913",
+      "sourcePage": "https://github.com/simple-icons/simple-icons",
+      "rights": "Simple Icons assets are CC0; Singapore Airlines brand and trademark rights remain",
+      "bytes": 983,
+      "sha256": "6729ed7d6a498697ce7e0662fbb23de448e305a845353e8edfdd3d7570ff1f49"
+    },
+    {
+      "file": "korean-air-2025.svg",
+      "owner": "Korean Air",
+      "sourceUrl": "https://www.koreanair.com/header/header/images/logo/logo__koreanair.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Korean_Air_2025.svg",
+      "rights": "Commons lists this simple logo as public-domain text-logo geometry under the stated Korean threshold-of-originality basis; trademark rights remain",
+      "bytes": 4251,
+      "sha256": "1f6d4689232d0d4c216ddbc4d45a76c672cee8b239fb284eb42e07b1424c618d"
+    },
+    {
+      "file": "korean-air-2025-short.svg",
+      "owner": "Korean Air",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/6/62/Korean_Air_2025_%28Alt%29.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Korean_Air_2025_(Alt).svg",
+      "rights": "Commons lists this current aircraft short-title logo as public-domain simple text-logo geometry under the stated Korean threshold-of-originality basis; trademark rights remain",
+      "bytes": 4580,
+      "sha256": "f3c1166666dd470da361e93b5ce692325470011f4f036b6622ced6c14698b58f"
+    },
+    {
+      "file": "korean-air-taegeuk.svg",
+      "owner": "Korean Air",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Korean_Air_2025_%28Taegeuk%29.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Korean_Air_2025_(Taegeuk).svg",
+      "rights": "Commons lists this simple symbol as public-domain geometric artwork; Korean Air trademark rights remain",
+      "bytes": 1052,
+      "sha256": "db0cf1ca939c0b43d7b05ce3795f768712df54007a460fda6df5db7ef6a5b3c0"
+    },
+    {
+      "file": "emirates-logo.svg",
+      "owner": "The Emirates Group",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Emirates_Logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Emirates_Logo.svg",
+      "rights": "Commons lists the bilingual logo as public-domain simple geometry/text; Emirates trademark rights remain",
+      "bytes": 9142,
+      "sha256": "9ad8b2085c8c7f68d684437cca21c55a107d31bcbc993029405e9206fa8ed490"
+    },
+    {
+      "file": "emirates-gold.svg",
+      "owner": "The Emirates Group",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Emirates_Logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Emirates_Logo.svg",
+      "rights": "Derived from a Commons-listed public-domain simple logo; Emirates trademark rights remain",
+      "bytes": 9142,
+      "sha256": "54b2d60d210b110e7179628e99eba90075c0712492a16634a5136a30326bffc0",
+      "modification": "Recolored source #D71A21 to #c2a45f to match Emirates aircraft gold lettering"
+    },
+    {
+      "file": "thai-airways-logo.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Thai_Airways_logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Thai_Airways_logo.svg",
+      "owner": "Thai Airways International",
+      "rights": "Commons lists this official 2023 logo as public-domain simple geometry/text artwork; THAI trademark rights remain",
+      "bytes": 6664,
+      "sha256": "bd146f4259bad701032188a568c02d1fc9b3dd5d34c19ae2eb3f1d3ca0c74d5c"
+    },
+    {
+      "file": "thai-airways-orchid.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Thai_Airways_logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Thai_Airways_logo.svg",
+      "owner": "Thai Airways International",
+      "rights": "Derived emblem artwork from the Commons-listed official logo; THAI trademark rights remain",
+      "bytes": 5178,
+      "sha256": "8537aaa53b0dd757aeb638ebebb42ef146da3dfdb95823931b156be38d0ff356",
+      "modification": "Extracted the three orchid paths and a symbol-only viewBox from thai-airways-logo.svg; original source colors retained."
+    },
+    {
+      "file": "turkish-airlines-2019.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Turkish_Airlines_logo_2019.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Turkish_Airlines_logo_2019.svg",
+      "owner": "Turkish Airlines",
+      "rights": "Commons lists this current 2019 logo as public-domain simple geometry/text artwork; Turkish Airlines trademark rights remain",
+      "bytes": 11692,
+      "sha256": "6f805fc26b023ed087b897fcb47089931cb4f4768ca8c02e85a903d695a0d4a5"
+    },
+    {
+      "file": "japan-airlines-wordmark.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Japan_Airlines_Wordmark_(2011).svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Japan_Airlines_Wordmark_(2011).svg",
+      "owner": "Japan Airlines",
+      "rights": "Commons lists this official 2011 aircraft wordmark as public-domain simple logo/text artwork; Japan Airlines trademark rights remain",
+      "bytes": 34007,
+      "sha256": "d91a15acb37a960c1ecb29a017773f749d24080785a10a6ba58d1417338087c2"
+    },
+    {
+      "file": "japan-airlines-tsurumaru.svg",
+      "sourceUrl": "https://cdn.simpleicons.org/japanairlines/e60012",
+      "sourcePage": "https://github.com/simple-icons/simple-icons",
+      "owner": "Japan Airlines",
+      "rights": "Simple Icons artwork is CC0; Japan Airlines brand and trademark rights remain",
+      "bytes": 1955,
+      "sha256": "7c3157cd62278bb2152676fc53c1c5f2745292080f05071674e679aefaae9c59"
+    },
+    {
+      "file": "air-new-zealand-logo.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Air_New_Zealand_logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Air_New_Zealand_logo.svg",
+      "owner": "Air New Zealand",
+      "rights": "Commons lists this official 2012 logo as public-domain simple geometry/text artwork; Air New Zealand trademark rights remain",
+      "bytes": 5417,
+      "sha256": "bfc22a3f397c8adaccda246820294c50a719157015951c1e17a7c623be8bb46e"
+    },
+    {
+      "file": "ana-logo.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/All_Nippon_Airways_Logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:All_Nippon_Airways_Logo.svg",
+      "owner": "All Nippon Airways",
+      "rights": "Commons lists this official ANA logo as public-domain simple geometry/text artwork; ANA trademark rights remain",
+      "bytes": 2445,
+      "sha256": "57c509c3da018db87e18416acfdb7ac71a13c77a55f67c7224a09c4c1353954b"
+    },
+    {
+      "file": "klm-logo.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/KLM_logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:KLM_logo.svg",
+      "owner": "KLM Royal Dutch Airlines",
+      "rights": "Commons lists this official logo as public-domain simple geometry/text artwork; KLM trademark rights remain",
+      "bytes": 2287,
+      "sha256": "b51dad39b4fb78410de0d5e72164d79da112956e5d3415ce5924d8da6ef01ee5"
+    },
+    {
+      "file": "peach-current-logo.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Peach_Aviation_Logo.svg",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Peach_Aviation_Logo.svg",
+      "owner": "Peach Aviation",
+      "rights": "Commons lists this aircraft-era logo as public-domain simple text-logo artwork; Peach trademark rights remain; new aircraft livery is scheduled for 2027",
+      "bytes": 3016,
+      "sha256": "f4abf1f4929c0ba28c912ebf46b74a000a9414e64b579a3b6c5e385e7ac70b0e"
+    }
+  ]
+}

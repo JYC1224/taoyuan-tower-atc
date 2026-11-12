@@ -1,0 +1,30 @@
+# Expanded aircraft types — 2026-11-11
+
+The schedule now selects a distinct simulation and visual profile for the common variants that were previously folded into a generic aircraft. This adds A320-200, A321-200, A330-200, A330-900neo, A350-1000, A380-800, 737-800, 737-900, 737 MAX 8, 777-200ER and 777-300. Existing A320neo, A321neo, A330-300, A350-900, 787, 777-300ER and 777F profiles remain in place.
+
+The model families now have clearer silhouettes and cabin details:
+
+- A380: two window decks, separate upper/lower boarding-door rows, four engines and four main bogie assemblies.
+- A320/A330 classic variants: upper and lower wingtip fences; neo variants use taller swept sharklets.
+- A350-1000: modified flap geometry and six-wheel triple-tandem main bogies; A350-900 keeps its four-wheel twin-tandem bogies.
+- A350: curved composite wingtip profile; 737 MAX 8: forward-mounted, larger flattened LEAP nacelles, chevrons and split-tip winglets.
+- 777-200/300: standard-span wing; 777-300ER/777F: longer raked-wing planform. The 737 family gets the dorsal tail-root fairing and individual exit spacing.
+- 737, 787, 777, A330, A350 and A380 retain their family cockpit-window shapes and engine proportions.
+
+Wing planform stations now use family-specific metre dimensions rather than scaling chord with fuselage length. That keeps the A320/A321, 737-800/-900, 787-9/-10 and 777-200/-300 wing proportions consistent while each fuselage gets its own length. Engine nacelle diameter, placement and length, tailplane size, main-wheel diameter, door positions and bogie layout are model-profile data. Shared shape is used only where the actual aircraft family shares that structure.
+
+The aircraft still use the existing procedural airframe, airline livery, materials, lighting and scene pipeline. Airport scenery and global graphics settings were not changed. The added geometry does not alter collision shapes. New type profiles also carry their own dimensions and game-calibrated operating values, so model length, wingspan, wake category and movement estimates can differ by aircraft.
+
+Manufacturer dimensions and configurations were checked against Airbus' [A380](https://www.airbus.com/en/products-services/commercial-aircraft/passenger-aircraft/a380), [A380 aircraft-characteristics planning document](https://aircraft.airbus.com/sites/g/files/jlcbta126/files/2024-11/AC_A380_1124.pdf), [A350-900/-1000 planning document](https://www.airbus.com/sites/g/files/jlcbta136/files/2021-11/Airbus-Commercial-Aircraft-AC-A350-900-1000.pdf), [A330-900](https://www.aircraft.airbus.com/en/aircraft/a330/a330-900) and [A350-1000](https://www.aircraft.airbus.com/en/aircraft/a350/a350-1000) pages. Boeing references include [737 NG](https://www.boeing.com/commercial/737ng), [737 MAX design details](https://www.boeing.com/Commercial/737max/by-design), the [777 technical specifications](https://www.boeing.com/Commercial/777) and [777 airport-planning document](https://www.boeing.com/content/dam/boeing/boeingdotcom/commercial/airports/acaps/777_2lr_3er_f.pdf?pubDate=20251129). Aircraft dimensions come from manufacturer specifications; speeds, weights, taxi behavior and wake timing remain simulation calibrations rather than certified operational data.
+
+The A380-800 is present in the airport schedule snapshot at stand D6, so that stand and the connecting simulated taxi graph allow its 79.8 m wingspan. The W1/W2 shortcuts retain their 36 m limit.
+
+## Exterior-detail refinement — 2026-11-11
+
+The new close-range pass keeps the existing 19 profiles and rendering pipeline while replacing the last one-shape-fits-all fin outline with swept, family-specific vertical-tail planforms and a rudder hinge seam. The A380 fuselage section now narrows gently above the main deck to read as a double-lobe, two-deck body. A320 and 737 profiles now show the small over-wing exit panels in addition to the full-size boarding doors; door and hatch labels use restrained safety-stencil markings. Fine static-discharge wicks have been added along the wing trailing edge.
+
+The landing gear was corrected from a fuselage-radius guess to individual footprint dimensions: A320 7.590 m, A330 10.684 m, A350 10.734 m, 787-9/-10 11.9 m, 777-200 10.97 m, 777-300 12.88 m, 777-300ER/777F 12.90 m, and A380 wing/body gear spacing 12.456/5.264 m. The paired tire center spacing and tire radii are now model-family data as well; this opens the gear out to its proper position under each wing and gives the wheel pairs their correct width.
+
+The profile dimensions were rechecked against current manufacturer airport-planning references: Airbus [A320](https://www.aircraft.airbus.com/sites/g/files/jlcbta126/files/2025-07/AC_A320_20250715.pdf), [A330](https://www.aircraft.airbus.com/sites/g/files/jlcbta126/files/2025-12/AC_A330_20251201.pdf), [A350](https://www.aircraft.airbus.com/sites/g/files/jlcbta126/files/2023-02/Airbus-Commercial-Aircraft-AC-A350-900-1000.pdf?pubDate=20251206) and [A380](https://www.aircraft.airbus.com/sites/g/files/jlcbta126/files/2025-12/AC_A380_20251201.pdf) documents, plus Boeing [737](https://www.boeing.com/content/dam/boeing/v2/airports/acaps/737NG_REV_C.pdf), [787](https://www.boeing.com/content/dam/boeing/boeingdotcom/commercial/airports/acaps/787_ACAP_Rev_Q.pdf) and [777](https://www.boeing.com/content/dam/boeing/v2/airports/acaps/777-200-200ER-300_Rev_E.pdf) planning manuals. These sources publish airport-planning dimensions and configuration drawings, including model differences such as A350-900/-1000 main gear and 777 standard versus raked wings. The three-dimensional shapes remain original procedural reconstructions from those dimensions and drawings, not manufacturer CAD; the simulation does not yet encode each individual aircraft registration or every airline-specific engine option.
+
+`npm run build` completed successfully after these changes. The current 19-model exterior contact sheet is in `visual-qa/aircraft-exterior-gallery.png`. Vite still reports the large main JavaScript chunk; this aircraft pass did not change airport scenery, lighting or global quality settings, and no new frame-rate benchmark is claimed.
