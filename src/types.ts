@@ -1,9 +1,9 @@
 export type Point = { x: number; z: number };
 export type Role = 'Delivery'|'Ground'|'Tower'|'Approach'|'Departure';
-export type CameraMode = 'seat'|'walk'|'window'|'free'|'follow'|'orbit'|'runway'|'gate';
+export type CameraMode = 'seat'|'walk'|'window'|'free'|'follow'|'orbit'|'runway'|'gate'|'explore';
 export type WeatherKind = 'clear'|'cloudy'|'overcast'|'rain'|'storm'|'fog';
 export interface Weather { kind: WeatherKind; windDirection: number; windSpeed: number; visibility: number; wetness: number }
-export interface Scenario { date: string; startTime: string; duration: number; difficulty:'assisted'|'standard'|'advanced'|'hardcore'; weather:WeatherKind|'random'; seed:number; incidents:'off'|'rare'|'normal'|'training'; positions:Role[]; tutorial:boolean; density:number; routineAutomation?:boolean }
+export interface Scenario { date: string; startTime: string; duration: number; difficulty:'assisted'|'standard'|'advanced'|'hardcore'; weather:WeatherKind|'random'; seed:number; incidents:'off'|'rare'|'normal'|'training'; positions:Role[]; tutorial:boolean; density:number; routineAutomation?:boolean; exploration?:boolean }
 export type AircraftState = 'PARKED'|'REQUESTING_PUSHBACK'|'PUSHBACK_CLEARED'|'PUSHING'|'ENGINE_START'|'READY_TO_TAXI'|'TAXI_CLEARED'|'TAXIING'|'HOLDING_SHORT'|'LINE_UP_CLEARED'|'LINING_UP'|'READY_FOR_TAKEOFF'|'TAKEOFF_CLEARED'|'TAKEOFF_ROLL'|'AIRBORNE'|'DEPARTURE'|'HANDED_OFF'|'APPROACH'|'FINAL'|'LANDING_CLEARED'|'TOUCHDOWN'|'DECELERATING'|'VACATING_RUNWAY'|'GROUND_CONTACT'|'TAXIING_TO_GATE'|'ENTERING_STAND'|'DOCKED'|'GO_AROUND'|'HOLDING'|'COLLISION';
 export type Command = 'approvePushback'|'delayPushback'|'startEngines'|'taxi'|'cancelTaxi'|'hold'|'resume'|'holdShort'|'crossRunway'|'lineUp'|'takeoff'|'cancelTakeoff'|'contactDeparture'|'continueApproach'|'clearApproach'|'contactTower'|'land'|'goAround'|'vacate'|'contactGround'|'taxiToGate'|'heading'|'altitude'|'speed'|'delivery';
 export interface FleetProfile { id:string; name:string; length:number; span:number; height:number; mtow:number; emptyWeight:number; minWeight:number; maxWeight:number; taxiSpeed:number; taxiAcceleration:number; taxiBraking:number; acceleration:number; v1:number; vr:number; climbRate:number; approachSpeed:number; landingSpeed:number; braking:number; wake:'M'|'H'; turnRadius:number; engines:number; cargo?:boolean }

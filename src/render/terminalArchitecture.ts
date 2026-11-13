@@ -3,9 +3,11 @@ import type {Gate} from '../data/airport';
 import {gates as airportGates} from '../data/airport';
 import {box,canvasTexture,instances,material} from './primitives';
 import {surfaceImages} from './realismAssets';
+import {buildTerminalInterior,type TerminalInteriorProfile} from './terminalInteriors';
+import {decorateGateConcourse} from './terminalInteriorFidelity';
 
 export interface TerminalBounds {x:number;z:number;width:number;depth:number;height:number}
-export interface TerminalMaterials {glass:THREE.Material;cladding:THREE.MeshStandardMaterial;concrete:THREE.Material;metal:THREE.Material;roof?:THREE.Material}
+export interface TerminalMaterials {glass:THREE.Material;cladding:THREE.MeshStandardMaterial;concrete:THREE.Material;metal:THREE.Material;roof?:THREE.Material;floor?:THREE.Material;ceiling?:THREE.Material;deck?:THREE.Material;structure?:THREE.Material}
 
 /** High-clarity curtain wall; interiors remain readable through glass instead of a printed window image. */
 export function terminalCurtainGlass(){
@@ -66,7 +68,8 @@ function gateSigns(parent:THREE.Object3D,b:TerminalBounds,gateList:Gate[],gateSi
 }
 
 /** Interior floor, real scale supports, boarding signs, lounge seating and ceiling light strips. */
-export function terminalInterior(parent:THREE.Object3D,b:TerminalBounds,concrete:THREE.Material,gateList:Gate[]=[],gateSide:-1|1=1){
+export function terminalInterior(parent:THREE.Object3D,b:TerminalBounds,concrete:THREE.Material,gateList:Gate[]=[],gateSide:-1|1=1,profile?:TerminalInteriorProfile,mats?:TerminalMaterials){
+ if(profile&&mats){buildTerminalInterior(parent,b,profile,mats,gateList,gateSide);return;}
  box(parent,Math.max(2,b.width-1.2),.42,Math.max(2,b.depth-1.2),b.x,.34,b.z,concrete);
  const columnItems:{x:number;y:number;z:number;sx:number;sy:number;sz:number}[]=[],lightItems:typeof columnItems=[],seatItems:typeof columnItems=[],backItems:typeof columnItems=[],legItems:typeof columnItems=[];
  const columnHeight=Math.max(5,b.height-2.2),xStep=b.depth<70?32:34,zStep=b.depth<70?Infinity:38;
@@ -96,14 +99,19 @@ export function terminalInterior(parent:THREE.Object3D,b:TerminalBounds,concrete
 }
 
 /** Glass-and-cladding shell used for the terminal halls without changing their surveyed footprints. */
-export function buildTerminalAtrium(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials,gateList:Gate[]=[],gateSide:-1|1=1){
- box(parent,b.width,b.height,b.depth,b.x,b.height/2,b.z,mats.glass);
+export function buildTerminalAtrium(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials,gateList:Gate[]=[],gateSide:-1|1=1,profile?:TerminalInteriorProfile){
+ // A curtain wall is four vertical faces. A transparent box also creates a
+ // tinted glass ceiling and floor, which darkens the public halls unnaturally.
+ for(const side of [-1,1]){
+  box(parent,b.width,b.height,.12,b.x,b.height/2,b.z+side*(b.depth/2),mats.glass);
+  box(parent,.12,b.height,b.depth,b.x+side*(b.width/2),b.height/2,b.z,mats.glass);
+ }
  claddingBands(parent,b,mats.cladding);
- terminalInterior(parent,b,mats.concrete,gateList,gateSide);
+ terminalInterior(parent,b,mats.concrete,gateList,gateSide,profile,mats);
 }
 
 /** Passenger concourse with a continuous glass wall, human-scale frames and interior gate lounges. */
-export function buildGateConcourse(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials,gateList:Gate[],gateSide:-1|1){
+export function buildGateConcourse(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials,gateList:Gate[],gateSide:-1|1,terminal?:'T1'|'T2'){
  buildTerminalAtrium(parent,b,mats,gateList,gateSide);
  const frames:{x:number;y:number;z:number;sx:number;sy:number;sz:number}[]=[];
  for(let x=b.x-b.width/2+4;x<=b.x+b.width/2-4;x+=8){
@@ -115,6 +123,7 @@ export function buildGateConcourse(parent:THREE.Object3D,b:TerminalBounds,mats:T
  for(let x=b.x-b.width/2+11;x<b.x+b.width/2;x+=22){
   box(parent,13,.1,b.depth+2,x,b.height+1.42,b.z,mats.metal);
  }
+ if(terminal)decorateGateConcourse(parent,b,gateList,gateSide,terminal);
 }
 
 /** PBR spandrels applied to the completed-design terminal volumes; geometry stays project-authored. */

@@ -1,0 +1,21 @@
+.briefing-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.briefing-tabs button{font-size:10px}
+.explore-hud{position:absolute;inset:0;pointer-events:none!important;color:#e2ece7}
+.explore-hud button,.explore-hud select{pointer-events:auto}
+.explore-top{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:67px;padding:10px 20px;background:linear-gradient(180deg,rgba(10,25,32,.9),rgba(10,25,32,.65));border-bottom:1px solid #c2d9ca30;pointer-events:auto}
+.explore-brand,.explore-top-actions,.explore-speed{display:flex;align-items:center;gap:9px}
+.explore-brand .logo-mark{width:25px;height:30px}
+.explore-brand .logo strong{font-size:10px}.explore-brand .logo small{font-size:8px}
+.explore-badge{margin-left:14px;padding:8px 10px;border:1px solid #9fc7b43b;border-radius:4px;background:#153e3699;color:#bde3cd;font-size:10px;white-space:nowrap}
+.explore-badge .status-dot{margin-right:7px}
+.explore-top-actions{font-size:11px}
+.explore-top button{padding:8px 10px;border-radius:4px;font-size:10px;white-space:nowrap}
+.explore-speed{gap:3px}.explore-speed button.active{background:#b3d0ad;color:#142c30;border-color:#b3d0ad}
+.explore-panel{position:absolute;top:88px;left:20px;width:230px;padding:14px;display:flex;flex-direction:column;gap:9px;border:1px solid #b6c7be44;border-radius:6px;background:#102730db;box-shadow:0 10px 35px #07131b55;backdrop-filter:blur(12px);pointer-events:auto}
+.explore-panel label{font-size:10px;letter-spacing:1px;color:#a7c3b5}
+.explore-panel select{width:100%;font-size:12px}.explore-panel small{color:#c4d4cf;font-size:10px;line-height:1.55}
+.explore-help{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 40px);padding:10px 14px;border:1px solid #b6c7be33;border-radius:5px;background:#102730d6;color:#e1e9df;font-size:11px;line-height:1.5;text-align:center;white-space:nowrap}
+.explore-paused{position:absolute;top:90px;left:50%;transform:translateX(-50%);padding:9px 15px;border:1px solid #c3d7c36b;border-radius:4px;background:#102730df;font-size:11px;letter-spacing:1px}
+.explore-paused[hidden]{display:none}
+@media(max-width:850px){.explore-brand .logo div{display:none}.explore-badge{margin-left:0}.explore-top{padding:8px 10px;gap:7px}.explore-top-actions{gap:4px}.explore-top button{padding:7px;font-size:9px}.explore-panel{top:76px;left:10px;width:205px}.explore-help{white-space:normal;font-size:10px}}
+@media(max-width:540px){.explore-top{flex-wrap:wrap}.explore-top-actions{margin-left:auto}.explore-panel{top:112px;width:190px}.explore-badge{font-size:9px}.explore-brand .logo{display:none}.explore-help{bottom:10px;width:calc(100vw - 20px)}}

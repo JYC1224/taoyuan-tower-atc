@@ -50,6 +50,14 @@ Open [the production preview](http://127.0.0.1:4173). Build output is in `dist`.
 
 Use 2×, 4× or 8× to shorten waiting. Standard/hardcore modes offer explicit unsafe-clearance overrides with score consequences. Assisted mode protects unsafe clearances. Unattended controller positions may be handled by assistance. **End shift** opens the performance summary.
 
+## Explore the airport
+
+Choose **Explore / 機場漫遊** in the briefing, select a date, time and weather, then start exploring. AI controllers manage every position, ground conflicts and routine handoffs for an unlimited watch. The dated flight snapshot is used where available; later days continue with a synthetic schedule. Flight movements remain the simulator's modeled operations.
+
+Use **W A S D** or the arrow keys to walk, drag with the left mouse button to look around, and hold **Shift** to walk faster. **Space** pauses or resumes traffic. The location selector moves the viewpoint between the runway, apron, Terminal 2 halls, Terminal 3 north concourse and the tower cab. Use the speed controls to watch traffic at 1×, 2× or 4×, and enable flight labels if desired.
+
+Indoor viewpoints stay on their selected floor and use simplified wall and major-obstacle boundaries. Moving between floors, the tower and exterior currently uses the location selector; doors, elevators, stairs, furniture and vehicles do not yet have a complete pedestrian interaction model.
+
 ## Plan the traffic
 
 Open **Operations / 作業總覽** for arrival threshold ETAs, departure occupancy estimates, wake intervals, runway occupancy, traffic waves, apron congestion and ground priorities. Standard mode supplies predictions and suggested routes; the controller decides which departure fits an arrival gap. A predicted takeoff opportunity includes line-up time, modeled runway clearance, wake spacing and a safety buffer.

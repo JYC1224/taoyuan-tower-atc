@@ -1,7 +1,7 @@
 import type { Aircraft, AircraftState, Command, CommandResult, Point, RadioMessage, Role, RouteProposal, Scenario, Scores, SimulationAPI, Weather, WeatherKind } from '../types';
 import { gates, runways, taxiEdges, taxiNodes } from '../data/airport';
 import { AIRLINES, AIRLINE_FLEET, FLEET, airlineIdForIata } from '../data/fleet';
-import { plausiblePorts, scenarioSchedule, secondsOfDay, seededRandom, type ScheduledFlight } from '../data/schedule';
+import { explorationScheduleAfter, plausiblePorts, scenarioSchedule, secondsOfDay, seededRandom, type ScheduledFlight } from '../data/schedule';
 import { performanceFor, wakeSeconds } from './performance';
 import { distance, edgeBetween, nearestTaxiNode, nodeById, shortestRoute, smoothPath, type PathPoint } from './routing';
 import { GroundTraffic, projectSegment, type GroundIntent } from './GroundTraffic';
@@ -70,8 +70,16 @@ export class Simulation implements SimulationAPI {
     if(kind==='arrival'&&this.scenario.difficulty!=='assisted'&&!this.scenario.tutorial&&this.serial%7===0){const pressured=gates.find(g=>g.maxSpan>=profile.span&&this.aircraft.some(a=>a.gate===g.id&&a.kind==='departure'&&!a.completed&&['REQUESTING_PUSHBACK','PUSHBACK_CLEARED'].includes(a.state))&&!this.aircraft.some(a=>a.kind==='arrival'&&!a.completed&&a.gate===g.id));if(pressured)gate=pressured;}
     const rw=runways[this.serial%runways.length],dir=this.activeDirection,sign=dir==='05'?1:-1;
     const id=`AC-${++this.serial}`,number=flight?.number??String(100+Math.floor(this.random()*890));
-    const arrivingCount=this.aircraft.filter(a=>a.kind==='arrival'&&!a.completed&&a.runway===rw.ends[dir==='05'?0:1]).length;
-    const approachDistance=flight?.exact&&kind==='arrival'?clamp((flight.scheduledTime!-this.time)*profile.approachSpeed,1200,70000):24000+arrivingCount*11500,threshold=this.threshold(rw,dir);
+    const arrivingCount=this.aircraft.filter(a=>a.kind==='arrival'&&!a.completed&&a.runway===rw.ends[dir==='05'?0:1]).length,threshold=this.threshold(rw,dir);
+    let approachDistance=flight?.exact&&kind==='arrival'?clamp((flight.scheduledTime!-this.time)*profile.approachSpeed,1200,70000):24000+arrivingCount*11500;
+    if(this.scenario.exploration&&kind==='arrival'){
+      // A dated board may list several flights at the same minute. Stage new
+      // arrivals behind existing final traffic so the unattended controller has
+      // time to clear them and the runway can be vacated between landings.
+      const existing=this.aircraft.filter(a=>a.kind==='arrival'&&!a.completed&&a.runway===rw.ends[dir==='05'?0:1]&&['APPROACH','FINAL','LANDING_CLEARED'].includes(a.state));
+      const furthest=Math.max(0,...existing.map(a=>(threshold.x-a.position.x)*sign));
+      approachDistance=Math.max(approachDistance,9000,furthest?furthest+11500:0);
+    }
     const start=kind==='departure'?{x:gate.x,y:0,z:gate.z}:{x:threshold.x-sign*approachDistance,y:Math.min(2400,approachDistance*.0524),z:rw.z};
     const weight=profile.minWeight+(profile.maxWeight-profile.minWeight)*(kind==='arrival'?.12+this.random()*.28:.32+this.random()*.63);
     const delivery=this.scenario.positions.includes('Delivery');
@@ -408,7 +416,7 @@ export class Simulation implements SimulationAPI {
     if(this.scenario.difficulty==='hardcore'||this.scenario.positions.includes(a.role)||a.held)return;
     const m=this.motion.get(a.id)!;if(this.elapsed<m.nextAssist)return;m.nextAssist=this.elapsed+5+a.pilot.responseDelay;
     let cmd:Command|undefined;
-    switch(a.state){case 'REQUESTING_PUSHBACK':cmd=m.delivery?'approvePushback':'delivery';break;case 'ENGINE_START':if(a.timer===0)cmd='startEngines';break;case 'READY_TO_TAXI':cmd='taxi';break;case 'HOLDING_SHORT':cmd='lineUp';break;case 'READY_FOR_TAKEOFF':cmd='takeoff';break;case 'AIRBORNE':cmd='contactDeparture';break;case 'APPROACH':cmd='clearApproach';break;case 'FINAL':cmd=a.role==='Approach'?'contactTower':'land';break;case 'DECELERATING':if(!m.vacateRequested)cmd='vacate';break;case 'GROUND_CONTACT':cmd=a.role==='Tower'?'contactGround':'taxiToGate';break;}
+    switch(a.state){case 'REQUESTING_PUSHBACK':cmd=m.delivery?'approvePushback':'delivery';break;case 'ENGINE_START':if(a.timer===0)cmd='startEngines';break;case 'READY_TO_TAXI':cmd='taxi';break;case 'TAXI_CLEARED':case 'TAXIING':case 'TAXIING_TO_GATE':if(this.ground.waits.get(a.id)?.reason==='Runway crossing clearance required')cmd='crossRunway';break;case 'HOLDING_SHORT':cmd='lineUp';break;case 'READY_FOR_TAKEOFF':cmd='takeoff';break;case 'AIRBORNE':cmd='contactDeparture';break;case 'APPROACH':cmd='clearApproach';break;case 'GO_AROUND':if(a.elapsed>30&&!m.resumeApproach)cmd='clearApproach';break;case 'FINAL':cmd=a.role==='Approach'?'contactTower':'land';break;case 'DECELERATING':if(!m.vacateRequested)cmd='vacate';break;case 'GROUND_CONTACT':cmd=a.role==='Tower'?'contactGround':'taxiToGate';break;}
     if(cmd){const result=this.command(a.id,cmd,false,undefined,'assist');if(!result.ok&&cmd==='taxiToGate'){const alternative=gates.find(g=>g.maxSpan>=FLEET[a.type].span&&!this.gateOccupancy.has(g.id));if(alternative)this.command(a.id,'taxiToGate',false,alternative.id,'assist');}}
   }
   private routine(a:Aircraft){
@@ -444,6 +452,7 @@ export class Simulation implements SimulationAPI {
     if(this.pendingDirection)return;
     if(this.scenario.tutorial){if(!this.tutorialArrival&&this.scores.departures>0){this.addAircraft('arrival','A321');this.tutorialArrival=true;}return;}
     if(this.aircraft.filter(a=>!a.completed).length>=18)return;
+    if(this.scenario.exploration&&this.scheduleIndex>=this.schedule.length){const after=Math.max(this.time,this.schedule.at(-1)?.time??this.time);this.schedule=explorationScheduleAfter(this.scenario,after);this.scheduleIndex=0;this.log('Sightseeing traffic continues with a synthetic schedule for the next day.','info');}
     let count=0;while(this.scheduleIndex<this.schedule.length&&this.schedule[this.scheduleIndex].time<=this.time&&count<2){const flight=this.schedule[this.scheduleIndex];const a=this.addAircraft(flight.kind,flight.type,flight);if(!a)break;this.scheduleIndex++;count++;}
   }
   private incidents():void{

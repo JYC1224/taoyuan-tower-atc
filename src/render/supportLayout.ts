@@ -1,11 +1,13 @@
 import type {Gate,TaxiEdge,TaxiNode} from '../data/airport';
+import {FLEET} from '../data/fleet';
 
 export interface SupportBay {gate:string;x:number;z:number;side:number;front:number;halfDepth:number;distanceToGraph:number}
 
-// Clearance covers an approximately 39 m aircraft radius, the equipment bay's
+// Clearance covers the largest supported aircraft envelope, the equipment bay
 // bounding circle and a small margin around every graph centreline.
 export const SUPPORT_BAY_RADIUS=Math.hypot(7,3);
-export const SUPPORT_PATH_CLEARANCE=39+SUPPORT_BAY_RADIUS+2;
+export const SUPPORT_AIRCRAFT_RADIUS=Math.max(...Object.values(FLEET).map(p=>Math.max(p.length/2,Math.hypot(p.span/2,p.length*.25))));
+export const SUPPORT_PATH_CLEARANCE=SUPPORT_AIRCRAFT_RADIUS+SUPPORT_BAY_RADIUS+2;
 
 export function concourseForGate(gate:Gate){
  const z=gate.id.startsWith('A')?-198:gate.id.startsWith('B')?90:gate.id.startsWith('C')?105:gate.terminal==='T3 North'?-240:-225;

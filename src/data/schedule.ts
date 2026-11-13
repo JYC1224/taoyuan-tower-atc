@@ -109,3 +109,12 @@ export function scenarioSchedule(scenario:Scenario):ScheduledFlight[] {
   if(hasOfficialSchedule(scenario.date))return officialScheduleProvider.flights(scenario.date,scenario.seed,1);
   return scheduleProvider.flights(scenario.date,scenario.seed,scenario.density*difficultyFor(scenario).density);
 }
+
+/** Continue an unlimited observation session with a dated synthetic day after its source runs out. */
+export function explorationScheduleAfter(scenario:Scenario,after:number):ScheduledFlight[] {
+  const day=Math.max(1,Math.floor(after/86400)+1);
+  const date=new Date(Date.parse(`${scenario.date}T00:00:00Z`)+day*86400000).toISOString().slice(0,10);
+  return scheduleProvider.flights(date,scenario.seed,scenario.density*difficultyFor(scenario).density)
+    .filter(f=>f.time<86400)
+    .map(f=>({...f,id:`roam-${day}-${f.id}`,time:f.time+day*86400}));
+}

@@ -70,13 +70,55 @@ export function apronSupport(staticGroup:THREE.Group,groundGroup:THREE.Group,gat
  const signMaterial=new THREE.MeshStandardMaterial({map:atlas,roughness:.8,metalness:.03,emissive:'#4c5d66',emissiveMap:atlas,emissiveIntensity:.18});signMaterial.userData.noShadow=true;
  signGates.forEach((gate,i)=>{
   const c=concourseForGate(gate),side=Math.sign(gate.z-c.z)||1,x=gate.x-10;
-  if(gate.terminal==='T3 North'&&(x< -1435||x> -745))return;
+  if(gate.terminal==='T3 North'&&(x< -1460||x> -720))return;
   const geo=new THREE.PlaneGeometry(3.8,1.35),uv=geo.getAttribute('uv'),col=i%columns,row=Math.floor(i/columns);
   for(let k=0;k<uv.count;k++)uv.setXY(k,(col+uv.getX(k))/columns,1-(row+1-uv.getY(k))/rows);
   const sign=new THREE.Mesh(geo,signMaterial);sign.position.set(x,5.3,c.z+side*(c.halfDepth+.08));sign.rotation.y=side<0?Math.PI:0;staticGroup.add(sign);
  });
  groundGroup.userData.supportBayCount=bays.length;
  return bays;
+}
+
+/** Published RLG GIS206-2 stand guidance positions, represented as static hardware. */
+export function apronGuidanceSystems(parent:THREE.Group,gates:Gate[]){
+ const eligible=gates.filter(g=>/^A[1-9]$/.test(g.id)||/^B[1-9]$/.test(g.id)||/^C(?:[1-9]|10)$/.test(g.id)||/^D(?:[1-9]|10)$/.test(g.id)||/^5(?:0[1-9]|1[0-9]|2[0-5])$/.test(g.id));
+ const columns=8,cell=128,rows=Math.ceil(eligible.length/columns),texture=canvasTexture(columns*cell,rows*cell,ctx=>{
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  eligible.forEach((gate,i)=>{const x=(i%columns)*cell,y=Math.floor(i/columns)*cell;ctx.fillStyle='#07181e';ctx.fillRect(x+5,y+5,cell-10,cell-10);ctx.strokeStyle='#55696d';ctx.lineWidth=5;ctx.strokeRect(x+8,y+8,cell-16,cell-16);ctx.fillStyle='#d9e3dd';ctx.font='bold 22px Arial';ctx.fillText('STAND',x+cell/2,y+34);ctx.fillStyle='#e7c85d';ctx.font='bold 42px Arial';ctx.fillText(gate.id,x+cell/2,y+78);ctx.strokeStyle='#75d7a8';ctx.lineWidth=5;for(const side of [-1,1]){const cx=x+cell/2+side*31;ctx.beginPath();ctx.moveTo(cx-side*10,y+105);ctx.lineTo(cx+side*3,y+105);ctx.lineTo(cx+side*3,y+98);ctx.moveTo(cx+side*3,y+105);ctx.lineTo(cx+side*3,y+112);ctx.stroke();}});
+ });
+ texture.anisotropy=8;
+ const frame=material('#59686c',.54,.42),base=material('#56656a',.66,.34),housing=material('#26363c',.64,.36),screenMaterial=new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false});
+ const bases:Instance[]=[],posts:Instance[]=[],cases:Instance[]=[],positions:number[]=[],uvs:number[]=[],indices:number[]=[];
+ eligible.forEach((gate,i)=>{
+  const h=gate.heading,forward={x:Math.sin(h),z:-Math.cos(h)},left={x:-Math.cos(h),z:-Math.sin(h)},x=gate.x+forward.x*34+left.x*5.8,z=gate.z+forward.z*34+left.z*5.8;
+  bases.push({x,y:.17,z,sx:1.05,sy:.30,sz:.88,ry:-h});
+  for(const side of [-1,1])posts.push({x:x+left.x*side*.37,y:1.10,z:z+left.z*side*.37,sx:.12,sy:1.80,sz:.12,ry:-h});
+  cases.push({x,y:2.12,z,sx:1.18,sy:1.10,sz:.34,ry:-h});
+  const cx=x-forward.x*.20,cz=z-forward.z*.20,halfW=.53,halfH=.40,right={x:Math.cos(h),z:Math.sin(h)},col=i%columns,row=Math.floor(i/columns),u0=col/columns,u1=(col+1)/columns,v0=1-(row+1)/rows,v1=1-row/rows,start=positions.length/3;
+  positions.push(cx-right.x*halfW,2.37,cz-right.z*halfW,cx+right.x*halfW,2.37,cz+right.z*halfW,cx+right.x*halfW,3.17,cz+right.z*halfW,cx-right.x*halfW,3.17,cz-right.z*halfW);
+  uvs.push(u0,v0,u1,v0,u1,v1,u0,v1);indices.push(start,start+1,start+2,start,start+2,start+3);
+ });
+ instances(parent,new THREE.BoxGeometry(1,1,1),base,bases);instances(parent,new THREE.BoxGeometry(1,1,1),frame,posts);instances(parent,new THREE.BoxGeometry(1,1,1),housing,cases);
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeVertexNormals();const displays=new THREE.Mesh(geometry,screenMaterial);displays.castShadow=false;displays.userData.standGuidanceCount=eligible.length;parent.add(displays);
+ return eligible.length;
+}
+
+/** Low-mounted taxiway guidance/location signs at the charted graph junctions. */
+export function taxiwayDirectionSigns(parent:THREE.Group,nodes:TaxiNode[],edges:TaxiEdge[]){
+ const intersections=nodes.filter(n=>/^[NPQRS]\d+$/.test(n.id)),columns=4,cellW=192,cellH=96,rows=Math.ceil(intersections.length/columns),texture=canvasTexture(columns*cellW,rows*cellH,ctx=>{
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  intersections.forEach((node,i)=>{const x=(i%columns)*cellW,y=Math.floor(i/columns)*cellH,connected=edges.filter(e=>e.from===node.id||e.to===node.id).map(e=>e.name).filter(name=>name!==node.id),next=[...new Set(connected)].slice(0,2).join('  ');ctx.fillStyle='#101c20';ctx.fillRect(x+4,y+4,cellW-8,cellH-8);ctx.strokeStyle='#e0c64d';ctx.lineWidth=6;ctx.strokeRect(x+7,y+7,cellW-14,cellH-14);ctx.fillStyle='#f3d958';ctx.font='bold 42px Arial';ctx.fillText(node.id,x+cellW*.31,y+cellH*.53,cellW*.54);ctx.fillStyle='#e7dd9f';ctx.font='bold 22px Arial';ctx.fillText(next,x+cellW*.72,y+cellH*.53,cellW*.48);});
+ });texture.anisotropy=8;
+ const supports:Instance[]=[],panels:Instance[]=[],positions:number[]=[],uvs:number[]=[],indices:number[]=[],frame=material('#677276',.56,.38),housing=material('#172326',.7,.14);
+ intersections.forEach((node,i)=>{
+  const connected=edges.find(e=>e.from===node.id||e.to===node.id);if(!connected)return;const neighborId=connected.from===node.id?connected.to:connected.from,neighbor=nodes.find(n=>n.id===neighborId);if(!neighbor)return;
+  const dx=node.x-neighbor.x,dz=node.z-neighbor.z,l=Math.hypot(dx,dz)||1,fx=dx/l,fz=dz/l,sx=-fz,sz=fx,side=(node.x*sx+node.z*sz)<0?-1:1,x=node.x+sx*side*21,z=node.z+sz*side*21,theta=Math.atan2(fx,fz);
+  supports.push({x,y:1.22,z,sx:.14,sy:2.34,sz:.14,ry:theta},{x:x-sx*side*1.05,y:1.22,z:z-sz*side*1.05,sx:.14,sy:2.34,sz:.14,ry:theta});panels.push({x,y:2.42,z,sx:3.8,sy:1.15,sz:.28,ry:theta});
+  const right={x:Math.cos(theta),z:-Math.sin(theta)},halfW=1.72,halfH=.43,start=positions.length/3,cols=columns,rowsCount=rows,col=i%columns,row=Math.floor(i/columns),u0=col/cols,u1=(col+1)/cols,v0=1-(row+1)/rowsCount,v1=1-row/rowsCount;
+  positions.push(x-right.x*halfW,2.0,z-right.z*halfW,x+right.x*halfW,2.0,z+right.z*halfW,x+right.x*halfW,2.84,z+right.z*halfW,x-right.x*halfW,2.84,z-right.z*halfW);uvs.push(u0,v0,u1,v0,u1,v1,u0,v1);indices.push(start,start+1,start+2,start,start+2,start+3);
+ });
+ instances(parent,new THREE.BoxGeometry(1,1,1),frame,supports);instances(parent,new THREE.BoxGeometry(1,1,1),housing,panels);
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeVertexNormals();const signMaterial=new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false}),signs=new THREE.Mesh(geometry,signMaterial);signs.castShadow=false;signs.userData.taxiwaySignCount=intersections.length;parent.add(signs);return intersections.length;
 }
 
 /** Four downward-facing floodlights on each existing apron mast. */

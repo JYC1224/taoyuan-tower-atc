@@ -9,7 +9,7 @@ export function completedTerminal3(parent:THREE.Group,t:Terminal,glass:THREE.Mat
  const shell=material('#e2e6e4',.68,.14),roofFinish=roofMaterial('#e2e6e4',.68,.14),metal=material('#aab7bd',.44,.4),foundation=material('#a9b1b0',.88);
  if(t.id==='T3-S'){
   box(parent,t.width,15,t.depth,t.x,7.5,t.z,glass);
-  const bounds:TerminalBounds={x:t.x,z:t.z,width:t.width,depth:t.depth,height:15};terminalSpandrels(parent,bounds,cladding);terminalInterior(parent,bounds,concrete);
+  const bounds:TerminalBounds={x:t.x,z:t.z,width:t.width,depth:t.depth,height:15};terminalSpandrels(parent,bounds,cladding);terminalInterior(parent,bounds,concrete,[],1,'T3-S',{glass,cladding,concrete,metal,roof:roofFinish});
   box(parent,t.width+8,1.2,t.depth+8,t.x,15.6,t.z,roofFinish);
   for(const side of [-1,1]){
    box(parent,t.width,.55,.5,t.x,6,t.z+side*(t.depth/2+.2),shell);
@@ -20,7 +20,7 @@ export function completedTerminal3(parent:THREE.Group,t:Terminal,glass:THREE.Mat
  // Main body uses the published approximately 414 m by 242 m footprint.
  box(parent,t.width,2,t.depth,t.x,1,t.z,foundation);
  box(parent,t.width,30,t.depth,t.x,17,t.z,glass);
- const bounds:TerminalBounds={x:t.x,z:t.z,width:t.width,depth:t.depth,height:30};terminalSpandrels(parent,bounds,cladding);terminalInterior(parent,bounds,concrete);
+ const bounds:TerminalBounds={x:t.x,z:t.z,width:t.width,depth:t.depth,height:30};terminalSpandrels(parent,bounds,cladding);terminalInterior(parent,bounds,concrete,[],1,'T3',{glass,cladding,concrete,metal,roof:roofFinish});
  for(const side of [-1,1]){
   for(const y of [7,14,21,28])box(parent,t.width,.45,.45,t.x,y,t.z+side*(t.depth/2+.2),shell);
   for(let x=-t.width/2;x<=t.width/2;x+=8)box(parent,.22,30,.35,t.x+x,17,t.z+side*(t.depth/2+.2),metal);

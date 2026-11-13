@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {gates,runways,taxiEdges,taxiNodes} from '../src/data/airport';
 import {FLEET} from '../src/data/fleet';
-import {concourseForGate,planSupportBays,SUPPORT_BAY_RADIUS,SUPPORT_PATH_CLEARANCE,windsockAngles} from '../src/render/supportLayout';
+import {concourseForGate,planSupportBays,SUPPORT_AIRCRAFT_RADIUS,SUPPORT_BAY_RADIUS,SUPPORT_PATH_CLEARANCE,windsockAngles} from '../src/render/supportLayout';
 
 function pointSegmentDistance(x:number,z:number,ax:number,az:number,bx:number,bz:number){
  const dx=bx-ax,dz=bz-az,denominator=dx*dx+dz*dz;
@@ -13,11 +13,11 @@ function pointSegmentDistance(x:number,z:number,ax:number,az:number,bx:number,bz
 test('equipment bays keep the supported fleet clear of taxi, stand and runway centrelines',()=>{
  const bays=planSupportBays(gates,taxiNodes,taxiEdges),nodes=new Map(taxiNodes.map(node=>[node.id,node]));
  assert(bays.length>=25);assert.equal(new Set(bays.map(b=>b.gate)).size,bays.length);
- for(const profile of Object.values(FLEET))assert(Math.max(profile.length/2,Math.hypot(profile.span/2,profile.length*.25))<39,profile.id);
+ for(const profile of Object.values(FLEET))assert(Math.max(profile.length/2,Math.hypot(profile.span/2,profile.length*.25))<=SUPPORT_AIRCRAFT_RADIUS+1e-9,profile.id);
  for(const bay of bays){
   assert(Math.abs(bay.z-bay.front)>=6-1e-9); // The 6 m deep bay sits outside the facade.
   for(const edge of taxiEdges){const a=nodes.get(edge.from)!,b=nodes.get(edge.to)!;assert(pointSegmentDistance(bay.x,bay.z,a.x,a.z,b.x,b.z)>=SUPPORT_PATH_CLEARANCE-1e-7,`${bay.gate}: ${edge.id}`);}
-  for(const runway of runways)if(Math.abs(bay.x-runway.x)<runway.length/2+39)assert(Math.abs(bay.z-runway.z)>runway.width/2+39+SUPPORT_BAY_RADIUS);
+  for(const runway of runways)if(Math.abs(bay.x-runway.x)<runway.length/2+SUPPORT_AIRCRAFT_RADIUS)assert(Math.abs(bay.z-runway.z)>runway.width/2+SUPPORT_AIRCRAFT_RADIUS+SUPPORT_BAY_RADIUS);
  }
 });
 
