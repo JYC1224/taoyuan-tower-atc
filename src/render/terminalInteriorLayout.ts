@@ -1,4 +1,34 @@
 /** Public-map proportions for built terminal interior footprints. */
+/**
+ * T1's public 2F map depicts a large central opening with a narrow public
+ * circulation band around it. The map is schematic, so these ratios are a
+ * visual fit to its footprint rather than surveyed dimensions.
+ */
+export const T1_SECOND_FLOOR_LAYOUT={
+ atrium:{widthRatio:.78,depthRatio:.66,xOffset:0,zOffset:0},
+ shop:{width:17,depth:8.2},
+ shops:[
+  {id:'taiwan-beer',side:-1,zRatio:-.26},
+  {id:'oli',side:-1,zRatio:-.02},
+  {id:'hanlin',side:-1,zRatio:.20},
+  {id:'kuo-yuan-ye',side:1,zRatio:-.26},
+  {id:'mos',side:1,zRatio:-.02},
+  {id:'bistro-d',side:1,zRatio:.20},
+ ]
+} as const;
+
+/** T1 3F public-map tenants; storefront dimensions/coordinates are estimates. */
+export const T1_THIRD_FLOOR_STORES=[
+ {id:'starbucks',dx:-64,dz:-95,width:17,depth:12,label:'STARBUCKS  星巴克',accent:'#176b50',kind:'food',profile:'tea'},
+ {id:'oli',dx:-12,dz:-9,width:17,depth:12,label:'OLI DESIGN  設計師商店',accent:'#637c75',kind:'retail',profile:'design'},
+ {id:'taiwan-goods',dx:-12,dz:8,width:17,depth:8,label:'TAIWAN SPECIALTY GOODS  台灣特色商品館',accent:'#a17b4f',kind:'retail',profile:'taiwan-goods'},
+ {id:'hanlin',dx:-8,dz:25,width:17,depth:12,label:'HANLIN TEA  翰林茶館',accent:'#8b4836',kind:'food',profile:'tea'},
+ {id:'kuo-yuan-ye',dx:22,dz:-78,width:18,depth:12,label:'KUO YUAN YE  郭元益',accent:'#a17a45',kind:'food',profile:'bakery'},
+ {id:'mos',dx:-60,dz:82,width:17,depth:12,label:'MOS BURGER  摩斯漢堡',accent:'#ad4538',kind:'food',profile:'burger'},
+ {id:'vigor',dx:-8,dz:90,width:18,depth:12,label:'VIGOR BAKERY  維格餅家',accent:'#a17a45',kind:'food',profile:'bakery'},
+ {id:'indigenous-crafts',dx:-70,dz:106,width:20,depth:12,label:'TAIWAN INDIGENOUS CRAFT  原住民精藝品展售館',accent:'#8d754c',kind:'retail',profile:'craft'},
+] as const;
+
 export const T1_FOURTH_FLOOR_LAYOUT = {
  // The operator's archived T1 Zone C specification gives 376 m². Its current
  // listing describes a 100-guest capacity. Zone D has no public measured plan,
