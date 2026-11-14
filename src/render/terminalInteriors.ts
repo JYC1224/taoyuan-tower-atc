@@ -79,12 +79,14 @@ function interiorReflection(profile:'T1'|'T2'|'T2-LOW'){
     ctx.stroke();
    }
    // Broad, weak highlights keep the polished return from looking like white
-   // striping; pendants are small reflected forms rather than oversized blobs.
+   // striping; pendant reflections stay compact and follow the oval diffuser
+   // shape visible in the T2 check-in hall instead of a decorative starburst.
    ctx.fillStyle='rgba(255,246,215,.24)';ctx.fillRect(0,88,256,2);ctx.fillRect(0,190,256,2);
    for(const y of [112,165])for(let x=28;x<256;x+=72){
-    ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(255,250,232,.38)';
-    for(let petal=0;petal<6;petal++){ctx.save();ctx.rotate(petal*Math.PI/3);ctx.beginPath();ctx.ellipse(0,-4.4,2.1,3.8,0,0,Math.PI*2);ctx.fill();ctx.restore();}
-    ctx.beginPath();ctx.arc(0,0,1.6,0,Math.PI*2);ctx.fillStyle='rgba(255,232,179,.45)';ctx.fill();ctx.restore();
+    ctx.save();ctx.translate(x,y);
+    ctx.fillStyle='rgba(255,250,232,.2)';ctx.beginPath();ctx.ellipse(0,0,5.3,2.25,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,246,.42)';ctx.beginPath();ctx.ellipse(0,0,3.65,.92,0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
    }
   }
  }

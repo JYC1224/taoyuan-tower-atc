@@ -251,17 +251,21 @@ export function decorateTerminal2(parent:THREE.Object3D,b:Bounds){
  const spine=new THREE.Mesh(new THREE.TubeGeometry(solarSpine,56,.05,7,false),solarFrame);spine.castShadow=false;parent.add(spine);
  flushBeams(parent,steel,wire);flushBeams(parent,aluminium,hangers);
 
- // The raised hall also has broad circular pendant luminaires visible beneath
- // the dark space frame in the airport's check-in photographs.
- const luminaire=new THREE.MeshBasicMaterial({color:'#fff9e7',toneMapped:false,side:THREE.DoubleSide}),lampGlass=new THREE.MeshBasicMaterial({color:'#fff4cf',transparent:true,opacity:.82,toneMapped:false,side:THREE.DoubleSide});
- const pendantOutline=new THREE.Shape(),petalPoints=96;for(let point=0;point<=petalPoints;point++){const angle=point/petalPoints*Math.PI*2,radius=1.22+.28*Math.pow(Math.max(0,Math.cos(angle*6)),2),x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;if(point===0)pendantOutline.moveTo(x,z);else pendantOutline.lineTo(x,z);}pendantOutline.closePath();
- const pendantGeometry=new THREE.ShapeGeometry(pendantOutline,96),pendantBody=new THREE.MeshBasicMaterial({color:'#f1efe3',toneMapped:false,side:THREE.DoubleSide});
+ // The check-in reference shows broad round suspended fixtures under the
+ // space frame. Build them as open concentric rings with discrete diffusers;
+ // a filled six-lobed plate read as a flower and produced star-shaped floor
+ // reflections that are absent from the photographed hall.
+ const fixtureCount=20,luminaire=new THREE.MeshBasicMaterial({color:'#fff9e7',toneMapped:false,side:THREE.DoubleSide}),pendantOuter=new THREE.TorusGeometry(3.35,.065,8,72),pendantInner=new THREE.TorusGeometry(2.55,.045,8,64),pendantCenter=new THREE.CircleGeometry(1.18,48),pendantRingMat=material('#c4c7bd',.42,.5),pendantDiffuserMat=new THREE.MeshBasicMaterial({color:'#fff4cf',transparent:true,opacity:.72,toneMapped:false,side:THREE.DoubleSide}),
+  housingMesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(.28,.28,.2,24),luminaire,fixtureCount),outerMesh=new THREE.InstancedMesh(pendantOuter,pendantRingMat,fixtureCount),innerMesh=new THREE.InstancedMesh(pendantInner,pendantRingMat,fixtureCount),centerMesh=new THREE.InstancedMesh(pendantCenter,pendantDiffuserMat,fixtureCount),barMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),pendantDiffuserMat,fixtureCount*12),cableMesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(.018,.018,1,6),steel,fixtureCount*4),fixtureDummy=new THREE.Object3D();
+ let barIndex=0,cableIndex=0;
+ const mark=(mesh:THREE.InstancedMesh,index:number,x:number,y:number,z:number,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0)=>{fixtureDummy.position.set(x,y,z);fixtureDummy.rotation.set(rx,ry,rz);fixtureDummy.scale.set(sx,sy,sz);fixtureDummy.updateMatrix();mesh.setMatrixAt(index,fixtureDummy.matrix);};
  for(let row=0;row<4;row++)for(let col=0;col<5;col++){
-  const x=b.x+(col-2)*35,z=b.z-105+row*70,y=b.height-7,ceilingY=b.height-.32,cableLength=ceilingY-y-.18;
-  const housing=new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,.2,24),luminaire);housing.position.set(x,y+.06,z);housing.castShadow=false;parent.add(housing);
-  const pendantFace=new THREE.Mesh(pendantGeometry,pendantBody),pendantDiffuser=new THREE.Mesh(pendantGeometry,lampGlass);pendantFace.rotation.x=pendantDiffuser.rotation.x=-Math.PI/2;pendantFace.position.set(x,y+.18,z);pendantDiffuser.position.set(x,y-.015,z);pendantFace.castShadow=pendantDiffuser.castShadow=false;parent.add(pendantFace,pendantDiffuser);
-  for(const dx of [-1,1])for(const dz of [-1,1]){const cable=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,cableLength,6),steel);cable.position.set(x+dx*.76,(ceilingY+y)/2,z+dz*.76);cable.castShadow=false;parent.add(cable);}
+  const x=b.x+(col-2)*35,z=b.z-105+row*70,y=b.height-7,ceilingY=b.height-.32,cableLength=ceilingY-y-.18,index=row*5+col;
+  mark(housingMesh,index,x,y+.06,z);mark(outerMesh,index,x,y-.02,z,1,1,1,-Math.PI/2);mark(innerMesh,index,x,y-.02,z,1,1,1,-Math.PI/2);mark(centerMesh,index,x,y-.005,z,1,1,1,-Math.PI/2);
+  for(let lamp=0;lamp<12;lamp++){const angle=lamp*Math.PI/6;mark(barMesh,barIndex++,x+Math.cos(angle)*2.96,y-.012,z+Math.sin(angle)*2.96,1.02,.045,.13,0,angle+Math.PI/2);}
+  for(const dx of [-1,1])for(const dz of [-1,1])mark(cableMesh,cableIndex++,x+dx*2.15,(ceilingY+y)/2,z+dz*2.15,1,cableLength,1);
  }
+ for(const mesh of [housingMesh,outerMesh,innerMesh,centerMesh,barMesh,cableMesh]){mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;parent.add(mesh);}
 
  // Semi-circular passenger stair between the public upper levels.
  const stairTreads:Instance[]=[],stepCount=28,centerX=b.x+78,centerZ=b.z+8,radius=8.4,fromY=12.5,rise=5.75;
