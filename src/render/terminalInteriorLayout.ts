@@ -31,6 +31,21 @@ export function t1FirstFloorServiceCenter(centerX:number,centerZ:number,width:nu
 // Keep T1 1F aligned with the airport reference grade; with a shallow B1, the
 // basement ceiling must sit below the terrain mesh instead of coplanar with it.
 export const T1_FLOOR_LEVELS=[-5.51,0,5.44,10.94,16.34] as const;
+/**
+ * The official visitor photograph near T1 counter 10 shows the hall's tall
+ * airport-name landmark. Its precise surveyed position and dimensions are
+ * unpublished; keep the authored panel tied to the modeled counter-10 island.
+ */
+export const T1_DEPARTURE_LANDMARK_LAYOUT={
+ checkInCenterOffset:-42,
+ checkInSpanRatio:.6,
+ islandIndex:4,
+ islandCount:6,
+ xOffset:-27,
+ width:9.2,
+ depth:2.1,
+ height:9.2,
+} as const;
 export const T1_BASEMENT_LAYOUT={
  shops:[
   {id:'7-eleven-north',name:'7-ELEVEN',dx:-56,side:1 as const,zOffset:-104,length:15,depth:9,accent:'#e95638',kind:'convenience' as const},
@@ -170,6 +185,38 @@ export const T2_FOURTH_FLOOR_SERVICES={
   {id:'central-showers',dx:82,dz:-43,width:16,depth:10,facing:-1 as const},
  ],
  aeds:[{id:'west-aed',dx:-74,dz:-18,facing:1 as const},{id:'south-aed',dx:24,dz:128,facing:1 as const}],
+} as const;
+
+/**
+ * The airport identifies both T2 5F viewing areas as outdoor decks. Their
+ * public photographs show open-air metal guardrails rather than a glazed
+ * room. The map is schematic and publishes no deck section, so projection,
+ * width and access opening below are dimensional estimates.
+ */
+export const T2_OBSERVATION_DECK_LAYOUT={
+ spanRatio:.68,
+ projection:13,
+ accessXOffset:-40,
+ accessWidth:4.8,
+ accessHeight:2.7,
+ railHeight:1.18,
+ statueInset:4.2,
+} as const;
+
+/**
+ * The official visitor photo places Taiwan Temple Avenue on T2's south 5F and
+ * shows a painted old-street frontage, vivid promenade floor art and a large
+ * circular ceiling feature. The airport's public map is schematic, so these
+ * proportions define a visual fit rather than surveyed dimensions.
+ */
+export const T2_TEMPLE_AVENUE_LAYOUT={
+ centerZRatio:.31,
+ widthRatio:.82,
+ depthRatio:.32,
+ facadeSpanRatio:.5,
+ facadeOffsetRatio:.32,
+ facadeHeight:5.8,
+ ceilingFeatureDiameter:17,
 } as const;
 
 /** T2's official 3F map names five separate airside retail/service frontages. */

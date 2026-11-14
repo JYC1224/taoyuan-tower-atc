@@ -3,7 +3,7 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives';
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
-import {T1_BASEMENT_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
@@ -451,6 +451,34 @@ function terminal1CheckIn(parent:THREE.Object3D,b:TerminalBounds,y:number,z:numb
   kiosks.push({x,y:y+1.05,z:zKiosk,sx:1.15,sy:2.1,sz:.82});kioskScreens.push({x,y:y+1.32,z:zKiosk-.43,sx:.62,sy:.58,sz:.055});
  }
  batch(parent,counter,kiosks);batch(parent,screen,kioskScreens);sign(parent,'DEPARTURES  出境',b.x-long/2-6,y+5.5,z,Math.min(b.depth*.04,10),'#aa9160',Math.PI/2,1.05);
+}
+
+/** The official T1 counter-10 photo features a tall, pale airport-name marker. */
+function terminal1DepartureLandmark(parent:THREE.Object3D,b:TerminalBounds,y:number){
+ const layout=T1_DEPARTURE_LANDMARK_LAYOUT,span=b.depth*layout.checkInSpanRatio,
+  z=b.z+layout.checkInCenterOffset+span*(layout.islandIndex/(layout.islandCount-1)-.5),x=b.x+layout.xOffset,
+  white=new THREE.MeshStandardMaterial({color:'#f3f3ee',roughness:.58,metalness:.025,emissive:'#777b76',emissiveIntensity:.08}),
+  trim=material('#aeb8b2',.42,.32),plinth=material('#d1d4d0',.54,.12);
+ const texture=canvasTexture(768,1024,ctx=>{
+  const paper=ctx.createLinearGradient(0,0,768,0);paper.addColorStop(0,'#e3e5df');paper.addColorStop(.5,'#fafaf5');paper.addColorStop(1,'#e8eae4');ctx.fillStyle=paper;ctx.fillRect(0,0,768,1024);
+  ctx.strokeStyle='rgba(96,105,101,.27)';ctx.lineWidth=5;ctx.strokeRect(18,18,732,988);
+  ctx.fillStyle='#243a39';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='bold 42px "Noto Serif CJK TC",serif';ctx.fillText('國際機場',384,160);
+  ctx.fillStyle='#60706a';ctx.font='bold 34px Arial,sans-serif';ctx.fillText('TAIWAN',384,286);
+  ctx.fillStyle='#243a39';ctx.font='italic 74px Georgia,"Times New Roman",serif';ctx.fillText('Taoyuan',384,402);
+  ctx.font='bold 31px Arial,sans-serif';ctx.fillText('INTERNATIONAL',384,512);
+  ctx.font='italic 61px Georgia,"Times New Roman",serif';ctx.fillText('Airport',384,612);
+  ctx.strokeStyle='rgba(91,108,99,.35)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(176,684);ctx.lineTo(592,684);ctx.stroke();
+  const cx=384,cy=824,colors=['#0e9da0','#77ad56','#e0bb42','#dc6649'];
+  for(let i=0;i<4;i++){ctx.save();ctx.translate(cx,cy);ctx.rotate(i*Math.PI/2);ctx.fillStyle=colors[i];ctx.beginPath();ctx.moveTo(0,-93);ctx.quadraticCurveTo(30,-36,7,0);ctx.quadraticCurveTo(-12,-42,0,-93);ctx.fill();ctx.restore();}
+  ctx.fillStyle='#58665f';ctx.font='22px Arial,sans-serif';ctx.fillText('TAOYUAN INTERNATIONAL AIRPORT',384,948);
+ });texture.anisotropy=8;
+ const faceMat=new THREE.MeshBasicMaterial({map:texture,toneMapped:false,side:THREE.DoubleSide}),width=layout.width,height=layout.height,depth=layout.depth,top=y+height;
+ box(parent,width,height,depth,x,y+height/2,z,white);
+ box(parent,width+.72,.34,depth+.54,x,y+.17,z,plinth);box(parent,width+.34,.2,depth+.3,x,top-.12,z,trim);
+ for(const side of [-1,1])box(parent,.16,height+.12,.16,x+side*(width/2-.08),y+height/2,z+depth/2+.12,trim);
+ const front=new THREE.Mesh(new THREE.PlaneGeometry(width-1.05,height-1.1),faceMat);front.position.set(x,y+height/2,z+depth/2+.14);front.castShadow=false;parent.add(front);
+ const back=new THREE.Mesh(new THREE.PlaneGeometry(width-1.05,height-1.1),faceMat);back.position.set(x,y+height/2,z-depth/2-.14);back.rotation.y=Math.PI;back.castShadow=false;parent.add(back);
 }
 
 /** The official T1 3F map separately marks check-in counters 15 and 21. */
@@ -1248,21 +1276,209 @@ function terminal1FirstFloorServices(parent:THREE.Object3D,b:TerminalBounds,y:nu
  }
 }
 function addRetailLevel(parent:THREE.Object3D,b:TerminalBounds,y:number,food=false){shops(parent,b,y,b.z-b.depth*.25,food?5:7,food?'food':'retail');shops(parent,b,y,b.z+b.depth*.24,food?5:7,food?'food':'retail');if(food)addTableZone(parent,b,y,b.z);else seating(parent,b,y,b.z,3,10,true);}
+const templeMuralCache=new Map<number,THREE.Material>(),templeFloorCache:{map?:THREE.CanvasTexture;material?:THREE.Material}={},templeCeilingCache:{material?:THREE.Material}={};
+function templeMuralMaterial(variant:number){
+ const cached=templeMuralCache.get(variant);if(cached)return cached;
+ const texture=canvasTexture(2048,768,ctx=>{
+  const rand=seeded(28105+variant*97),plaster=ctx.createLinearGradient(0,0,0,768);
+  plaster.addColorStop(0,'#a94e36');plaster.addColorStop(.17,'#d1a77d');plaster.addColorStop(.76,'#b86643');plaster.addColorStop(1,'#75463a');ctx.fillStyle=plaster;ctx.fillRect(0,0,2048,768);
+  const bay=2048/5;
+  for(let i=0;i<5;i++){
+   const x=i*bay,tone=i%2?'#d5b18a':'#c79669';ctx.fillStyle=tone;ctx.fillRect(x+12,72,bay-24,605);
+   // Warm brick piers, irregular joints and deep timber cornices.
+   ctx.fillStyle='#8d4737';ctx.fillRect(x,20,bay,58);ctx.fillRect(x+8,82,22,570);ctx.fillRect(x+bay-30,82,22,570);
+   ctx.fillStyle='#6d3c32';ctx.fillRect(x+4,74,bay-8,15);ctx.fillRect(x+5,634,bay-10,31);
+   for(let row=0;row<12;row++)for(let col=0;col<10;col++){
+    const bx=x+col*bay/9+(row%2?bay/18:0),by=91+row*45;
+    ctx.fillStyle=row%3?'rgba(94,49,39,.27)':'rgba(241,194,144,.19)';ctx.fillRect(bx,by,bay/12,2.3);
+   }
+   // Upper-floor timber windows with shutters and pale reflected glazing.
+   for(const windowX of [x+bay*.3,x+bay*.7]){
+    ctx.fillStyle='#613e31';ctx.fillRect(windowX-54,148,108,160);ctx.fillStyle='#86a5a0';ctx.fillRect(windowX-43,159,86,136);
+    ctx.fillStyle='rgba(237,220,184,.52)';ctx.fillRect(windowX-40,164,36,123);ctx.fillRect(windowX+4,164,36,123);
+    ctx.fillStyle='#55382e';ctx.fillRect(windowX-5,159,10,136);ctx.fillRect(windowX-47,222,94,8);
+    for(const side of [-1,1]){ctx.fillStyle='#8c523d';ctx.fillRect(windowX+side*54-8,151,17,151);ctx.fillStyle='#d2a779';for(let slat=0;slat<7;slat++)ctx.fillRect(windowX+side*54-7,161+slat*19,15,4);}
+   }
+   // Red-tile awning and striped fabric valance above the ground-floor doors.
+   ctx.fillStyle='#623e31';ctx.beginPath();ctx.moveTo(x+18,373);ctx.lineTo(x+bay-18,373);ctx.lineTo(x+bay-4,420);ctx.lineTo(x+4,420);ctx.closePath();ctx.fill();
+   for(let tile=0;tile<14;tile++){ctx.fillStyle=tile%2?'#a34d39':'#bd6846';ctx.fillRect(x+19+tile*(bay-38)/14,377,(bay-40)/14-2,37);}
+   ctx.fillStyle=i%2?'#e0b15f':'#d88b50';ctx.fillRect(x+28,416,bay-56,16);
+   // Deep, painted wooden doorway and inset panels; the surrounding murals
+   // carry the street scene rather than presenting generic glass shop cubes.
+   const doorX=x+bay*.5,doorW=bay*.28;ctx.fillStyle='#4d352d';ctx.fillRect(doorX-doorW/2,438,doorW,193);
+   ctx.fillStyle='#946243';ctx.fillRect(doorX-doorW/2+8,446,doorW/2-11,178);ctx.fillRect(doorX+3,446,doorW/2-11,178);
+   ctx.fillStyle='#d2aa70';for(const leaf of [-1,1])for(let panel=0;panel<4;panel++)ctx.strokeRect(doorX+leaf*(doorW*.24)-doorW*.2,454+panel*39,doorW*.18,31);
+   ctx.fillStyle='#302c27';ctx.beginPath();ctx.arc(doorX+doorW*.12,535,4,0,Math.PI*2);ctx.fill();
+   // A restrained painted travel scene: figures, a handcart and hanging cloth.
+   ctx.fillStyle=i%2?'#42848a':'#38775d';ctx.beginPath();ctx.moveTo(x+20,603);ctx.quadraticCurveTo(x+bay*.22,527,x+bay*.43,604);ctx.lineTo(x+bay*.43,631);ctx.lineTo(x+20,631);ctx.fill();
+   for(let figure=0;figure<2;figure++){
+    const fx=x+bay*(figure?.84:.16),fy=514+figure*14;ctx.fillStyle=figure?'#274c63':'#8b4334';ctx.beginPath();ctx.arc(fx,fy-47,12,0,Math.PI*2);ctx.fill();ctx.fillRect(fx-10,fy-34,20,55);ctx.fillRect(fx-18,fy+17,9,38);ctx.fillRect(fx+8,fy+17,9,38);
+   }
+   // Small pigment variation keeps the painted wall from reading as flat UI art.
+   for(let fleck=0;fleck<320;fleck++){const v=rand()>.5?255:35;ctx.fillStyle=`rgba(${v},${Math.max(0,v-24)},${Math.max(0,v-45)},${.025+rand()*.045})`;ctx.fillRect(x+rand()*bay,82+rand()*550,1+rand()*7,1+rand()*4);}
+  }
+  ctx.fillStyle='#4c342b';ctx.fillRect(0,20,2048,25);ctx.fillStyle='#d7b36c';ctx.fillRect(0,666,2048,9);
+ });texture.anisotropy=8;
+ const mat=new THREE.MeshStandardMaterial({map:texture,color:'#fff',roughness:.88,metalness:.015,side:THREE.DoubleSide});templeMuralCache.set(variant,mat);return mat;
+}
+function templeFloorMaterial(){
+ if(templeFloorCache.material)return templeFloorCache.material;
+ const texture=canvasTexture(2048,1024,ctx=>{
+  ctx.fillStyle='#9c5739';ctx.fillRect(0,0,2048,1024);
+  const tile=64;for(let y=0;y<1024;y+=tile)for(let x=0;x<2048;x+=tile){ctx.fillStyle=((x/tile+y/tile)%2)?'#d59e55':'#e0bb73';ctx.fillRect(x+3,y+3,tile-6,tile-6);ctx.strokeStyle='rgba(80,45,35,.45)';ctx.lineWidth=3;ctx.strokeRect(x+4,y+4,tile-8,tile-8);}
+  // A broad blue-green river ribbon and painted floral medallions follow the
+  // sweeping, high-contrast floor artwork in the airport's official photo.
+  ctx.beginPath();ctx.moveTo(0,1024);ctx.bezierCurveTo(360,820,270,690,680,576);ctx.bezierCurveTo(1060,470,650,300,1120,190);ctx.bezierCurveTo(1480,100,1650,46,2048,0);ctx.lineTo(2048,230);ctx.bezierCurveTo(1670,270,1510,332,1208,390);ctx.bezierCurveTo(820,465,1160,650,748,760);ctx.bezierCurveTo(430,840,350,960,0,1024);ctx.closePath();
+  const river=ctx.createLinearGradient(0,1024,2048,0);river.addColorStop(0,'#126f78');river.addColorStop(.42,'#178b91');river.addColorStop(1,'#245e73');ctx.fillStyle=river;ctx.fill();ctx.strokeStyle='#f0ce76';ctx.lineWidth=18;ctx.stroke();
+  ctx.strokeStyle='rgba(231,205,129,.78)';ctx.lineWidth=6;for(let i=0;i<32;i++){const x=(i%8)*256+32,y=Math.floor(i/8)*250+26;ctx.beginPath();ctx.arc(x,y,28+(i%3)*8,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(x-26,y);ctx.lineTo(x+26,y);ctx.moveTo(x,y-26);ctx.lineTo(x,y+26);ctx.stroke();}
+  ctx.strokeStyle='rgba(68,41,31,.65)';ctx.lineWidth=8;ctx.strokeRect(14,14,2020,996);
+ });texture.anisotropy=8;templeFloorCache.map=texture;
+ const mat=new THREE.MeshStandardMaterial({map:texture,roughness:.74,metalness:.02});templeFloorCache.material=mat;return mat;
+}
+function templeCeilingMaterial(){
+ if(templeCeilingCache.material)return templeCeilingCache.material;
+ const texture=canvasTexture(2048,1024,ctx=>{
+  ctx.fillStyle='#343734';ctx.fillRect(0,0,2048,1024);
+  const panelW=64,panelH=64;
+  for(let row=0;row<16;row++)for(let col=0;col<32;col++){
+   const x=col*panelW,y=row*panelH,shade=(row+col)%4===0?'#3b3e3a':(row+col)%4===1?'#30332f':'#353834';
+   ctx.fillStyle=shade;ctx.fillRect(x+2,y+2,panelW-4,panelH-4);
+   ctx.strokeStyle='rgba(133,137,127,.2)';ctx.lineWidth=2;ctx.strokeRect(x+2,y+2,panelW-4,panelH-4);
+   ctx.fillStyle='rgba(10,13,12,.34)';for(let py=12;py<panelH;py+=13)for(let px=12;px<panelW;px+=13)ctx.fillRect(x+px,y+py,1.4,1.4);
+  }
+  ctx.strokeStyle='rgba(19,22,20,.75)';ctx.lineWidth=7;for(let x=0;x<=2048;x+=256){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,1024);ctx.stroke();}
+  for(let y=0;y<=1024;y+=256){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(2048,y);ctx.stroke();}
+ });texture.anisotropy=8;
+ const mat=new THREE.MeshStandardMaterial({map:texture,color:'#d1d2c9',emissive:'#131512',emissiveIntensity:.32,roughness:.91,metalness:.02,side:THREE.DoubleSide});
+ templeCeilingCache.material=mat;return mat;
+}
+function templeCeilingFeature(parent:THREE.Object3D,x:number,y:number,z:number,diameter:number){
+ const radius=diameter/2,base=material('#d9cfb9',.82,.035),edge=material('#b38f5d',.58,.22),shadow=material('#3a3834',.72,.16),parts:Item[]=[];
+ const disc=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.2,64),base);disc.position.set(x,y,z);disc.castShadow=true;disc.receiveShadow=true;parent.add(disc);
+ const inner=new THREE.Mesh(new THREE.CylinderGeometry(radius*.61,radius*.61,.08,48),shadow);inner.position.set(x,y-.13,z);parent.add(inner);
+ for(const r of [radius*.38,radius*.68,radius*.94]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.12,8,64),edge);ring.rotation.x=Math.PI/2;ring.position.set(x,y-.16,z);ring.castShadow=true;parent.add(ring);}
+ for(let i=0;i<32;i++){const angle=i*Math.PI/16,offset=radius*.78;parts.push({x:x+Math.cos(angle)*offset,y:y-.18,z:z+Math.sin(angle)*offset,sx:radius*.22,sy:.065,sz:.16,ry:angle,color:i%4===0?'#9f5b42':'#c0aa79'});}
+ batch(parent,base,parts);
+ const lightBand=material('#fff0cd',.34,.08),lowerRing=new THREE.Mesh(new THREE.TorusGeometry(radius*.48,.18,8,64),lightBand);lowerRing.rotation.x=Math.PI/2;lowerRing.position.set(x,y-.24,z);lowerRing.material=new THREE.MeshStandardMaterial({color:'#fff0dc',emissive:'#ffe5a8',emissiveIntensity:.34,roughness:.46});parent.add(lowerRing);
+}
+function addT2TempleFacade(parent:THREE.Object3D,x:number,y:number,z:number,span:number,height:number,side:-1|1,variant:number){
+ const wallDepth=.72,insideFacing=side<0?0:Math.PI,frontZ=z-side*(wallDepth/2+.016),bayWidth=span/5,
+  backing=material('#ab6247',.84,.035),brick=material('#7b4034',.8,.04),wood=material('#76503a',.62,.08),doorMaterial=material('#50382f',.76,.035),stone=material('#d5b98d',.74,.04),glass=new THREE.MeshPhysicalMaterial({color:'#9db8b4',roughness:.32,metalness:.06,transparent:true,opacity:.36,depthWrite:false,side:THREE.DoubleSide});
+ box(parent,span,height,wallDepth,x,y+height/2,z,backing);
+ const mural=new THREE.Mesh(new THREE.PlaneGeometry(span-.12,height-.12),templeMuralMaterial(variant));mural.position.set(x,y+height/2,frontZ);mural.rotation.y=insideFacing;parent.add(mural);
+ const piers:Item[]=[],cornice:Item[]=[],sills:Item[]=[],frames:Item[]=[],doors:Item[]=[],doorGlass:Item[]=[],doorTrim:Item[]=[],upperFrames:Item[]=[],upperGlass:Item[]=[];
+ for(let i=0;i<=5;i++){const px=x-span/2+i*bayWidth;piers.push({x:px,y:y+height/2,z:frontZ-side*.12,sx:.4,sy:height,sz:.32});}
+ cornice.push({x,y:y+height-.18,z:frontZ-side*.16,sx:span+.6,sy:.34,sz:.44});
+ for(let i=0;i<5;i++){
+  const cx=x-span/2+(i+.5)*bayWidth,doorWidth=Math.min(bayWidth*.19,3.4),doorHeight=height*.54,doorY=y+.22+doorHeight/2,doorZ=frontZ-side*.22;
+  doors.push({x:cx,y:doorY,z:doorZ,sx:doorWidth,sy:doorHeight,sz:.12,color:i%2?'#604236':'#50382f'});
+  for(const leaf of [-1,1]){
+   doorTrim.push({x:cx+leaf*(doorWidth/2+.12),y:doorY,z:doorZ-side*.08,sx:.22,sy:doorHeight+.32,sz:.24});
+   doorGlass.push({x:cx+leaf*doorWidth*.24,y:doorY+.12,z:doorZ-side*.105,sx:doorWidth*.39,sy:doorHeight*.84,sz:.055,color:i%2?'#7b5942':'#805d47'});
+  }
+  doorTrim.push({x:cx,y:y+.22+doorHeight+.12,z:doorZ-side*.08,sx:doorWidth+.5,sy:.24,sz:.24});
+  sills.push({x:cx,y:y+3.92,z:frontZ-side*.17,sx:bayWidth*.62,sy:.22,sz:.26});
+  upperFrames.push({x:cx,y:y+4.62,z:frontZ-side*.14,sx:bayWidth*.36,sy:.12,sz:.13});
+  upperFrames.push({x:cx,y:y+5.18,z:frontZ-side*.14,sx:bayWidth*.36,sy:.12,sz:.13});
+  upperFrames.push({x:cx-bayWidth*.18,y:y+4.9,z:frontZ-side*.14,sx:.12,sy:.56,sz:.13});upperFrames.push({x:cx+bayWidth*.18,y:y+4.9,z:frontZ-side*.14,sx:.12,sy:.56,sz:.13});
+  upperGlass.push({x:cx,y:y+4.9,z:frontZ-side*.095,sx:bayWidth*.32,sy:.48,sz:.035});
+ }
+ batch(parent,brick,piers);batch(parent,wood,cornice);batch(parent,stone,sills);batch(parent,wood,doorTrim);batch(parent,doorMaterial,doors);batch(parent,wood,doorGlass);batch(parent,wood,upperFrames);batch(parent,glass,upperGlass);
+}
 function addT2TempleAvenue(parent:THREE.Object3D,b:TerminalBounds,y:number){
- const south={...b,width:b.width*.82,depth:b.depth*.32,z:b.z+b.depth*.31};
- shops(parent,south,y,south.z-south.depth*.32,5,'taiwan');
- shops(parent,south,y,south.z+south.depth*.32,5,'taiwan');
- sign(parent,'TAIWAN TEMPLE AVENUE  臺灣玩藝大街',b.x,y+5.6,south.z,Math.min(58,b.width*.45),'#d6a84d');
- const posts:Item[]=[],lanterns:Item[]=[];for(let i=0;i<8;i++){const x=b.x+(i-3.5)*14;posts.push({x,y:y+2.1,z:south.z,sx:.45,sy:4.2,sz:.45,color:'#943b30'});lanterns.push({x,y:y+4.5,z:south.z,sx:1.8,sy:.55,sz:.85,color:i%2?'#cc6843':'#d6a23f'});}
- batch(parent,accentRed,posts);batch(parent,seatWarm,lanterns);addTableZone(parent,south,y,south.z);
+ const layout=T2_TEMPLE_AVENUE_LAYOUT,span=b.width*layout.facadeSpanRatio,depth=b.depth*layout.depthRatio,centerZ=b.z+b.depth*layout.centerZRatio,
+  ceilingWidth=b.width*layout.widthRatio,ceilingDepth=depth*.72,
+  rowOffset=depth*layout.facadeOffsetRatio,rowZs=[centerZ-rowOffset,centerZ+rowOffset] as const,
+  floorArt=new THREE.Mesh(new THREE.PlaneGeometry(ceilingWidth,ceilingDepth),templeFloorMaterial());
+ floorArt.rotation.x=-Math.PI/2;floorArt.position.set(b.x,y+.018,centerZ);floorArt.receiveShadow=true;parent.add(floorArt);
+ for(let i=0;i<rowZs.length;i++)addT2TempleFacade(parent,b.x,y,rowZs[i],span,layout.facadeHeight,i===0?-1:1,i);
+ // The official photo shows a dark, lower interior ceiling over the avenue;
+ // keep this localized so the exposed T2 hall roof stays unchanged elsewhere.
+ const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(ceilingWidth,ceilingDepth),templeCeilingMaterial()),tracks:Item[]=[];
+ ceiling.rotation.x=Math.PI/2;ceiling.position.set(b.x,y+5.59,centerZ);parent.add(ceiling);
+ for(let row of [-1,1])for(let segment=0;segment<4;segment++){
+  const x=b.x+(segment-1.5)*ceilingWidth*.18,z=centerZ+row*ceilingDepth*.3;
+  tracks.push({x,y:y+5.525,z,sx:ceilingWidth*.14,sy:.045,sz:.24,color:'#f2e4c3'});
+ }
+ batch(parent,light,tracks);
+ templeCeilingFeature(parent,b.x,y+5.42,centerZ,layout.ceilingFeatureDiameter);
+}
+function statueEllipsoid(parent:THREE.Object3D,geometry:THREE.BufferGeometry,mat:THREE.Material,x:number,y:number,z:number,sx:number,sy:number,sz:number){
+ const mesh=new THREE.Mesh(geometry,mat);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
+}
+function statueLimb(parent:THREE.Object3D,geometry:THREE.CylinderGeometry,mat:THREE.Material,a:THREE.Vector3,b:THREE.Vector3,radius:number){
+ const direction=new THREE.Vector3().subVectors(b,a),mesh=new THREE.Mesh(geometry,mat);mesh.position.copy(a).add(b).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.clone().normalize());mesh.scale.set(radius,direction.length(),radius);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
+}
+function t2TravelerStatue(parent:THREE.Object3D,x:number,floorY:number,z:number,pose:0|1|2){
+ const skin=new THREE.MeshStandardMaterial({color:pose===1?'#b78163':'#8b604b',roughness:.74,metalness:.04}),
+  cloth=new THREE.MeshStandardMaterial({color:pose===0?'#e5ddd0':pose===1?'#e27763':'#86aa71',roughness:.82,metalness:.025}),
+  trousers=material(pose===2?'#28333a':'#3b4642',.76,.035),hair=material(pose===1?'#30302d':'#40392f',.84,.015),shoe=material('#4a4740',.78,.025),
+  luggage=material(pose===0?'#238b88':pose===1?'#88704e':'#b94f35',.68,.055),luggageTrim=material('#d4c5a1',.58,.14),
+  sphere=new THREE.SphereGeometry(1,18,14),cylinder=new THREE.CylinderGeometry(.5,.56,1,10,1,false),caseX=x,caseZ=z,
+  inward=-1,caseWidth=1.6,caseHeight=.92,caseDepth=.92,caseTop=floorY+caseHeight;
+ box(parent,caseWidth,caseHeight,caseDepth,caseX,floorY+caseHeight/2,caseZ,luggage);
+ for(const side of [-1,1]){
+  box(parent,.045,caseHeight*.84,.035,caseX+side*(caseWidth/2-.12),floorY+caseHeight/2,caseZ-inward*(caseDepth/2+.025),luggageTrim);
+  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.1,10),shoe);wheel.rotation.z=Math.PI/2;wheel.position.set(caseX+side*.56,floorY+.12,caseZ-inward*.38);parent.add(wheel);
+  box(parent,.065,.42,.065,caseX+side*.2,floorY+caseHeight+.21,caseZ,steel);
+ }
+ box(parent,.52,.07,.09,caseX,floorY+caseHeight+.44,caseZ,steel);
+ for(const side of [-1,1])box(parent,.1,.08,.12,caseX+side*.68,floorY+.12,caseZ-inward*.3,shoe);
+ const addBall=(px:number,py:number,pz:number,sx:number,sy:number,sz:number,mat:THREE.Material)=>statueEllipsoid(parent,sphere,mat,px,py,pz,sx,sy,sz);
+ const frontZ=caseZ+inward*.15,hipY=pose===0?caseTop+.34:caseTop+.02,shoulderY=pose===0?caseTop+.88:caseTop+.7,
+  headY=pose===0?caseTop+1.28:caseTop+1.08,hipX=caseX;
+ addBall(hipX,shoulderY,frontZ,.38,.59,.29,cloth);addBall(hipX,hipY,frontZ,.32,.24,.29,cloth);
+ addBall(hipX,headY,frontZ-inward*.025,.19,.22,.19,skin);addBall(hipX,headY+.14,frontZ+inward*.02,.2,.105,.2,hair);
+ if(pose===0){
+  for(const s of [-1,1]){
+   const legTop=new THREE.Vector3(hipX+s*.16,hipY-.1,frontZ),legBottom=new THREE.Vector3(hipX+s*.18,caseTop-.05,frontZ);
+   statueLimb(parent,cylinder,trousers,legTop,legBottom,.105);addBall(hipX+s*.18,caseTop-.01,frontZ-inward*.12,.19,.075,.28,shoe);
+   const shoulder=new THREE.Vector3(hipX+s*.29,shoulderY+.19,frontZ),elbow=new THREE.Vector3(hipX+s*.67,shoulderY+.48,frontZ),hand=new THREE.Vector3(hipX+s*1.02,shoulderY+.38,frontZ-inward*.04);
+   statueLimb(parent,cylinder,cloth,shoulder,elbow,.105);statueLimb(parent,cylinder,cloth,elbow,hand,.085);addBall(hand.x,hand.y,hand.z,.095,.09,.09,skin);
+  }
+ }else{
+  for(const s of [-1,1]){
+   const hip=new THREE.Vector3(hipX+s*.15,hipY,frontZ),knee=new THREE.Vector3(hipX+s*.24,caseTop-.1,frontZ+inward*.28),foot=new THREE.Vector3(hipX+s*.3,caseTop-.45,frontZ+inward*.68);
+   statueLimb(parent,cylinder,trousers,hip,knee,.12);statueLimb(parent,cylinder,trousers,knee,foot,.095);addBall(foot.x,foot.y,foot.z,.22,.08,.13,shoe);
+  }
+  const resting=new THREE.Vector3(hipX+.34,shoulderY-.2,frontZ),wavingShoulder=new THREE.Vector3(hipX-.3,shoulderY+.13,frontZ),wavingElbow=new THREE.Vector3(hipX-.53,shoulderY+.5,frontZ),wavingHand=new THREE.Vector3(hipX-.58,shoulderY+.82,frontZ);
+  statueLimb(parent,cylinder,cloth,new THREE.Vector3(hipX+.3,shoulderY+.1,frontZ),resting,.09);
+  statueLimb(parent,cylinder,cloth,wavingShoulder,wavingElbow,.1);statueLimb(parent,cylinder,cloth,wavingElbow,wavingHand,.075);addBall(wavingHand.x,wavingHand.y,wavingHand.z,.085,.1,.085,skin);
+ }
+}
+function t2TravelerArtwork(parent:THREE.Object3D,b:TerminalBounds,y:number,deckZ:number,side:-1|1){
+ const baseMat=material('#646e69',.62,.12),plinths:Item[]=[],plinthTrim=material('#c8baa0',.55,.16),artZ=deckZ-side*T2_OBSERVATION_DECK_LAYOUT.statueInset;
+ for(let i=0;i<3;i++){
+  const x=b.x+(i-1)*17;plinths.push({x,y:y+.12,z:artZ,sx:3.8,sy:.24,sz:3.1});
+  t2TravelerStatue(parent,x,y+.24,artZ,i as 0|1|2);
+ }
+ batch(parent,baseMat,plinths);const edging:Item[]=[];
+ for(let i=0;i<3;i++){const x=b.x+(i-1)*17;for(const dx of [-1,1])edging.push({x:x+dx*1.78,y:y+.25,z:artZ,sx:.055,sy:.06,sz:3.1});}
+ batch(parent,plinthTrim,edging);
 }
 function observationDeck(parent:THREE.Object3D,b:TerminalBounds,y:number,side:-1|1){
- const edge=b.z+side*(b.depth/2-1.2),interior=b.z+side*(b.depth*.34),glass=new THREE.MeshPhysicalMaterial({color:'#b6d3d6',roughness:.12,metalness:.08,transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide});
- box(parent,b.width*.68,3.6,.25,b.x,y+2.05,edge,glass);
- for(let x=b.x-b.width*.34;x<=b.x+b.width*.34;x+=5.5)box(parent,.14,3.6,.2,x,y+2.05,edge-.12,steel);
- box(parent,b.width*.68,.16,.34,b.x,y+.85,edge+side*.45,steel);
- const seats:Item[]=[];for(let i=0;i<12;i++){const x=b.x+(i-5.5)*4.15;seats.push({x,y:y+.66,z:interior,sx:2.5,sy:.22,sz:.78,color:i%3?'#465f65':'#718786'});seats.push({x,y:y+1.2,z:interior-side*.24,sx:2.5,sy:1.05,sz:.17,color:'#607b7d'});}
- batch(parent,seatDark,seats);const signWidth=16.5,signZ=interior-side*3;for(const dx of [-1,1])box(parent,.08,1.25,.08,b.x+dx*(signWidth/2-.25),y+3.65,signZ,steel);sign(parent,side<0?'NORTH OBSERVATION DECK  北側觀景台':'SOUTH OBSERVATION DECK  南側觀景台',b.x,y+4.45,signZ,signWidth,'#d9b25c',side>0?Math.PI:0,.95);
+ const span=b.width*T2_OBSERVATION_DECK_LAYOUT.spanRatio,projection=T2_OBSERVATION_DECK_LAYOUT.projection,
+  innerEdge=b.z+side*(b.depth/2),outerEdge=innerEdge+side*projection,centerZ=(innerEdge+outerEdge)/2,
+  floor=material('#858b86',.78,.025),seam=material('#656c67',.88,.01),railMat=material('#2f3735',.48,.68),
+  posts:Item[]=[],rails:Item[]=[],floorSeams:Item[]=[];
+ box(parent,span,.34,projection,b.x,y-.17,centerZ,floor);
+ for(let x=b.x-span/2+1.3;x<b.x+span/2-1;x+=2.6)floorSeams.push({x,y:y+.008,z:centerZ,sx:.035,sy:.012,sz:projection-.8});
+ // A low, dark metal balustrade encloses the actual outdoor viewing edge.
+ for(let x=b.x-span/2;x<=b.x+span/2+.01;x+=.65)posts.push({x,y:y+T2_OBSERVATION_DECK_LAYOUT.railHeight/2,z:outerEdge,sx:.055,sy:T2_OBSERVATION_DECK_LAYOUT.railHeight,sz:.055});
+ for(const railY of [.42,.8,1.14])rails.push({x:b.x,y:y+railY,z:outerEdge,sx:span,sy:.055,sz:.075});
+ for(const edgeSide of [-1,1]){
+  const edgeX=b.x+edgeSide*span/2;
+  for(let d=1;d<projection;d+=2.6)posts.push({x:edgeX,y:y+T2_OBSERVATION_DECK_LAYOUT.railHeight/2,z:innerEdge+side*d,sx:.055,sy:T2_OBSERVATION_DECK_LAYOUT.railHeight,sz:.055});
+  for(const railY of [.42,.8,1.14])rails.push({x:edgeX,y:y+railY,z:centerZ,sx:.075,sy:.055,sz:projection});
+ }
+ // Strong edge/cross beams read through the open underside without a glass-room wall.
+ const beams:Item[]=[];for(let x=b.x-span/2+12;x<b.x+span/2;x+=24)beams.push({x,y:y-.42,z:centerZ,sx:.42,sy:.34,sz:projection-.6});
+ beams.push({x:b.x,y:y-.42,z:outerEdge-side*.18,sx:span,sy:.42,sz:.45});
+ batch(parent,seam,floorSeams);batch(parent,material('#5a625f',.62,.52),beams);batch(parent,railMat,posts);batch(parent,railMat,rails);
+ if(side>0)t2TravelerArtwork(parent,b,y,centerZ,side);
+ const signWidth=16.5,signZ=centerZ-side*4;
+ for(const dx of [-1,1])box(parent,.08,1.25,.08,b.x+dx*(signWidth/2-.25),y+3.65,signZ,steel);
+ sign(parent,side<0?'NORTH OBSERVATION DECK  北側觀景台':'SOUTH OBSERVATION DECK  南側觀景台',b.x,y+4.45,signZ,signWidth,'#d9b25c',side>0?Math.PI:0,.95);
 }
 let t2ConvenienceStone:THREE.Material|undefined;
 function convenienceStoreStone(){
@@ -1964,7 +2180,7 @@ function terminal1(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials
  addDecks(parent,b,levels.slice(0,4),mats.concrete,.16,atrium,finishes);terminalAtriumEdgeDetail(parent,atrium,levels.slice(0,4),'T1');terminal1FourthFloor(parent,b,levels[4],finishes);addStructure(parent,b,finishes.structure,'T1',levels[0]);verticalCirculation(parent,b,levels,'T1');terminal1Basement(parent,b,levels[0]);
  // The airport's visitor guide places T1's Departure Hall and counter 10 on
  // 1F; this public level shares the arrival, customs and meeting facilities.
- terminal1CheckIn(parent,b,floor1+.26,b.z-42);sign(parent,'DEPARTURES / CHECK-IN  出境報到',b.x,floor1+7.46,b.z+2,11,'#aa9160',0,1.05);
+ terminal1CheckIn(parent,b,floor1+.26,b.z-42);terminal1DepartureLandmark(parent,b,floor1+.26);sign(parent,'DEPARTURES / CHECK-IN  出境報到',b.x,floor1+7.46,b.z+2,11,'#aa9160',0,1.05);
  baggageClaim(parent,b,floor1+.22,b.z+57,6);customsHall(parent,b,floor1+.22,b.z+88);arrivalLobby(parent,b,floor1+.22,b.z+111);terminal1FirstFloorServices(parent,b,floor1+.22);
  // 2F is the mapped public retail/service gallery; the larger controlled
  // immigration and departure functions remain on the separate 3F level.

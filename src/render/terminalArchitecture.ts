@@ -5,6 +5,7 @@ import {box,canvasTexture,instances,material} from './primitives';
 import {surfaceImages} from './realismAssets';
 import {buildTerminalInterior,type TerminalInteriorProfile} from './terminalInteriors';
 import {decorateGateConcourse} from './terminalInteriorFidelity';
+import {T2_FLOOR_LEVELS,T2_OBSERVATION_DECK_LAYOUT} from './terminalInteriorLayout';
 
 export interface TerminalBounds {x:number;z:number;width:number;depth:number;height:number}
 export interface TerminalMaterials {glass:THREE.Material;cladding:THREE.MeshStandardMaterial;concrete:THREE.Material;metal:THREE.Material;roof?:THREE.Material;floor?:THREE.Material;ceiling?:THREE.Material;deck?:THREE.Material;structure?:THREE.Material}
@@ -103,7 +104,29 @@ export function buildTerminalAtrium(parent:THREE.Object3D,b:TerminalBounds,mats:
  // A curtain wall is four vertical faces. A transparent box also creates a
  // tinted glass ceiling and floor, which darkens the public halls unnaturally.
  for(const side of [-1,1]){
-  box(parent,b.width,b.height,.12,b.x,b.height/2,b.z+side*(b.depth/2),mats.glass);
+  const wallZ=b.z+side*(b.depth/2);
+  if(profile==='T2'){
+   // The airport describes its north and south 5F viewing areas as outdoor
+   // decks. Leave a normal-height glazed egress at both ends instead of
+   // enclosing the deck behind an uninterrupted curtain wall.
+   const floorY=T2_FLOOR_LEVELS[6],doorWidth=T2_OBSERVATION_DECK_LAYOUT.accessWidth,
+    doorHeight=Math.min(T2_OBSERVATION_DECK_LAYOUT.accessHeight,b.height-floorY-.5),doorCenter=b.x+T2_OBSERVATION_DECK_LAYOUT.accessXOffset,
+    doorLeft=doorCenter-doorWidth/2,doorRight=doorCenter+doorWidth/2,leftEdge=b.x-b.width/2,rightEdge=b.x+b.width/2,
+    lowerHeight=floorY,upperStart=floorY+doorHeight,upperHeight=Math.max(.1,b.height-upperStart),frame=material('#697774',.42,.48);
+   box(parent,b.width,lowerHeight,.12,b.x,lowerHeight/2,wallZ,mats.glass);
+   box(parent,b.width,upperHeight,.12,b.x,upperStart+upperHeight/2,wallZ,mats.glass);
+   const leftWidth=doorLeft-leftEdge,rightWidth=rightEdge-doorRight;
+   if(leftWidth>0)box(parent,leftWidth,doorHeight,.12,(leftEdge+doorLeft)/2,floorY+doorHeight/2,wallZ,mats.glass);
+   if(rightWidth>0)box(parent,rightWidth,doorHeight,.12,(doorRight+rightEdge)/2,floorY+doorHeight/2,wallZ,mats.glass);
+   // Two open sliding leaves remain parked against the jambs. Their clear
+   // central path aligns with the exterior deck slab and free-roam bounds.
+   const leafWidth=doorWidth*.26,leafOffset=doorWidth*.37;
+   for(const sign of [-1,1]){
+    box(parent,leafWidth,doorHeight-.08,.075,doorCenter+sign*leafOffset,floorY+(doorHeight-.08)/2,wallZ-side*.055,mats.glass);
+    box(parent,.075,doorHeight,.14,doorCenter+sign*doorWidth/2,floorY+doorHeight/2,wallZ-side*.12,frame);
+   }
+   box(parent,doorWidth,.12,.18,doorCenter,floorY+doorHeight,wallZ-side*.12,frame);
+  }else box(parent,b.width,b.height,.12,b.x,b.height/2,wallZ,mats.glass);
   box(parent,.12,b.height,b.depth,b.x+side*(b.width/2),b.height/2,b.z,mats.glass);
  }
  claddingBands(parent,b,mats.cladding);

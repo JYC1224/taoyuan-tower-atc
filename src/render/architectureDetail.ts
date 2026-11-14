@@ -3,6 +3,7 @@ import type {Terminal} from '../data/airport';
 import {box,cylinder,material,pavement,instances,canvasTexture,seeded} from './primitives';
 import {isSea} from './coastline';
 import {roofMaterial} from './roofMaterial';
+import {T2_FLOOR_LEVELS,T2_OBSERVATION_DECK_LAYOUT} from './terminalInteriorLayout';
 
 const pearl=material('#d3d8d8',.62,.18),silver=material('#aab7bf',.4,.58),dark=material('#566b78',.38,.25);
 const roofPearl=roofMaterial('#d6d8d3',.62,.14),roofSilver=roofMaterial('#615c52',.68,.14);
@@ -241,14 +242,32 @@ export function terminalRoof(parent:THREE.Group,t:Terminal){
    box(parent,t.width+18,.8,2.6,t.x,t.height+.15,t.z+side*(t.depth/2+1),roofPearl);
    box(parent,2.6,.8,t.depth+18,t.x+side*(t.width/2+1),t.height+.15,t.z,roofPearl);
    box(parent,t.width+35,.8,25,t.x,t.height*.6,t.z+side*(t.depth/2+8),pearl);
-   for(let x=-t.width/2;x<=t.width/2;x+=15){const truss=box(parent,.7,t.height,1,t.x+x,t.height/2,t.z+side*(t.depth/2+4),silver);truss.rotation.x=side*.14;}
+  for(let x=-t.width/2;x<=t.width/2;x+=15){
+   // Keep the documented outdoor viewing balconies clear of the tall outer
+   // roof-frame posts; the main space frame remains supported behind them.
+   if(t.id==='T2'&&Math.abs(x)<t.width*T2_OBSERVATION_DECK_LAYOUT.spanRatio/2+2)continue;
+   const truss=box(parent,.7,t.height,1,t.x+x,t.height/2,t.z+side*(t.depth/2+4),silver);truss.rotation.x=side*.14;
+  }
   }
  }else{
   box(parent,t.width+9,1.5,t.depth+9,t.x,t.height+.7,t.z,roofPearl);
   for(let x=-t.width/2+12;x<t.width/2;x+=18)box(parent,1,.6,t.depth+8,t.x+x,t.height+1.8,t.z,silver);
  }
  // Facade floors and mullions give human scale without extra transparent sorting.
- for(const side of [-1,1]){for(let y=5;y<t.height;y+=5)box(parent,t.width,.28,.22,t.x,y,t.z+side*(t.depth/2+.12),pearl);for(let x=-t.width/2;x<=t.width/2;x+=4)box(parent,.14,t.height,.22,t.x+x,t.height/2,t.z+side*(t.depth/2+.12),silver);}
+ for(const side of [-1,1]){
+  const wallZ=t.z+side*(t.depth/2+.12),doorFloor=T2_FLOOR_LEVELS[6],doorCenter=T2_OBSERVATION_DECK_LAYOUT.accessXOffset,doorHalf=T2_OBSERVATION_DECK_LAYOUT.accessWidth/2;
+  for(let y=5;y<t.height;y+=5){
+   if(t.id==='T2'&&y>doorFloor&&y<doorFloor+T2_OBSERVATION_DECK_LAYOUT.accessHeight){
+    const left=-t.width/2,right=t.width/2,openingLeft=doorCenter-doorHalf,openingRight=doorCenter+doorHalf;
+    box(parent,openingLeft-left,.28,.22,t.x+(left+openingLeft)/2,y,wallZ,pearl);
+    box(parent,right-openingRight,.28,.22,t.x+(openingRight+right)/2,y,wallZ,pearl);
+   }else box(parent,t.width,.28,.22,t.x,y,wallZ,pearl);
+  }
+  for(let x=-t.width/2;x<=t.width/2;x+=4){
+   if(t.id==='T2'&&Math.abs(x-doorCenter)<doorHalf)continue;
+   box(parent,.14,t.height,.22,t.x+x,t.height/2,wallZ,silver);
+  }
+ }
  if(t.id==='T2')terminal2CurbsideCanopy(parent,t);
 }
 

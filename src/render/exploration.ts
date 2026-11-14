@@ -1,10 +1,10 @@
 import {gates,runways,terminals} from '../data/airport';
-import {T1_BASEMENT_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type ExploreSpotId=
  'runway'|'apron'|'t1-b1-west-bus'|'t1-b1-east-food'|'t1-b1-7eleven-north'|'t1-b1-7eleven-south'|'t1-b1-chatime'|'t1-b1-burger-king'|'t1-b1-han-zhan-ge'|'t1-b1-restroom'|'t1-b1-nursing'|'t1-arrivals'|'t1-arrival-services'|'t1-checkin'|'t1-upper-gallery'|'t1-transfer-security'|'t1-immigration'|'t1-departures'|'t1-2f-public-services'|'t1-2f-oli'|'t1-2f-taiwan-beer'|'t1-2f-hanlin'|'t1-2f-mos'|'t1-2f-kuo-yuan-ye'|'t1-2f-bistro-d'|'t1-3f-public-services'|'t1-3f-megabank'|'t1-3f-starbucks'|'t1-3f-oli'|'t1-3f-taiwan-goods'|'t1-3f-hanlin'|'t1-3f-kuo-yuan-ye'|'t1-3f-mos'|'t1-3f-vigor'|'t1-3f-indigenous-crafts'|'t1-lounge'|'t1-lounge-other'|'t1-a-gates'|'t1-b-gates'|
- 't2-forecourt'|'t2-b2-corridor'|'t2-b2-mi-alone'|'t2-b2-le-pai-dui'|'t2-b2-fuhang'|'t2-b2-royal-heritage'|'t2-b2-songhe'|'t2-b2-xiaonanmen'|'t2-b2-restroom'|'t2-arrivals'|'t2-arrival-services'|'t2-arrival-art'|'t2-baggage-art'|'t2-transfer-services'|'t2-public-amenities'|'t2-4f-amenities'|'t2-transfer'|'t2-departures'|'t2-public-services'|'t2-passport'|'t2-security'|'t2-retail'|'t2-food'|'t2-shops'|'t2-shop-shishen-noodles'|'t2-shop-starbucks'|'t2-shop-baiba-fish'|'t2-shop-xiaonanmen'|'t2-shop-mos-burger'|'t2-shop-xingbo-coffee'|'t2-shop-shangshan-doujia'|'t2-lounge'|'t2-lounge-2'|'t2-lounge-3'|'t2-lounge-4'|'t2-lounge-5'|'t2-atrium'|'t2-north-amenities'|'t2-south-amenities'|'t2-north-deck'|'t2-south-deck'|'t2-c-gates'|'t2-d-gates'|
+ 't2-forecourt'|'t2-b2-corridor'|'t2-b2-mi-alone'|'t2-b2-le-pai-dui'|'t2-b2-fuhang'|'t2-b2-royal-heritage'|'t2-b2-songhe'|'t2-b2-xiaonanmen'|'t2-b2-restroom'|'t2-arrivals'|'t2-arrival-services'|'t2-arrival-art'|'t2-baggage-art'|'t2-transfer-services'|'t2-public-amenities'|'t2-4f-amenities'|'t2-transfer'|'t2-departures'|'t2-public-services'|'t2-passport'|'t2-security'|'t2-retail'|'t2-food'|'t2-shops'|'t2-shop-shishen-noodles'|'t2-shop-starbucks'|'t2-shop-baiba-fish'|'t2-shop-xiaonanmen'|'t2-shop-mos-burger'|'t2-shop-xingbo-coffee'|'t2-shop-shangshan-doujia'|'t2-lounge'|'t2-lounge-2'|'t2-lounge-3'|'t2-lounge-4'|'t2-lounge-5'|'t2-atrium'|'t2-north-amenities'|'t2-south-amenities'|'t2-north-deck'|'t2-south-deck'|'t2-temple-avenue'|'t2-c-gates'|'t2-d-gates'|
  't1-3f-checkin-15'|'t1-3f-checkin-21'|'t3-gates'|'tower';
 type Rect={left:number;right:number;near:number;far:number};
 type Position={x:number;y:number;z:number};
@@ -20,6 +20,9 @@ const expanded=(x:number,z:number,width:number,depth:number,margin=.65):Rect=>({
 function inside(t:{x:number;z:number;width:number;depth:number},margin=2):Rect{return inset(t.x,t.z,t.width,t.depth,margin);}
 function spot(id:ExploreSpotId,en:string,zh:string,floor:number,position:Position,target:Position,bounds:Rect,obstacles:Rect[]=[]):ExploreSpot{return {id,en,zh,floor,position,target,bounds,obstacles};}
 const t1CheckInStartZ=t1.z-42,t1CheckInSpacing=t1.depth*.60/5;
+const t1LandmarkCenterX=t1.x+T1_DEPARTURE_LANDMARK_LAYOUT.xOffset,
+ t1LandmarkCenterZ=t1.z+T1_DEPARTURE_LANDMARK_LAYOUT.checkInCenterOffset+t1.depth*T1_DEPARTURE_LANDMARK_LAYOUT.checkInSpanRatio*(T1_DEPARTURE_LANDMARK_LAYOUT.islandIndex/(T1_DEPARTURE_LANDMARK_LAYOUT.islandCount-1)-.5),
+ t1DepartureLandmarkFeature=expanded(t1LandmarkCenterX,t1LandmarkCenterZ,T1_DEPARTURE_LANDMARK_LAYOUT.width,T1_DEPARTURE_LANDMARK_LAYOUT.depth,.7);
 const t2CheckInStartZ=t2.z-67,t2CheckInSpacing=Math.min(26,t2.depth*.085);
 function columnsFor(t:{x:number;z:number;width:number;depth:number},profile?:'T1'|'T2'){
  const columns:Rect[]=[],spacingX=t.width>300?30:26,spacingZ=t.depth>180?34:22;
@@ -172,6 +175,18 @@ const t2FourthFloorServiceFeatures=[
  ...T2_FOURTH_FLOOR_SERVICES.aeds.map(point=>expanded(t2.x+point.dx,t2.z+point.dz,1.4,1.1))
 ];
 const t2FourthFloorObstacles=[...t2Columns,...t2FourthFloorShops,...t2FourthFloorLounges,...t2FourthFloorDining,...t2FourthFloorGalleryDining,...t2FourthFloorServiceFeatures];
+const t2DeckSpan=t2.width*T2_OBSERVATION_DECK_LAYOUT.spanRatio,
+ t2DeckBounds=(side:-1|1):Rect=>{
+  const innerZ=t2.z+side*(t2.depth/2-10),outerZ=t2.z+side*(t2.depth/2+T2_OBSERVATION_DECK_LAYOUT.projection+2);
+  return {left:t2.x-t2DeckSpan/2-1,right:t2.x+t2DeckSpan/2+1,near:Math.min(innerZ,outerZ),far:Math.max(innerZ,outerZ)};
+ },
+ t2NorthDeckBounds=t2DeckBounds(-1),t2SouthDeckBounds=t2DeckBounds(1),
+ t2TempleCenterZ=t2.z+t2.depth*T2_TEMPLE_AVENUE_LAYOUT.centerZRatio,
+ t2TempleDepth=t2.depth*T2_TEMPLE_AVENUE_LAYOUT.depthRatio,
+ t2TempleSpan=t2.width*T2_TEMPLE_AVENUE_LAYOUT.facadeSpanRatio,
+ t2TempleRowOffset=t2TempleDepth*T2_TEMPLE_AVENUE_LAYOUT.facadeOffsetRatio,
+ t2TempleBounds:Rect={left:t2.x-t2.width*T2_TEMPLE_AVENUE_LAYOUT.widthRatio/2+2,right:t2.x+t2.width*T2_TEMPLE_AVENUE_LAYOUT.widthRatio/2-2,near:t2TempleCenterZ-t2TempleDepth/2+2,far:t2TempleCenterZ+t2TempleDepth/2-2},
+ t2TempleFeatures=[-1,1].map(side=>expanded(t2.x,t2TempleCenterZ+side*t2TempleRowOffset,t2TempleSpan,1.4));
 const t2B2AisleX=t2BasementAisleX(t2.x,t2.width),t2B2WestEdge=t2.x-(t2.width-3)/2,t2B2MrtLink=T2_BASEMENT_LAYOUT.mrtLink,
  t2B2WalkBounds:Rect={left:t2B2WestEdge-t2B2MrtLink.length-2,right:t2B2AisleX+44,near:t2.z-t2.depth/2+2,far:t2.z+t2.depth/2-2},
  t2B2ShopFeatures=T2_BASEMENT_LAYOUT.shops.map(shop=>{const center=t2BasementShopCenter(t2.x,t2.z,t2.width,shop);return expanded(center.x,center.z,shop.depth,shop.length,.45);}),
@@ -282,7 +297,7 @@ export const exploreSpots:ExploreSpot[]=[
  spot('t1-b1-nursing','Terminal 1 B1 nursing room','第一航廈 B1 哺乳室',T1_FLOOR_LEVELS[0],{x:t1B1NursingCenter.x-T1_BASEMENT_LAYOUT.nursing.depth/2-6,y:T1_FLOOR_LEVELS[0]+1.7,z:t1B1NursingCenter.z},{x:t1B1NursingCenter.x-T1_BASEMENT_LAYOUT.nursing.depth/2+.4,y:T1_FLOOR_LEVELS[0]+1.88,z:t1B1NursingCenter.z},inside(t1),[...t1Columns,t1B1NursingFeature]),
  spot('t1-arrivals','Terminal 1 arrivals · 1F','第一航廈入境大廳 · 1F',T1_FLOOR_LEVELS[1],{x:t1.x-35,y:T1_FLOOR_LEVELS[1]+1.7,z:t1.z+70},{x:t1.x-25,y:T1_FLOOR_LEVELS[1]+2.14,z:t1.z+56},inside(t1),[...t1Columns,...t1Checkin,...t1Baggage,...t1FirstFloorServiceFeatures]),
  spot('t1-arrival-services','Terminal 1 arrival services · 1F','第一航廈旅客服務、銀行與 ATM · 1F',T1_FLOOR_LEVELS[1],{x:t1.x-49,y:T1_FLOOR_LEVELS[1]+1.7,z:t1.z+85},{x:t1.x-64,y:T1_FLOOR_LEVELS[1]+2.19,z:t1.z+85},inside(t1),[...t1Columns,...t1Baggage,...t1FirstFloorServiceFeatures]),
- spot('t1-checkin','Terminal 1 check-in · 1F','第一航廈報到大廳 · 1F',T1_FLOOR_LEVELS[1],{x:t1.x+28,y:T1_FLOOR_LEVELS[1]+1.7,z:t1CheckInStartZ+16.2},{x:t1.x,y:T1_FLOOR_LEVELS[1]+2.24,z:t1CheckInStartZ},inside(t1),[...t1Columns,...t1Checkin]),
+ spot('t1-checkin','Terminal 1 check-in · 1F','第一航廈報到大廳 · 1F',T1_FLOOR_LEVELS[1],{x:t1LandmarkCenterX-23,y:T1_FLOOR_LEVELS[1]+1.7,z:t1LandmarkCenterZ+18},{x:t1LandmarkCenterX,y:T1_FLOOR_LEVELS[1]+4.8,z:t1LandmarkCenterZ},inside(t1),[...t1Columns,...t1Checkin,t1DepartureLandmarkFeature]),
  spot('t1-upper-gallery','Terminal 1 public retail gallery · 2F','第一航廈二樓中庭與商店通行廊 · 2F',T1_FLOOR_LEVELS[2],{x:t1.x-t1.width/2+10.5,y:T1_FLOOR_LEVELS[2]+2.05,z:t1.z-44},{x:t1.x-t1.width/2+13,y:T1_FLOOR_LEVELS[2]+2.3,z:t1.z-38},inside(t1),[...t1Columns,...t1UpperAtrium,...t1SecondFloorFeatures]),
  ...t1SecondFloorShopSpots,
  spot('t1-2f-public-services','Terminal 1 public services · ATM / FX / bank · 2F','第一航廈公共服務 · ATM／換匯／銀行 · 2F',T1_FLOOR_LEVELS[2],{x:t1.x,y:T1_FLOOR_LEVELS[2]+2.05,z:t1.z-t1.depth*.37},{x:t1.x,y:T1_FLOOR_LEVELS[2]+2.3,z:t1SecondFloorServiceZ+3.4},inside(t1),[...t1Columns,...t1UpperAtrium,...t1SecondFloorFeatures]),
@@ -331,8 +346,9 @@ export const exploreSpots:ExploreSpot[]=[
  spot('t2-atrium','Terminal 2 atrium gallery · 4F','第二航廈中庭觀景廊 · 4F',18.55,{x:t2.x-58,y:20.25,z:t2.z-40},{x:t2.x-10,y:12.65,z:t2.z-31},inside(t2),t2Columns),
  spot('t2-north-amenities','Terminal 2 north deck services · 5F','第二航廈北側商店與候機服務 · 5F',23.45,{x:t2.x-t2.width*.275,y:25.15,z:t2.z-t2.depth*.36},{x:t2.x-t2.width*.275,y:25.45,z:t2.z-t2.depth*.43+4.2},inside(t2),[...t2Columns,...t2NorthFeatures]),
  spot('t2-south-amenities','Terminal 2 south deck services · 5F','第二航廈南側商店與休息服務 · 5F',23.45,{x:t2.x+t2.width*.275,y:25.15,z:t2.z+t2.depth*.13-24},{x:t2.x+t2.width*.275,y:25.45,z:t2.z+t2.depth*.13-4.2},inside(t2),[...t2Columns,...t2SouthFeatures]),
- spot('t2-north-deck','Terminal 2 north observation deck · 5F','第二航廈北側觀景台 · 5F',23.45,{x:t2.x-40,y:25.15,z:t2.z-124},{x:t2.x-40,y:25.4,z:t2.z-142},inside(t2),t2Columns),
- spot('t2-south-deck','Terminal 2 south observation deck & Taiwan Temple Avenue · 5F','第二航廈南側觀景台與臺灣玩藝大街 · 5F',23.45,{x:t2.x-40,y:25.15,z:t2.z+120},{x:t2.x-40,y:25.4,z:t2.z+143},inside(t2),t2Columns),
+ spot('t2-north-deck','Terminal 2 north outdoor observation deck · 5F','第二航廈北側戶外觀景台 · 5F',23.45,{x:t2.x-28,y:25.15,z:t2.z-t2.depth/2-4},{x:t2.x-28,y:25.75,z:t2.z-t2.depth/2-T2_OBSERVATION_DECK_LAYOUT.projection-14},t2NorthDeckBounds,t2Columns),
+ spot('t2-south-deck','Terminal 2 south outdoor observation deck · 5F','第二航廈南側戶外觀景台 · 5F',23.45,{x:t2.x-28,y:25.15,z:t2.z+t2.depth/2+3},{x:t2.x,y:26.2,z:t2.z+t2.depth/2+T2_OBSERVATION_DECK_LAYOUT.projection-T2_OBSERVATION_DECK_LAYOUT.statueInset},t2SouthDeckBounds,t2Columns),
+ spot('t2-temple-avenue','Terminal 2 Taiwan Temple Avenue · 5F','第二航廈臺灣玩藝大街 · 5F',23.45,{x:t2.x-t2TempleSpan*.43,y:25.15,z:t2TempleCenterZ},{x:t2.x+t2TempleSpan*.3,y:26.3,z:t2TempleCenterZ+5},t2TempleBounds,[...t2TempleFeatures,...t2Columns]),
  spot('t2-c-gates','Terminal 2 C gates','第二航廈 C 區登機廊廳',.36,{x:-346.5,y:2.06,z:110},{x:-346.5,y:2.7,z:95},inset(-243.5,135,750,80,1),t2CColumns),
  spot('t2-d-gates','Terminal 2 D1–D10 gates','第二航廈 D1–D10 登機廊廳',.36,{x:-228,y:2.06,z:-250},{x:-293,y:2.7,z:-250},inset(-245,-250,840,110,1),t2DColumns),
  spot('t3-gates','Terminal 3 north concourse · D11–D18','第三航廈北登機廊廳 · D11–D18',.36,{x:t3n.x-57,y:2.06,z:t3n.z+15},{x:t3n.x-57,y:2.6,z:t3n.z-24},inside(t3n),[...columnsFor(t3n),...northShops]),
