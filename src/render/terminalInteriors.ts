@@ -4,6 +4,7 @@ import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
 import {T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_THIRD_FLOOR_LAYOUT,t1FirstFloorServiceCenter,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
 type Item={x:number;y:number;z:number;sx:number;sy:number;sz:number;ry?:number;rx?:number;color?:THREE.ColorRepresentation};
@@ -436,6 +437,33 @@ function terminal1CheckIn(parent:THREE.Object3D,b:TerminalBounds,y:number,z:numb
   kiosks.push({x,y:y+1.05,z:zKiosk,sx:1.15,sy:2.1,sz:.82});kioskScreens.push({x,y:y+1.32,z:zKiosk-.43,sx:.62,sy:.58,sz:.055});
  }
  batch(parent,counter,kiosks);batch(parent,screen,kioskScreens);sign(parent,'DEPARTURES  出境',b.x-long/2-6,y+5.5,z,Math.min(b.depth*.04,10),'#aa9160',Math.PI/2,1.05);
+}
+
+/** The official T1 3F map separately marks check-in counters 15 and 21. */
+function terminal1ThirdFloorCheckIn(parent:THREE.Object3D,b:TerminalBounds,y:number){
+ const bases:Item[]=[],tops:Item[]=[],legs:Item[]=[],monitors:Item[]=[],rollers:Item[]=[],queuePosts:Item[]=[],queueRails:Item[]=[];
+ const fascia=material('#30383a',.46,.26);
+ for(const zone of T1_THIRD_FLOOR_CHECKIN_ZONES){
+  const x=b.x+zone.dx,z=b.z+zone.dz,spacing=zone.length/zone.stations;
+  box(parent,zone.length,.58,5.2,x,y+.29,z,t1Island);
+  box(parent,zone.length-.7,.18,1.1,x,y+.68,z,belt);
+  for(let roller=-zone.length/2+.7;roller<zone.length/2-.5;roller+=1.05)rollers.push({x:x+roller,y:y+.79,z,sx:.07,sy:.045,sz:.92});
+  for(const side of [-1,1]){
+   for(let station=0;station<zone.stations;station++){
+    const deskX=x+(station-(zone.stations-1)/2)*spacing,deskZ=z+side*2.3,deskWidth=spacing*.78;
+    bases.push({x:deskX,y:y+.43,z:deskZ,sx:deskWidth,sy:.72,sz:1.42});
+    tops.push({x:deskX,y:y+.82,z:deskZ,sx:deskWidth+.12,sy:.12,sz:1.55});
+    legs.push({x:deskX,y:y+1.1,z:deskZ-side*.69,sx:.12,sy:.48,sz:.12});
+    monitors.push({x:deskX,y:y+1.45,z:deskZ-side*.74,sx:.86,sy:.5,sz:.1});
+   }
+   const queueZ=z+side*5.35,queueLength=zone.length*.82;
+   for(const offset of [-queueLength/2,0,queueLength/2])queuePosts.push({x:x+offset,y:y+.42,z:queueZ,sx:.09,sy:.86,sz:.09});
+   queueRails.push({x,y:y+.78,z:queueZ,sx:queueLength,sy:.045,sz:.06});
+  }
+  box(parent,zone.length*.72,.76,.32,x,y+4.28,z,fascia);
+  sign(parent,`CHECK-IN  ${zone.counter}  報到`,x,y+4.28,z+.19,Math.min(zone.length*.62,17),'#718b88',0,.76);
+ }
+ batch(parent,beltRoller,rollers);batch(parent,counter,bases);batch(parent,counterTop,tops);batch(parent,steel,legs);batch(parent,screen,monitors);batch(parent,queuePost,queuePosts);batch(parent,steel,queueRails);
 }
 
 /** T1's photographed 3F public hall has restrained potted planting at its edges. */
@@ -1818,7 +1846,7 @@ function terminal1(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials
  immigrationHall(parent,b,11.55,b.z-84,10,b.x-38,true);seating(parent,b,11.55,b.z-58,2,9,true);decorateT1ArrivalArt(parent,b,11.3);
   // The 3F public map names specific retailers and service cores; preserve the
   // broad central route and fit those landmarks into the mapped side zones.
-  terminal1MappedPublicServices(parent,b,11.55,'3F');terminal1HallPlanters(parent,b,11.55);
+  terminal1MappedPublicServices(parent,b,11.55,'3F');terminal1ThirdFloorCheckIn(parent,b,11.55);terminal1HallPlanters(parent,b,11.55);
  securityHall(parent,b,11.55,b.z+43,6);seating(parent,b,11.55,b.z+64,4,11,true);flightBoards(parent,b,11.55,b.z+82);
  terminal1Lounge(parent,b,16.95);
 }

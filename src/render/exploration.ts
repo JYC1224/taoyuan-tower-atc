@@ -1,10 +1,11 @@
 import {gates,runways,terminals} from '../data/airport';
 import {T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_THIRD_FLOOR_LAYOUT,t1FirstFloorServiceCenter,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type ExploreSpotId=
  'runway'|'apron'|'t1-arrivals'|'t1-arrival-services'|'t1-checkin'|'t1-upper-gallery'|'t1-transfer-security'|'t1-immigration'|'t1-departures'|'t1-2f-public-services'|'t1-2f-oli'|'t1-2f-taiwan-beer'|'t1-2f-hanlin'|'t1-2f-mos'|'t1-2f-kuo-yuan-ye'|'t1-2f-bistro-d'|'t1-3f-public-services'|'t1-3f-megabank'|'t1-3f-starbucks'|'t1-3f-oli'|'t1-3f-taiwan-goods'|'t1-3f-hanlin'|'t1-3f-kuo-yuan-ye'|'t1-3f-mos'|'t1-3f-vigor'|'t1-3f-indigenous-crafts'|'t1-lounge'|'t1-lounge-other'|'t1-a-gates'|'t1-b-gates'|
  't2-forecourt'|'t2-arrivals'|'t2-arrival-services'|'t2-arrival-art'|'t2-baggage-art'|'t2-transfer-services'|'t2-public-amenities'|'t2-4f-amenities'|'t2-transfer'|'t2-departures'|'t2-public-services'|'t2-passport'|'t2-security'|'t2-retail'|'t2-food'|'t2-shops'|'t2-shop-shishen-noodles'|'t2-shop-starbucks'|'t2-shop-baiba-fish'|'t2-shop-xiaonanmen'|'t2-shop-mos-burger'|'t2-shop-xingbo-coffee'|'t2-shop-shangshan-doujia'|'t2-lounge'|'t2-lounge-2'|'t2-lounge-3'|'t2-lounge-4'|'t2-lounge-5'|'t2-atrium'|'t2-north-amenities'|'t2-south-amenities'|'t2-north-deck'|'t2-south-deck'|'t2-c-gates'|'t2-d-gates'|
- 't3-gates'|'tower';
+ 't1-3f-checkin-15'|'t1-3f-checkin-21'|'t3-gates'|'tower';
 type Rect={left:number;right:number;near:number;far:number};
 type Position={x:number;y:number;z:number};
 export interface ExploreSpot {
@@ -93,6 +94,7 @@ const t1SecondFloorServiceFeatures:Rect[]=[
 ];
 const t1SecondFloorFeatures=[...t1SecondFloorShopFeatures,...t1SecondFloorServiceFeatures];
 const t1ThirdFloorShopFeatures=T1_THIRD_FLOOR_STORES.map(store=>expanded(t1.x+store.dx,t1.z+store.dz,store.width,store.depth,.5));
+const t1ThirdFloorCheckInFeatures=T1_THIRD_FLOOR_CHECKIN_ZONES.map(zone=>expanded(t1.x+zone.dx,t1.z+zone.dz,zone.length,zone.depth,1));
 const t1ThirdFloorServiceFeatures:Rect[]=[
  expanded(t1.x+T1_THIRD_FLOOR_SERVICES.atm.dx,t1.z+T1_THIRD_FLOOR_SERVICES.atm.dz,11,6.4),
  ...T1_THIRD_FLOOR_SERVICES.exchanges.map(point=>expanded(t1.x+point.dx,t1.z+point.dz,8.5,4.8)),
@@ -100,7 +102,7 @@ const t1ThirdFloorServiceFeatures:Rect[]=[
  expanded(t1.x+t1.width*.15,t1.z-62,13,8),expanded(t1.x-t1.width*.37,t1.z-62,13,8),expanded(t1.x-t1.width*.19,t1.z+116,15,9),
  expanded(t1.x-67,t1.z-49,1.1,1.2),expanded(t1.x-65,t1.z+11,1.1,1.2),expanded(t1.x+46,t1.z+27,1.1,1.2)
 ];
-const t1ThirdFloorFeatures=[...t1ThirdFloorShopFeatures,...t1ThirdFloorServiceFeatures];
+const t1ThirdFloorFeatures=[...t1ThirdFloorShopFeatures,...t1ThirdFloorServiceFeatures,...t1ThirdFloorCheckInFeatures];
 const t1SouthBank=T1_THIRD_FLOOR_SERVICES.banks[1];
 const t2NorthFeatures=[expanded(t2.x-t2.width*.275,t2.z-t2.depth*.43,23,9),expanded(t2.x+t2.width*.235,t2.z-t2.depth*.43-1.4,22,11)];
 const t2SouthFeatures=[expanded(t2.x+t2.width*.275,t2.z+t2.depth*.13,23,9),expanded(t2.x-t2.width*.245,t2.z+t2.depth*.13-2.1,24,7),expanded(t2.x-t2.width*.08,t2.z+t2.depth*.13+7,16,8)];
@@ -226,6 +228,12 @@ const t1ThirdFloorShopSpots:ExploreSpot[]=T1_THIRD_FLOOR_STORES.map(store=>{
   {x:centerX,y:13.35,z:frontZ+5},
   {x:centerX,y:13.75,z:frontZ+1.4},inside(t1),[...t1Columns,...t1Planters,...t1ThirdFloorFeatures,...t1TransferSecurity]);
 });
+const t1ThirdFloorCheckInSpots:ExploreSpot[]=T1_THIRD_FLOOR_CHECKIN_ZONES.map((zone,index)=>{
+ const x=t1.x+zone.dx,z=t1.z+zone.dz,side=index===0?1:-1,id=index===0?'t1-3f-checkin-15':'t1-3f-checkin-21';
+ return spot(id,`Terminal 1 check-in counter ${zone.counter} · 3F`,`第一航廈 ${zone.counter} 號報到櫃台 · 3F`,11.3,
+  {x:x+side*zone.length*.72,y:13.35,z:z+zone.depth*.64},
+  {x,y:13.75,z},inside(t1),[...t1Columns,...t1ThirdFloorFeatures,...t1TransferSecurity]);
+});
 
 /** Walkable interior waypoints follow the current public floor maps and gate rows. */
 export const exploreSpots:ExploreSpot[]=[
@@ -237,7 +245,7 @@ export const exploreSpots:ExploreSpot[]=[
  spot('t1-upper-gallery','Terminal 1 public retail gallery · 2F','第一航廈二樓中庭與商店通行廊 · 2F',5.8,{x:t1.x-t1.width/2+10.5,y:7.85,z:t1.z-44},{x:t1.x-t1.width/2+13,y:8.1,z:t1.z-38},inside(t1),[...t1Columns,...t1UpperAtrium,...t1SecondFloorFeatures]),
  ...t1SecondFloorShopSpots,
  spot('t1-2f-public-services','Terminal 1 public services · ATM / FX / bank · 2F','第一航廈公共服務 · ATM／換匯／銀行 · 2F',5.8,{x:t1.x,y:7.85,z:t1.z-t1.depth*.37},{x:t1.x,y:8.1,z:t1SecondFloorServiceZ+3.4},inside(t1),[...t1Columns,...t1UpperAtrium,...t1SecondFloorFeatures]),
- ...t1ThirdFloorShopSpots,
+ ...t1ThirdFloorShopSpots,...t1ThirdFloorCheckInSpots,
  spot('t1-3f-public-services','Terminal 1 public services · 3F','第一航廈公共服務與醫療中心 · 3F',11.3,{x:t1.x-33,y:13.35,z:t1.z+130},{x:t1.x-33,y:13.75,z:t1.z+116},inside(t1),[...t1Columns,...t1Planters,...t1ThirdFloorFeatures]),
  spot('t1-3f-megabank','Terminal 1 Megabank and south exchange · 3F','第一航廈兆豐銀行與南端換匯服務 · 3F',11.3,{x:t1.x+t1SouthBank.dx+13,y:13.35,z:t1.z+t1SouthBank.dz+6},{x:t1.x+t1SouthBank.dx,y:13.75,z:t1.z+t1SouthBank.dz},inside(t1),[...t1Columns,...t1Planters,...t1ThirdFloorFeatures]),
  spot('t1-transfer-security','Terminal 1 transfer-screening route concept · departure level','第一航廈轉機安檢路徑示意 · 出境層',11.3,{x:t1.x-32,y:13.35,z:t1.z+25},{x:t1.x-3,y:13.55,z:t1.z+43},inside(t1),[...t1Columns,...t1Planters,...t1ThirdFloorFeatures,...t1TransferSecurity]),

@@ -52,6 +52,13 @@ export const T1_THIRD_FLOOR_STORES=[
  {id:'indigenous-crafts',dx:-70,dz:106,width:20,depth:12,label:'TAIWAN INDIGENOUS CRAFT  原住民精藝品展售館',accent:'#8d754c',kind:'retail',profile:'craft'},
 ] as const;
 
+/** Counter 15 and counter 21 are explicitly marked on the airport's T1 3F map.
+ * The public diagram is not dimensioned, so these footprints and offsets are estimates. */
+export const T1_THIRD_FLOOR_CHECKIN_ZONES=[
+ {counter:15,dx:-38,dz:-34,length:28,depth:15,stations:5},
+ {counter:21,dx:38,dz:76,length:28,depth:15,stations:5},
+] as const;
+
 /** T1 3F map service locations; point and counter dimensions remain estimates. */
 export const T1_THIRD_FLOOR_SERVICES={
  atm:{dx:-5,dz:-96},
