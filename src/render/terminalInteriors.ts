@@ -9,7 +9,7 @@ export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
 type Item={x:number;y:number;z:number;sx:number;sy:number;sz:number;ry?:number;rx?:number;color?:THREE.ColorRepresentation};
 type RotItem=Item&{rx:number};
 const unitBox=new THREE.BoxGeometry(1,1,1),steel=material('#aeb8b8',.42,.42),pillar=material('#b8c1c0',.48,.32),counter=material('#c7cdca',.52,.12),counterTop=material('#eef0e9',.3,.08),screen=material('#142a33',.28,.22),belt=material('#303d40',.72,.1),queuePost=material('#879397',.38,.58),warmWood=material('#765e46',.58,.1),shopGlass=material('#91a9aa',.24,.18),seatDark=material('#3e555d',.62,.12),seatWarm=material('#b77e37',.58,.08),seatOrange=material('#df6d3d',.54,.1),light= new THREE.MeshStandardMaterial({color:'#fff3d4',emissive:'#f0ca7c',emissiveIntensity:.58,roughness:.38}),ceilingStrip=new THREE.MeshStandardMaterial({color:'#fff7e8',emissive:'#ffedcf',emissiveIntensity:.95,roughness:.5}),accentBlue=material('#087d91',.4,.15),accentRed=material('#b34336',.46,.08),t1Island=material('#ffffff',.48,.22),t2Island=material('#ffffff',.42,.34),islandTrim=material('#c3c8c3',.36,.42),foodCourtGold=material('#e6b83e',.42,.24),foodCourtIvory=material('#efeee7',.48,.08),foodCourtSeat=material('#f2f1e9',.6,.06),beltRoller=material('#b6bfba',.34,.62),signCache=new Map<string,THREE.Material>();
-const t1CheckinTimber=new THREE.MeshStandardMaterial({color:'#c09a70',roughness:.68,metalness:.018,emissive:'#50381f',emissiveIntensity:.14}),t1CheckinRib=material('#9a724e',.62,.035),t1CheckinDownlight=new THREE.MeshStandardMaterial({color:'#fff7e5',emissive:'#ffda9a',emissiveIntensity:.78,roughness:.46});
+const t1CheckinDisplayText=new THREE.MeshStandardMaterial({color:'#dcebe5',emissive:'#83b9aa',emissiveIntensity:.22,roughness:.4});
 type DeckFinishes={floor:THREE.Material;ceiling:THREE.Material;edge:THREE.Material;structure:THREE.Material};
 const finishCache=new Map<string,THREE.Material>();
 const interiorReflectionCache=new Map<'T1'|'T2'|'T2-LOW',THREE.CubeTexture>();
@@ -377,28 +377,9 @@ function aislePosts(target:Item[],x:number,y:number,z:number,count:number,spacin
 
 /** T1's departure hall uses six long, parallel check-in islands rather than a row of isolated desks. */
 function terminal1CheckIn(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number){
- const bases:Item[]=[],tops:Item[]=[],stands:Item[]=[],monitors:Item[]=[],rollers:Item[]=[],queuePosts:Item[]=[],queueRails:Item[]=[],islandSides:Item[]=[],signSupports:Item[]=[],kiosks:Item[]=[],kioskScreens:Item[]=[],canopySlats:Item[]=[],canopyFascia:Item[]=[],canopyLights:Item[]=[],count=6,span=b.depth*.60,firstZ=z-span/2,long=39,stationsPerZone=6,stationSpacing=4.8,
+ const bases:Item[]=[],tops:Item[]=[],stands:Item[]=[],monitors:Item[]=[],rollers:Item[]=[],queuePosts:Item[]=[],queueRails:Item[]=[],islandSides:Item[]=[],signHangers:Item[]=[],signLights:Item[]=[],signDisplays:Item[]=[],kiosks:Item[]=[],kioskScreens:Item[]=[],count=6,span=b.depth*.60,firstZ=z-span/2,long=39,stationsPerZone=6,stationSpacing=4.8,
   islandGeometry=roundedTerminalPrism(long,3.9,1.35,.62),beltGeometry=roundedTerminalPrism(long-2,1.3,.58,.12);
- const canopyHalfWidth=2.16,canopyLength=28.6,canopyRows=23,canopyRibCount=7,canopyCrossSegments=32;
- // The documented T1 check-in photograph shows timber-clad, gently arched
- // canopies with repeated curved ribs over the counter banks. These repeated
- // members are suspended above each bank; their lower ends stay above the
- // counter working surface and do not change the walkable floor plan.
- const ribCurve=new THREE.CatmullRomCurve3([
-  new THREE.Vector3(0,1.42,-2.08),new THREE.Vector3(0,2.44,-2.08),new THREE.Vector3(0,3.48,-2.02),
-  new THREE.Vector3(0,3.96,-1.63),new THREE.Vector3(0,4.37,-.9),new THREE.Vector3(0,4.56,0),
-  new THREE.Vector3(0,4.37,.9),new THREE.Vector3(0,3.96,1.63),new THREE.Vector3(0,3.48,2.02),
-  new THREE.Vector3(0,2.44,2.08),new THREE.Vector3(0,1.42,2.08)
- ]);
- const ribGeometry=new THREE.TubeGeometry(ribCurve,32,.16,4,false),ribMesh=new THREE.InstancedMesh(ribGeometry,t1CheckinRib,count*2*canopyRibCount),canopyVertexPositions:number[]=[],canopyIndices:number[]=[];
- for(let cross=0;cross<=canopyCrossSegments;cross++){
-  const localZ=-canopyHalfWidth+2*canopyHalfWidth*cross/canopyCrossSegments,roofY=3.6+.96*(1-(localZ/canopyHalfWidth)**2);
-  canopyVertexPositions.push(-canopyLength/2,roofY-.08,localZ,canopyLength/2,roofY-.08,localZ);
-  if(cross<canopyCrossSegments){const a=cross*2,b=a+1,c=a+2,d=a+3;canopyIndices.push(a,c,b,b,c,d);}
- }
- const canopyGeometry=new THREE.BufferGeometry();canopyGeometry.setAttribute('position',new THREE.Float32BufferAttribute(canopyVertexPositions,3));canopyGeometry.setIndex(canopyIndices);canopyGeometry.computeVertexNormals();
- const canopySurfaceMat=new THREE.MeshStandardMaterial({color:'#d0ad83',roughness:.72,metalness:.012,emissive:'#4d361f',emissiveIntensity:.16,side:THREE.DoubleSide}),canopySurface=new THREE.InstancedMesh(canopyGeometry,canopySurfaceMat,count*2),surfaceDummy=new THREE.Object3D();
- const ribDummy2=new THREE.Object3D();let ribIndex=0,surfaceIndex=0;
+ const fascia=material('#30383a',.46,.26),displayGlass=new THREE.MeshPhysicalMaterial({color:'#14252a',roughness:.2,metalness:.18,transparent:true,opacity:.88,side:THREE.DoubleSide});
  for(let i=0;i<count;i++){
   const x=b.x,islandZ=firstZ+i*span/(count-1),first=i*2+1,last=first+1;
   // Steel island plinth and continuous rubber baggage conveyor, with brushed
@@ -420,31 +401,26 @@ function terminal1CheckIn(parent:THREE.Object3D,b:TerminalBounds,y:number,z:numb
    const queueZ=islandZ+side*5.5,queueLength=(stationsPerZone-1)*stationSpacing+stationSpacing;
    for(const offset of [-queueLength/2,0,queueLength/2])queuePosts.push({x:x+offset,y:y+.43,z:queueZ,sx:.1,sy:1,sz:.1});
    queueRails.push({x,y:y+.57,z:queueZ,sx:queueLength,sy:.05,sz:.07});
-   const canopyZ=islandZ+side*2.75;
-   surfaceDummy.position.set(x,y,canopyZ);surfaceDummy.updateMatrix();canopySurface.setMatrixAt(surfaceIndex++,surfaceDummy.matrix);
-   for(let slat=0;slat<canopyRows;slat++){
-    const localZ=-canopyHalfWidth+.12+slat*((canopyHalfWidth*2-.24)/(canopyRows-1)),roofY=3.6+.96*(1-(localZ/canopyHalfWidth)**2);
-    canopySlats.push({x,y:y+roofY-.035,z:canopyZ+localZ,sx:canopyLength,sy:.07,sz:.17,color:slat%7===0?'#a17d59':slat%4===0?'#94714f':'#896747'});
-   }
-   for(let rib=0;rib<canopyRibCount;rib++){
-    const ribX=x-canopyLength/2+.35+rib*(canopyLength-.7)/(canopyRibCount-1);
-    ribDummy2.position.set(ribX,y,canopyZ);ribDummy2.rotation.set(0,0,0);ribDummy2.updateMatrix();ribMesh.setMatrixAt(ribIndex++,ribDummy2.matrix);
-   }
-   for(const edge of [-1,1])canopyFascia.push({x,y:y+3.56,z:canopyZ+edge*(canopyHalfWidth-.04),sx:canopyLength,sy:.17,sz:.18,color:'#76583e'});
-   for(let lightIndex=0;lightIndex<5;lightIndex++){
-    const lightX=x-canopyLength*.39+lightIndex*canopyLength*.195,localZ=side<0?.72:-.72,roofY=3.6+.96*(1-(localZ/canopyHalfWidth)**2);
-    canopyLights.push({x:lightX,y:y+roofY-.105,z:canopyZ+localZ,sx:.28,sy:.035,sz:.12});
+  }
+  // The architect's published check-in-hall photo shows the roof structure
+  // visible above the counters, with a slim dark information fascia rather
+  // than individual timber canopies over each island. Keep its hanger rods
+  // below the 2F soffit and leave the long roof view unobstructed.
+  const fasciaY=y+4.18,fasciaWidth=long-1.1;
+  box(parent,fasciaWidth,1.08,.5,x,fasciaY,islandZ,fascia);
+  for(const hangerX of [-12,12])signHangers.push({x:x+hangerX,y:y+4.76,z:islandZ,sx:.1,sy:.12,sz:.1});
+  sign(parent,`CHECK-IN  ${String(first).padStart(2,'0')}–${String(last).padStart(2,'0')}  報到`,x,fasciaY,islandZ+.26,15,'#718b88',0,.76);
+  for(const side of [-1,1]){
+   signLights.push({x,y:y+3.58,z:islandZ+side*.27,sx:fasciaWidth-1.4,sy:.035,sz:.055});
+   for(const displaySide of [-1,1]){
+    const displayX=x+displaySide*12.2,displayZ=islandZ+side*.257;
+    signDisplays.push({x:displayX,y:y+4.18,z:displayZ,sx:3.2,sy:.48,sz:.055});
+    for(let line=0;line<3;line++)signLights.push({x:displayX,y:y+4.29-line*.12,z:displayZ+side*.035,sx:line===0?2.15:1.45,sy:.025,sz:.025,color:line===0?'#c3ded6':'#86b3a8'});
    }
   }
-  // Zone labels hang from the tall hall ceiling in the open centre gap between
-  // the paired timber canopies, rather than being propped through their roofs.
-  for(const signSide of [-1,1])signSupports.push({x:x+signSide*2.85,y:y+6.2,z:islandZ,sx:.055,sy:4.3,sz:.055});
-  sign(parent,`CHECK-IN  ${String(first).padStart(2,'0')}–${String(last).padStart(2,'0')}  報到`,x,y+4.0,islandZ,5.8,'#718b88',0,.82);
  }
- ribMesh.count=ribIndex;ribMesh.instanceMatrix.needsUpdate=true;ribMesh.castShadow=false;ribMesh.receiveShadow=false;parent.add(canopySurface,ribMesh);
- canopySurface.count=surfaceIndex;canopySurface.instanceMatrix.needsUpdate=true;canopySurface.castShadow=false;canopySurface.receiveShadow=true;
- batch(parent,t1CheckinTimber,canopySlats);batch(parent,t1CheckinRib,canopyFascia);batch(parent,t1CheckinDownlight,canopyLights);
- batch(parent,t1Island,bases);batch(parent,islandTrim,tops);batch(parent,steel,stands);batch(parent,screen,monitors);batch(parent,beltRoller,rollers);batch(parent,islandTrim,islandSides);batch(parent,queuePost,queuePosts);batch(parent,steel,queueRails);batch(parent,steel,signSupports);
+ batch(parent,t1CheckinDisplayText,signLights);batch(parent,displayGlass,signDisplays);
+ batch(parent,t1Island,bases);batch(parent,islandTrim,tops);batch(parent,steel,stands);batch(parent,screen,monitors);batch(parent,beltRoller,rollers);batch(parent,islandTrim,islandSides);batch(parent,queuePost,queuePosts);batch(parent,steel,queueRails);batch(parent,steel,signHangers);
  // Self-service check-in stays to the hall edges, leaving clear paths between islands.
  for(const side of [-1,1])for(let i=0;i<5;i++){
   const x=b.x+side*b.width*.39+(i-2)*2.6,zKiosk=z+(i-2)*2.6;
