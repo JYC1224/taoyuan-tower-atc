@@ -1,9 +1,9 @@
 import {gates,runways,terminals} from '../data/airport';
-import {T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorShopCenter} from './terminalInteriorLayout';
+import {T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_THIRD_FLOOR_LAYOUT,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorShopCenter,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 
 export type ExploreSpotId=
  'runway'|'apron'|'t1-arrivals'|'t1-checkin'|'t1-upper-gallery'|'t1-transfer-security'|'t1-immigration'|'t1-departures'|'t1-2f-public-services'|'t1-2f-oli'|'t1-2f-taiwan-beer'|'t1-2f-hanlin'|'t1-2f-mos'|'t1-2f-kuo-yuan-ye'|'t1-2f-bistro-d'|'t1-3f-public-services'|'t1-3f-starbucks'|'t1-3f-oli'|'t1-3f-taiwan-goods'|'t1-3f-hanlin'|'t1-3f-kuo-yuan-ye'|'t1-3f-mos'|'t1-3f-vigor'|'t1-3f-indigenous-crafts'|'t1-lounge'|'t1-lounge-other'|'t1-a-gates'|'t1-b-gates'|
- 't2-forecourt'|'t2-arrivals'|'t2-arrival-services'|'t2-arrival-art'|'t2-baggage-art'|'t2-transfer-services'|'t2-public-amenities'|'t2-transfer'|'t2-departures'|'t2-passport'|'t2-security'|'t2-retail'|'t2-food'|'t2-shops'|'t2-lounge'|'t2-lounge-2'|'t2-lounge-3'|'t2-lounge-4'|'t2-atrium'|'t2-north-amenities'|'t2-south-amenities'|'t2-north-deck'|'t2-south-deck'|'t2-c-gates'|'t2-d-gates'|
+ 't2-forecourt'|'t2-arrivals'|'t2-arrival-services'|'t2-arrival-art'|'t2-baggage-art'|'t2-transfer-services'|'t2-public-amenities'|'t2-transfer'|'t2-departures'|'t2-public-services'|'t2-passport'|'t2-security'|'t2-retail'|'t2-food'|'t2-shops'|'t2-lounge'|'t2-lounge-2'|'t2-lounge-3'|'t2-lounge-4'|'t2-atrium'|'t2-north-amenities'|'t2-south-amenities'|'t2-north-deck'|'t2-south-deck'|'t2-c-gates'|'t2-d-gates'|
  't3-gates'|'tower';
 type Rect={left:number;right:number;near:number;far:number};
 type Position={x:number;y:number;z:number};
@@ -100,8 +100,13 @@ const t2Checkin:Rect[]=[];
 for(let i=0;i<5;i++)t2Checkin.push(expanded(t2.x,t2CheckInStartZ+(i-2)*t2CheckInSpacing+4.6,24,17));
 const t2DepartureImmigration=[expanded(t2.x+12,t2.z+5,105,28)];
 const t2DepartureSecurity=[expanded(t2.x,t2.z+37,54,22)];
-const t2DepartureRetail:Rect[]=[];
-for(let i=0;i<6;i++)t2DepartureRetail.push(expanded(t2.x+t2.width*.22+6.5,t2.z+100+(i-2.5)*20,13,19.5));
+const t2DepartureRetail=t2ThirdFloorRetailUnits(t2.x,t2.z,t2.width).map(unit=>expanded(unit.x,unit.z,unit.depth,unit.length));
+const t2DepartureServices=T2_THIRD_FLOOR_LAYOUT.services.map(service=>expanded(t2.x+service.dx,t2.z+service.dz,service.depth,service.width));
+const t2DepartureAeds=T2_THIRD_FLOOR_LAYOUT.aeds.map(point=>expanded(t2.x+point.dx,t2.z+point.dz,1.4,1.1));
+const t2DepartureAtm=expanded(t2.x+T2_THIRD_FLOOR_LAYOUT.atm.wallDx+1.2,t2.z+T2_THIRD_FLOOR_LAYOUT.atm.dz,2.2,8),
+ t2DepartureBanks=T2_THIRD_FLOOR_LAYOUT.bankServices.map(bank=>expanded(t2.x+bank.wallDx+2.8,t2.z+bank.dz,6,bank.length)),
+ t2DepartureExchange=expanded(t2.x+T2_THIRD_FLOOR_LAYOUT.exchange.dx,t2.z+T2_THIRD_FLOOR_LAYOUT.exchange.dz,4.8,3.5),
+ t2DepartureFeatures=[...t2DepartureRetail,...t2DepartureServices,...t2DepartureAeds,t2DepartureAtm,...t2DepartureBanks,t2DepartureExchange];
 const t2Baggage:Rect[]=[],t2BaggageCenterZ=t2.z-30,t2BaggageSpacing=Math.min(23.2,t2.width/(6+.9)),t2BaggageOffsets=[-1.1,.65,-.25,.3,-.65,.8];
 for(let i=0;i<6;i++)t2Baggage.push(expanded(t2.x+(i-2.5)*t2BaggageSpacing,t2BaggageCenterZ+t2BaggageOffsets[i],19,9.5));
 const t2TopCarouselCenterX=t2.x-58,t2TopCarouselZ=t2BaggageCenterZ-25,t2TopCarouselSpacing=Math.min(23.2,t2.width/(2+.9));
@@ -234,12 +239,13 @@ export const exploreSpots:ExploreSpot[]=[
   spot('t2-transfer-services','Terminal 2 iTravel & public services · 2F','第二航廈 iTravel 與公共服務 · 2F',6.25,{x:t2.x-35,y:7.95,z:t2.z-8},{x:t2.x-t2.width*.31,y:8.2,z:t2.z-40},inside(t2),[...t2Columns,...t2TransferServices]),
   spot('t2-public-amenities','Terminal 2 restrooms & AED · 2F','第二航廈廁所與 AED · 2F',6.25,{x:t2.x+58,y:7.95,z:t2.z-84},{x:t2.x+t2.width*.38,y:8.2,z:t2.z-58},inside(t2),[...t2Columns,...t2PublicAmenities]),
   spot('t2-transfer','Terminal 2 transfer security · 2F','第二航廈轉機安檢 · 2F',6.25,{x:t2.x-24,y:7.95,z:t2.z+23},{x:t2.x-5,y:8.2,z:t2.z+48},inside(t2),[...t2Columns,...t2TransferSecurity]),
- spot('t2-departures','Terminal 2 check-in & departures · 3F','第二航廈報到與出境大廳 · 3F',12.35,{x:t2.x-25,y:14.05,z:t2CheckInStartZ+39},{x:t2.x-5,y:13.4,z:t2CheckInStartZ+24.65},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity]),
- spot('t2-passport','Terminal 2 departure immigration · 3F','第二航廈出境證照查驗 · 3F',12.35,{x:t2.x-18,y:14.05,z:t2.z+17},{x:t2.x,y:13.55,z:t2.z+5},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity,...t2DepartureRetail]),
- spot('t2-security','Terminal 2 departure security · 3F','第二航廈出境安檢 · 3F',12.35,{x:t2.x-20,y:14.05,z:t2.z+47},{x:t2.x-5,y:13.55,z:t2.z+37},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity,...t2DepartureRetail]),
+ spot('t2-departures','Terminal 2 check-in & departures · 3F','第二航廈報到與出境大廳 · 3F',12.35,{x:t2.x-25,y:14.05,z:t2CheckInStartZ+39},{x:t2.x-5,y:13.4,z:t2CheckInStartZ+24.65},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity,...t2DepartureFeatures]),
+ spot('t2-public-services','Terminal 2 departure public services · 3F','第二航廈出境公共服務 · 3F',12.35,{x:t2.x-45,y:14.05,z:t2.z-50},{x:t2.x-82,y:13.55,z:t2.z-82},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity,...t2DepartureFeatures]),
+ spot('t2-passport','Terminal 2 departure immigration · 3F','第二航廈出境證照查驗 · 3F',12.35,{x:t2.x-18,y:14.05,z:t2.z+17},{x:t2.x,y:13.55,z:t2.z+5},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity,...t2DepartureFeatures]),
+ spot('t2-security','Terminal 2 departure security · 3F','第二航廈出境安檢 · 3F',12.35,{x:t2.x-20,y:14.05,z:t2.z+47},{x:t2.x-5,y:13.55,z:t2.z+37},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity,...t2DepartureFeatures]),
  spot('t2-retail','Terminal 2 airside retail · 3F','第二航廈免稅商店與候機服務 · 3F',12.35,
-  {x:t2.x+t2.width*.22-24,y:14.05,z:t2.z+100},
-  {x:t2.x+t2.width*.22,y:13.75,z:t2.z+100},inside(t2),[...t2Columns,...t2DepartureRetail]),
+  {x:t2.x+t2.width*T2_THIRD_FLOOR_LAYOUT.retail.frontOffsetRatio-24,y:14.05,z:t2.z+T2_THIRD_FLOOR_LAYOUT.retail.centerZOffset},
+  {x:t2.x+t2.width*T2_THIRD_FLOOR_LAYOUT.retail.frontOffsetRatio,y:13.75,z:t2.z+T2_THIRD_FLOOR_LAYOUT.retail.centerZOffset},inside(t2),[...t2Columns,...t2DepartureFeatures]),
  spot('t2-food','Terminal 2 dining hall · 4F','第二航廈餐飲與候機區 · 4F',18.55,{x:t2.x-29,y:20.25,z:t2FourthFloorFoodZ-14},{x:t2.x-5,y:19.4,z:t2FourthFloorFoodZ+7},inside(t2),t2FourthFloorObstacles),
  spot('t2-shops','Terminal 2 4F mapped restaurants','第二航廈 4F 商店與餐飲 · 4F',18.55,{x:t2ShopCenter.frontX-t2Shop.side*5.2,y:20.25,z:t2ShopCenter.z+5.3},{x:t2ShopCenter.frontX+t2Shop.side*.25,y:19.8,z:t2ShopCenter.z},inside(t2),t2FourthFloorObstacles),
  ...t2LoungeViewSpots,

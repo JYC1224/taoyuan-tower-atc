@@ -85,6 +85,45 @@ export const T2_FOURTH_FLOOR_LOUNGES=[
  {name:'PLAZA PREMIUM LOUNGE',operator:'Plaza Premium',side:1,zRatio:.39,accent:'#88744e',style:'dining'},
 ] as const;
 
+/** T2's official 3F map names five separate airside retail/service frontages. */
+export const T2_THIRD_FLOOR_LAYOUT={
+ retail:{centerZOffset:85,frontOffsetRatio:.22,span:120,gap:1.5},
+ services:[
+  {id:'nursing',dx:-24,dz:-89,width:14,depth:10,label:'NURSING ROOM  哺集乳室',kind:'nursing',facing:-1 as const},
+  {id:'restrooms',dx:55,dz:-98,width:18,depth:12,label:'RESTROOMS  廁所',kind:'restroom',facing:1 as const},
+ ],
+ atm:{wallDx:-90,dz:-100},
+ bankServices:[
+  {id:'west-bank',wallDx:-90,dz:-66,length:17,label:'BANK OF TAIWAN  臺灣銀行',accent:'#95804e',stations:3},
+  {id:'central-bank',wallDx:18,dz:38,length:15,label:'BANK OF TAIWAN  臺灣銀行',accent:'#887b54',stations:2},
+ ],
+ exchange:{dx:-70,dz:-27},
+ aeds:[{dx:55,dz:-5}]
+} as const;
+
+/**
+ * Shop names follow the airport's current 3F map. Individual frontage lengths,
+ * depths and internal fit-outs are interpretations because that map is not
+ * dimensioned.
+ */
+export const T2_THIRD_FLOOR_RETAIL_BAYS=[
+ {id:'diamond-watch',length:18,depth:13,label:'采盟免稅・鑽錶專門店',accent:'#8c7650',style:'watch'},
+ {id:'international-goods',length:22,depth:14,label:'采盟免稅・國際精品',accent:'#647872',style:'luxury'},
+ {id:'beauty-fragrance',length:28,depth:17,label:'昇恆昌免稅店・美妝香氛',accent:'#94614c',style:'beauty'},
+ {id:'service-pickup',length:28,depth:16,label:'昇恆昌商品服務・網購提貨中心',accent:'#5b7778',style:'service'},
+ {id:'watch-gallery',length:18,depth:13,label:'Watch Gallery・世界時區',accent:'#a08750',style:'watch'},
+] as const;
+
+export function t2ThirdFloorRetailUnits(centerX:number,centerZ:number,terminalWidth:number){
+ const {retail}=T2_THIRD_FLOOR_LAYOUT,frontX=centerX+terminalWidth*retail.frontOffsetRatio,
+  totalLength=T2_THIRD_FLOOR_RETAIL_BAYS.reduce((sum,bay)=>sum+bay.length,0)+T2_THIRD_FLOOR_LAYOUT.retail.gap*(T2_THIRD_FLOOR_RETAIL_BAYS.length-1);
+ let cursor=centerZ+retail.centerZOffset-totalLength/2;
+ return T2_THIRD_FLOOR_RETAIL_BAYS.map(bay=>{
+  const z=cursor+bay.length/2;cursor+=bay.length+retail.gap;
+  return {...bay,frontX,x:frontX+bay.depth/2,z};
+ });
+}
+
 export function t2FourthFloorShopCenter(centerX:number,centerZ:number,terminalWidth:number,terminalDepth:number,side:-1|1,zRatio:number){
  const frontX=centerX+side*terminalWidth*T2_FOURTH_FLOOR_LAYOUT.shop.frontOffsetRatio;
  return {x:frontX+side*T2_FOURTH_FLOOR_LAYOUT.shop.depth/2,z:centerZ+terminalDepth*zRatio,frontX};
