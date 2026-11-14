@@ -17,33 +17,55 @@ const interiorReflectionCache=new Map<'T1'|'T2',THREE.CubeTexture>();
 /** A low-cost indoor reflection card keeps polished stone from reflecting the outdoor sky. */
 function interiorReflection(profile:'T1'|'T2'){
  const cached=interiorReflectionCache.get(profile);if(cached)return cached;
- const face=()=>{const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;return canvas;},faces=Array.from({length:6},face),contexts=faces.map(c=>c.getContext('2d')!);
- const t1=profile==='T1',ceiling=contexts[2],background=t1?'#e5e7e2':'#303938',frame=t1?'rgba(111,119,115,.24)':'rgba(13,21,21,.78)';
+ const t1=profile==='T1',size=t1?256:512;
+ const face=()=>{const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;return canvas;},faces=Array.from({length:6},face),contexts=faces.map(c=>c.getContext('2d')!);
+ // Keep the card's authored 256-unit layout while giving T2's dense lattice a
+ // finer reflection sample. T1 remains at its existing texture resolution.
+ if(!t1)for(const ctx of contexts)ctx.scale(2,2);
+ const ceiling=contexts[2],background=t1?'#e5e7e2':'#303938',frame=t1?'rgba(111,119,115,.24)':'rgba(13,21,21,.72)';
  ceiling.fillStyle=background;ceiling.fillRect(0,0,256,256);
  if(t1){
   for(let y=0;y<256;y+=56){ceiling.fillStyle=y%112?'#eef0eb':'#f4f4ef';ceiling.fillRect(0,y,256,52);}
   ceiling.strokeStyle=frame;ceiling.lineWidth=3;for(let p=0;p<=256;p+=56){ceiling.beginPath();ceiling.moveTo(p,0);ceiling.lineTo(p,256);ceiling.stroke();}
   ceiling.strokeStyle='rgba(255,231,188,.9)';ceiling.lineWidth=5;for(let x=20;x<256;x+=72){ceiling.beginPath();ceiling.moveTo(x,0);ceiling.lineTo(x,256);ceiling.stroke();}
  }else{
-  ceiling.strokeStyle=frame;ceiling.lineWidth=7;for(let p=0;p<=256;p+=48){ceiling.beginPath();ceiling.moveTo(p,0);ceiling.lineTo(p,256);ceiling.moveTo(0,p);ceiling.lineTo(256,p);ceiling.stroke();}
-  ceiling.strokeStyle='rgba(132,146,137,.4)';ceiling.lineWidth=2;for(let y=0;y<256;y+=96){ceiling.beginPath();ceiling.moveTo(0,y);ceiling.lineTo(256,y+72);ceiling.stroke();}
-  ceiling.fillStyle='rgba(255,247,219,.86)';for(let y=32;y<256;y+=88)for(let x=32;x<256;x+=88){ceiling.beginPath();ceiling.ellipse(x,y,12,8,0,0,Math.PI*2);ceiling.fill();}
+  ceiling.strokeStyle=frame;ceiling.lineWidth=5;for(let p=0;p<=256;p+=48){ceiling.beginPath();ceiling.moveTo(p,0);ceiling.lineTo(p,256);ceiling.moveTo(0,p);ceiling.lineTo(256,p);ceiling.stroke();}
+  // Alternating diagonals reproduce the triangulated roof web seen from below
+  // and keep the floor reflection from reading as a simple square grid.
+  ceiling.strokeStyle='rgba(132,146,137,.46)';ceiling.lineWidth=2.1;
+  for(let row=0;row<6;row++)for(let col=0;col<6;col++){
+   const x=col*48,y=row*48;ceiling.beginPath();
+   if((row+col)%2===0){ceiling.moveTo(x,y);ceiling.lineTo(x+48,y+48);}else{ceiling.moveTo(x+48,y);ceiling.lineTo(x,y+48);}
+   ceiling.stroke();
+  }
+  ceiling.fillStyle='rgba(255,247,219,.78)';for(let y=38;y<256;y+=94)for(let x=38;x<256;x+=94){ceiling.beginPath();ceiling.ellipse(x,y,9.5,6.2,0,0,Math.PI*2);ceiling.fill();}
  }
  for(const index of [0,1,4,5]){
   const ctx=contexts[index],gradient=ctx.createLinearGradient(0,0,0,256);
   gradient.addColorStop(0,t1?'#cfd5d2':'#434b49');gradient.addColorStop(.48,t1?'#aeb6b3':'#313b39');gradient.addColorStop(1,t1?'#929a98':'#222b2b');ctx.fillStyle=gradient;ctx.fillRect(0,0,256,256);
-  ctx.strokeStyle=t1?'rgba(83,96,94,.3)':'rgba(13,22,22,.78)';ctx.lineWidth=3;for(let x=24;x<256;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,256);ctx.stroke();}
+  ctx.strokeStyle=t1?'rgba(83,96,94,.3)':'rgba(13,22,22,.55)';ctx.lineWidth=t1?3:2.5;for(let x=24;x<256;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,256);ctx.stroke();}
   if(t1){
    // The pale T1 hall returns long roof lights as soft bands across its stone.
    ctx.fillStyle='rgba(255,241,211,.58)';ctx.fillRect(0,112,256,4);ctx.fillRect(0,177,256,3);
    ctx.fillStyle='rgba(230,235,229,.52)';ctx.fillRect(0,70,256,2);ctx.fillRect(0,211,256,2);
   }else{
-   // T2's dark truss and broad flower pendants create distinct glossy highlights.
-   ctx.fillStyle='rgba(255,246,215,.38)';ctx.fillRect(0,88,256,3);ctx.fillRect(0,190,256,3);
+   // Near-horizon directions dominate a walker's floor reflection, so return
+   // the same triangulated frame on the cubemap's side faces as overhead.
+   ctx.strokeStyle='rgba(13,22,22,.48)';ctx.lineWidth=2.2;
+   for(let y=24;y<256;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(256,y);ctx.stroke();}
+   ctx.strokeStyle='rgba(132,146,137,.42)';ctx.lineWidth=1.7;
+   for(let row=0;row<6;row++)for(let col=0;col<6;col++){
+    const x=col*48,y=row*48;ctx.beginPath();
+    if((row+col)%2===0){ctx.moveTo(x,y);ctx.lineTo(x+48,y+48);}else{ctx.moveTo(x+48,y);ctx.lineTo(x,y+48);}
+    ctx.stroke();
+   }
+   // Broad, weak highlights keep the polished return from looking like white
+   // striping; pendants are small reflected forms rather than oversized blobs.
+   ctx.fillStyle='rgba(255,246,215,.24)';ctx.fillRect(0,88,256,2);ctx.fillRect(0,190,256,2);
    for(const y of [112,165])for(let x=28;x<256;x+=72){
-    ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(255,250,232,.55)';
-    for(let petal=0;petal<6;petal++){ctx.save();ctx.rotate(petal*Math.PI/3);ctx.beginPath();ctx.ellipse(0,-7,4.2,8,0,0,Math.PI*2);ctx.fill();ctx.restore();}
-    ctx.beginPath();ctx.arc(0,0,3.2,0,Math.PI*2);ctx.fillStyle='rgba(255,232,179,.65)';ctx.fill();ctx.restore();
+    ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(255,250,232,.38)';
+    for(let petal=0;petal<6;petal++){ctx.save();ctx.rotate(petal*Math.PI/3);ctx.beginPath();ctx.ellipse(0,-4.4,2.1,3.8,0,0,Math.PI*2);ctx.fill();ctx.restore();}
+    ctx.beginPath();ctx.arc(0,0,1.6,0,Math.PI*2);ctx.fillStyle='rgba(255,232,179,.45)';ctx.fill();ctx.restore();
    }
   }
  }
@@ -57,7 +79,7 @@ function terminalFloor(profile:'T1'|'T2'){
   const t1=profile==='T1',base=t1?'#c5c9c7':'#999b8d';ctx.fillStyle=base;ctx.fillRect(0,0,512,512);
   // Large, quiet stone modules with real-scale joints. T1 is pale cool terrazzo;
   // T2 is the darker, slightly green-grey polished stone visible in hall photos.
-  const delta=Math.floor((rand()-.5)*8),shade=t1?199+delta:146+delta,tileSize=128;
+  const delta=Math.floor((rand()-.5)*8),shade=t1?199+delta:146+delta,tileSize=t1?128:256;
   for(let y=2;y<512;y+=tileSize)for(let x=2;x<512;x+=tileSize){
    const variation=Math.floor((rand()-.5)*(t1?5:9)),r=THREE.MathUtils.clamp(shade+variation,0,255),g=THREE.MathUtils.clamp(shade+(t1?1:7)+variation,0,255),b=THREE.MathUtils.clamp(shade+(t1?2:-16)+variation,0,255);
    ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillRect(x,y,tileSize-2,tileSize-2);
@@ -67,16 +89,16 @@ function terminalFloor(profile:'T1'|'T2'){
   // Low-contrast cloudy mineral variation breaks the repeated colour-block look.
   for(let i=0;i<64;i++){const x=rand()*512,y=rand()*512,r=9+rand()*28,light=rand()>.48,g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,t1?(light?'rgba(248,249,245,.10)':'rgba(74,82,82,.055)'):(light?'rgba(205,214,197,.10)':'rgba(35,51,45,.12)'));g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}
   for(let i=0;i<10500;i++){const v=Math.floor(105+rand()*125),alpha=.022+rand()*.048;ctx.fillStyle=`rgba(${v},${v+((i%3)-1)*2},${Math.max(0,v+(t1?1:-5))},${alpha})`;const size=.6+rand()*1.8;ctx.fillRect(rand()*512,rand()*512,size,size);}
-  ctx.strokeStyle=t1?'rgba(55,65,66,.14)':'rgba(45,55,49,.19)';ctx.lineWidth=.9;ctx.beginPath();for(let p=0;p<=512;p+=tileSize){ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);}ctx.stroke();
+  ctx.strokeStyle=t1?'rgba(55,65,66,.14)':'rgba(45,55,49,.27)';ctx.lineWidth=t1?.9:1.1;ctx.beginPath();for(let p=0;p<=512;p+=tileSize){ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);}ctx.stroke();
   ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(4,6);ctx.lineTo(508,6);ctx.moveTo(6,4);ctx.lineTo(6,508);ctx.stroke();
   ctx.globalAlpha=.13;ctx.fillStyle=t1?'#626c6c':'#414d47';for(let y=18;y<512;y+=23)for(let x=20+(Math.floor(y/23)%2)*13;x<512;x+=37)ctx.fillRect(x,y,1.2,1.2);ctx.globalAlpha=1;
  });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;
  // Keep the stone readable under daylight. Strong self-emission had washed out
  // the grain, grout and T2's characteristic muted green-grey floor tone.
- const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':'#e7ecdf',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:.006,roughness:profile==='T1'?.13:.105,metalness:.025,clearcoat:profile==='T1'?.82:.9,clearcoatRoughness:profile==='T1'?.11:.075,emissive:profile==='T1'?'#77766f':'#8d8967',emissiveIntensity:profile==='T1'?.12:.24});
+ const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':'#e7ecdf',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:.006,roughness:profile==='T1'?.13:.075,metalness:.025,clearcoat:profile==='T1'?.82:.92,clearcoatRoughness:profile==='T1'?.11:.055,emissive:profile==='T1'?'#77766f':'#8d8967',emissiveIntensity:profile==='T1'?.12:.24});
  // Outdoor sky reflections look like windows on an indoor floor. Keep a low,
  // soft return so the polished stone reads without reflecting airport clouds.
- mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:1.15;mat.userData.reflectionMap=interiorReflection(profile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;finishCache.set(key,mat);return mat;
+ mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:1.7;mat.userData.reflectionMap=interiorReflection(profile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;finishCache.set(key,mat);return mat;
 }
 function terminalCeiling(profile:'T1'|'T2'){
  const key=`${profile}-ceiling`,cached=finishCache.get(key);if(cached)return cached;
