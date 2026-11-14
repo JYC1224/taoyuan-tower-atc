@@ -3,7 +3,7 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives';
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
-import {T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_THIRD_FLOOR_LAYOUT,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorShopCenter,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_THIRD_FLOOR_LAYOUT,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorShopCenter,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
 type Item={x:number;y:number;z:number;sx:number;sy:number;sz:number;ry?:number;rx?:number;color?:THREE.ColorRepresentation};
@@ -1664,8 +1664,8 @@ function terminal1MappedPublicServices(parent:THREE.Object3D,b:TerminalBounds,y:
 
  // The 2F map groups ATM, exchange and bank counters along the north gallery.
  // The 3F map places its service points in a separate arrangement.
- const isSecondFloor=floor==='2F',serviceZ=isSecondFloor?b.z-b.depth*.44:b.z-96,
-  atmX=isSecondFloor?b.x-42:b.x-5,exchangeX=isSecondFloor?b.x-2:b.x+53,bankX=isSecondFloor?b.x+43:b.x+b.width*.31,
+ const isSecondFloor=floor==='2F',serviceZ=isSecondFloor?b.z-b.depth*.44:b.z+T1_THIRD_FLOOR_SERVICES.atm.dz,
+  atmX=isSecondFloor?b.x-42:b.x+T1_THIRD_FLOOR_SERVICES.atm.dx,exchangeX=isSecondFloor?b.x-2:b.x+53,bankX=isSecondFloor?b.x+43:b.x+b.width*.31,
   housing=material('#d2d4ce',.5,.12),machine=material('#52635f',.36,.28),display=material('#17343b',.28,.16),wall=material('#d5d4cd',.68,.035),green=material('#168d76',.38,.08),cross=material('#f2f1e8',.42,.02);
  box(parent,11,.14,6.4,atmX,y+.07,serviceZ,housing);box(parent,11,3.4,.22,atmX,y+1.7,serviceZ-3.1,wall);
  for(let unit=0;unit<3;unit++){
@@ -1674,20 +1674,32 @@ function terminal1MappedPublicServices(parent:THREE.Object3D,b:TerminalBounds,y:
   box(parent,.62,.12,.08,x,y+1.18,z+.47,steel);box(parent,.45,.32,.1,x,y+.81,z+.48,screen);
  }
  sign(parent,'ATM  自動提款機',atmX,y+3.85,serviceZ-3.23,10,'#627d75',0,.8);
- const exchangeZ=serviceZ,bankZ=isSecondFloor?serviceZ:b.z-66;
- box(parent,8.5,.14,4.8,exchangeX,y+.07,exchangeZ,housing);box(parent,8.5,3.4,.22,exchangeX,y+1.7,exchangeZ-2.35,wall);
- for(let unit=0;unit<2;unit++){
-  const x=exchangeX+(unit-.5)*3.5,z=exchangeZ+1.1;
-  box(parent,1.8,2.5,.72,x,y+1.3,z,machine);box(parent,1.15,.7,.1,x,y+1.83,z+.39,display);box(parent,.44,.18,.08,x,y+.96,z+.41,steel);
+ const exchangeZ=serviceZ,bankZ=serviceZ;
+ const exchangePoints=isSecondFloor?
+  [{x:exchangeX,z:exchangeZ,label:'FOREIGN EXCHANGE  外幣兌換'}]:
+  T1_THIRD_FLOOR_SERVICES.exchanges.map(point=>({x:b.x+point.dx,z:b.z+point.dz,label:point.label}));
+ for(const exchange of exchangePoints){
+  const x=exchange.x,z=exchange.z;
+  box(parent,8.5,.14,4.8,x,y+.07,z,housing);box(parent,8.5,3.4,.22,x,y+1.7,z-2.35,wall);
+  for(let unit=0;unit<2;unit++){
+   const machineX=x+(unit-.5)*3.5,machineZ=z+1.1;
+   box(parent,1.8,2.5,.72,machineX,y+1.3,machineZ,machine);box(parent,1.15,.7,.1,machineX,y+1.83,machineZ+.39,display);box(parent,.44,.18,.08,machineX,y+.96,machineZ+.41,steel);
+  }
+  sign(parent,exchange.label,x,y+3.85,z-2.5,10,'#9a8050',0,.8);
  }
- sign(parent,'FOREIGN EXCHANGE  外幣兌換',exchangeX,y+3.85,exchangeZ-2.5,10,'#9a8050',0,.8);
- box(parent,16,.14,7,bankX,y+.07,bankZ,housing);box(parent,16,3.45,.2,bankX,y+1.725,bankZ-3.5,wall);
- box(parent,13.2,1.06,1.25,bankX,y+.73,bankZ+.95,material('#b9b6ad',.48,.18));
- box(parent,13.4,.14,1.4,bankX,y+1.28,bankZ+.95,counterTop);
- for(let teller=0;teller<3;teller++){
-  const x=bankX+(teller-1)*4.15;box(parent,.12,.66,.12,x,y+1.65,bankZ+.55,steel);box(parent,1.3,.75,.12,x,y+2.06,bankZ+.53,display);
+ const bankPoints=isSecondFloor?
+  [{x:bankX,z:bankZ,length:16,stations:3,label:'BANK OF TAIWAN  臺灣銀行',accent:'#786e50'}]:
+  T1_THIRD_FLOOR_SERVICES.banks.map(bank=>({...bank,x:b.x+bank.dx,z:b.z+bank.dz}));
+ for(const bank of bankPoints){
+  const spacing=Math.min(4.15,bank.length/bank.stations);
+  box(parent,bank.length,.14,7,bank.x,y+.07,bank.z,housing);box(parent,bank.length,3.45,.2,bank.x,y+1.725,bank.z-3.5,wall);
+  box(parent,bank.length*.82,1.06,1.25,bank.x,y+.73,bank.z+.95,material('#b9b6ad',.48,.18));
+  box(parent,bank.length*.84,.14,1.4,bank.x,y+1.28,bank.z+.95,counterTop);
+  for(let teller=0;teller<bank.stations;teller++){
+   const x=bank.x+(teller-(bank.stations-1)/2)*spacing;box(parent,.12,.66,.12,x,y+1.65,bank.z+.55,steel);box(parent,1.3,.75,.12,x,y+2.06,bank.z+.53,display);
+  }
+  sign(parent,bank.label,bank.x,y+3.92,bank.z-3.62,Math.min(14,bank.length*.9),bank.accent,0,.8);
  }
- sign(parent,'BANK OF TAIWAN  臺灣銀行',bankX,y+3.92,bankZ-3.62,14,'#786e50',0,.8);
 
  if(isSecondFloor){
   const serviceRoomZ=b.z+b.depth*.42;

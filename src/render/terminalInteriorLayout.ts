@@ -29,6 +29,19 @@ export const T1_THIRD_FLOOR_STORES=[
  {id:'indigenous-crafts',dx:-70,dz:106,width:20,depth:12,label:'TAIWAN INDIGENOUS CRAFT  原住民精藝品展售館',accent:'#8d754c',kind:'retail',profile:'craft'},
 ] as const;
 
+/** T1 3F map service locations; point and counter dimensions remain estimates. */
+export const T1_THIRD_FLOOR_SERVICES={
+ atm:{dx:-5,dz:-96},
+ exchanges:[
+  {id:'north-exchange',dx:53,dz:-96,label:'FOREIGN EXCHANGE  台外幣兌換機'},
+  {id:'south-exchange',dx:53,dz:116,label:'FOREIGN EXCHANGE  台外幣兌換機'},
+ ],
+ banks:[
+  {id:'taiwan-bank',dx:54,dz:-66,length:16,stations:3,label:'BANK OF TAIWAN  臺灣銀行',accent:'#786e50'},
+  {id:'mega-bank',dx:-50,dz:127,length:15,stations:2,label:'MEGA BANK  兆豐銀行',accent:'#657b81'},
+ ],
+} as const;
+
 export const T1_FOURTH_FLOOR_LAYOUT = {
  // The operator's archived T1 Zone C specification gives 376 m². Its current
  // listing describes a 100-guest capacity. Zone D has no public measured plan,
