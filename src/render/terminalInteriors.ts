@@ -234,9 +234,9 @@ const t2ArrivalCeilingPanel=(()=>{
   ctx.strokeStyle='rgba(83,91,88,.18)';ctx.lineWidth=2;for(let p=0;p<=512;p+=128){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);ctx.stroke();}
  });map.wrapS=map.wrapT=THREE.RepeatWrapping;map.anisotropy=8;
  const lamps=canvasTexture(512,512,ctx=>{ctx.fillStyle='#000';ctx.fillRect(0,0,512,512);for(const y of [64,320])for(const x of [64,320]){ctx.fillStyle='#bdb9aa';ctx.fillRect(x-19,y-8,38,16);ctx.fillStyle='#fff3d8';ctx.fillRect(x-15,y-5,30,10);}});lamps.wrapS=lamps.wrapT=THREE.RepeatWrapping;lamps.anisotropy=8;
- const mat=new THREE.MeshStandardMaterial({color:'#fff',map,roughness:.9,metalness:.015,emissive:'#fff1d1',emissiveMap:lamps,emissiveIntensity:.28});mat.userData.worldUV=1/4.8;return mat;
+  const mat=new THREE.MeshStandardMaterial({color:'#fff',map,roughness:.9,metalness:.015,emissive:'#fff1d1',emissiveMap:lamps,emissiveIntensity:.28,side:THREE.DoubleSide});mat.userData.worldUV=1/4.8;return mat;
 })();
-/** The 1F arrivals photograph shows a pale diagonal ceiling grid below the 2F deck. */
+/** The T2 arrivals photo shows a pale diagonal lattice below the 2F deck. */
 function terminal2ArrivalCeilingGrid(parent:THREE.Object3D,b:TerminalBounds,ceilingY:number){
  const pitch=4.8,left=b.x-(b.width-3)/2+pitch/2,right=Math.min(b.x+b.width*.32,b.x+(b.width-3)/2-pitch/2),near=b.z-(b.depth-4)/2+pitch/2,far=b.z+(b.depth-4)/2-pitch/2,y=ceilingY-.055,members:Item[]=[];
  for(let x=left;x<=right;x+=pitch)for(let z=near;z<=far;z+=pitch){
@@ -252,6 +252,15 @@ function terminal2ArrivalDropCeiling(parent:THREE.Object3D,b:TerminalBounds,ceil
  // A slim transition trim makes the step between the exposed lattice and the
  // suspended side ceiling legible from the public arrival-hall sightline.
  box(parent,.14,.16,depth,x-width/2,y+.07,z,material('#c4c8c3',.68,.12));
+}
+/** Official arrival-hall artwork photo shows a lower, rectilinear panel ceiling over the sculpture zone. */
+function terminal2ArrivalArtCeiling(parent:THREE.Object3D,b:TerminalBounds,ceilingY:number){
+ const width=b.width*.31,depth=b.depth*.34,x=b.x+24,z=b.z+78,y=ceilingY-.16;
+ const panels=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),t2ArrivalCeilingPanel);
+ panels.rotation.x=Math.PI/2;panels.position.set(x,y,z);panels.castShadow=false;panels.receiveShadow=false;parent.add(panels);
+ const trim=material('#c4c8c3',.68,.12),edge=.08;
+ for(const side of [-1,1])box(parent,width,edge,edge,x,y-.035,z+side*(depth/2),trim);
+ for(const side of [-1,1])box(parent,edge,edge,depth,x+side*(width/2),y-.035,z,trim);
 }
 /** Refined atrium edge hardware over the simple continuous glass guard already
  * used by the floor cutout: shoes, regular mullions and a continuous cap rail. */
@@ -2020,7 +2029,7 @@ function terminal2WanLaiArt(parent:THREE.Object3D,b:TerminalBounds,y:number,z:nu
  for(const edge of [-1,1])box(parent,width,.12,.12,wallX+.24,y+height/2+edge*(height/2-.08),z,rail,Math.PI/2);
 }
 function terminal2(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials){
- const levels=[.36,6.25,12.35,18.55,23.45],atrium={fromLevel:3,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats),lowerFloor=terminalFloor('T2','lower');addDecks(parent,b,levels,mats.concrete,.16,atrium,finishes,undefined,new Map([[0,lowerFloor],[1,lowerFloor]]));const arrivalCeilingY=levels[1]-.17-.17-.012;terminal2ArrivalCeilingGrid(parent,b,arrivalCeilingY);terminal2ArrivalDropCeiling(parent,b,arrivalCeilingY);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2');verticalCirculation(parent,b,levels,'T2');
+ const levels=[.36,6.25,12.35,18.55,23.45],atrium={fromLevel:3,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats),lowerFloor=terminalFloor('T2','lower');addDecks(parent,b,levels,mats.concrete,.16,atrium,finishes,undefined,new Map([[0,lowerFloor],[1,lowerFloor]]));const arrivalCeilingY=levels[1]-.17-.17-.012;terminal2ArrivalCeilingGrid(parent,b,arrivalCeilingY);terminal2ArrivalDropCeiling(parent,b,arrivalCeilingY);terminal2ArrivalArtCeiling(parent,b,arrivalCeilingY);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2');verticalCirculation(parent,b,levels,'T2');
  baggageClaim(parent,b,.58,b.z-30,6,'x',b.x,1);
  baggageClaim(parent,b,.58,b.z-55,2,'x',b.x-58,7);terminal2WanLaiArt(parent,b,.58,b.z-55);
  customsHall(parent,b,.58,b.z-23);arrivalLobby(parent,b,.58,b.z+24,.72,false);terminal2ArrivalServices(parent,b,.58);terminal2ArrivalArt(parent,b,.58);sign(parent,'MRT  機場捷運',b.x+b.width*.28,.58+4,b.z+70,11,'#6f9898');

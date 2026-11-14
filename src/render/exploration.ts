@@ -16,6 +16,8 @@ const t2ForecourtCenterX=t2.x-t2.width/2-16,t2ForecourtWalkX=t2.x-t2.width/2-4,t
 const north=runways.find(r=>r.id==='north')!,b5=gates.find(g=>g.id==='B5')!;
 const inset=(x:number,z:number,width:number,depth:number,margin=1):Rect=>({left:x-width/2+margin,right:x+width/2-margin,near:z-depth/2+margin,far:z+depth/2-margin});
 const expanded=(x:number,z:number,width:number,depth:number,margin=.65):Rect=>({left:x-width/2-margin,right:x+width/2+margin,near:z-depth/2-margin,far:z+depth/2+margin});
+function inside(t:{x:number;z:number;width:number;depth:number},margin=2):Rect{return inset(t.x,t.z,t.width,t.depth,margin);}
+function spot(id:ExploreSpotId,en:string,zh:string,floor:number,position:Position,target:Position,bounds:Rect,obstacles:Rect[]=[]):ExploreSpot{return {id,en,zh,floor,position,target,bounds,obstacles};}
 const t1CheckInStartZ=t1.z-42,t1CheckInSpacing=t1.depth*.60/5;
 const t2CheckInStartZ=t2.z-67,t2CheckInSpacing=Math.min(26,t2.depth*.085);
 function columnsFor(t:{x:number;z:number;width:number;depth:number},profile?:'T1'|'T2'){
@@ -185,8 +187,6 @@ const outdoorObstacles:Rect[]=[
  expanded(451,-240,660,120),expanded(-245,-250,840,110),expanded(408,112.5,650,45),expanded(-243.5,135,750,80),
  expanded(5,-104,26,26)
 ];
-const inside=(t:{x:number;z:number;width:number;depth:number},margin=2)=>inset(t.x,t.z,t.width,t.depth,margin);
-const spot=(id:ExploreSpotId,en:string,zh:string,floor:number,position:Position,target:Position,bounds:Rect,obstacles:Rect[]=[]):ExploreSpot=>({id,en,zh,floor,position,target,bounds,obstacles});
 const t2LoungeSpotIds:ExploreSpotId[]=['t2-lounge','t2-lounge-2','t2-lounge-3','t2-lounge-4','t2-lounge-5'];
 const t2LoungeViewSpots=t2LoungeSpotIds.map((id,index)=>{
  const lounge=T2_FOURTH_FLOOR_LOUNGES[index],center=t2FourthFloorLoungeCenter(t2.x,t2.z,t2.width,t2.depth,lounge.side,lounge.zRatio),width=lounge.width??T2_FOURTH_FLOOR_LAYOUT.lounge.width,depth=lounge.depth??T2_FOURTH_FLOOR_LAYOUT.lounge.depth,frontX=center.x-lounge.side*(width/2-.2);
