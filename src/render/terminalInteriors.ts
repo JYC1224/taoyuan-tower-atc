@@ -1909,10 +1909,35 @@ function terminal1BasementLift(parent:THREE.Object3D,x:number,y:number,z:number,
  box(parent,.06,.34,.42,x+facing*.39,y+2.72,z,indicator);sign(parent,'LIFT  電梯',x+facing*.43,y+3.36,z,3.2,'#66847c',facing*Math.PI/2,.52);
 }
 function terminal1Basement(parent:THREE.Object3D,b:TerminalBounds,floorY:number){
+ const ceilingY=T1_FLOOR_LEVELS[1]-.17-.17-.012,ceilingTexture=canvasTexture(512,512,ctx=>{
+  ctx.fillStyle='#c8cbc5';ctx.fillRect(0,0,512,512);
+  for(let y=0;y<512;y+=128)for(let x=0;x<512;x+=128){ctx.fillStyle=((x+y)/128)%2===0?'rgba(255,255,248,.13)':'rgba(55,64,60,.035)';ctx.fillRect(x+2,y+2,124,124);}
+  ctx.strokeStyle='rgba(74,84,79,.2)';ctx.lineWidth=2;for(let p=0;p<=512;p+=128){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);ctx.stroke();}
+ });ceilingTexture.wrapS=ceilingTexture.wrapT=THREE.RepeatWrapping;ceilingTexture.repeat.set((b.width-3)/4.8,(b.depth-4)/4.8);ceilingTexture.anisotropy=8;
+ // The floor map does not publish a reflected-ceiling plan. Use a restrained
+ // service-floor cassette ceiling so the basement reads as an enclosed public
+ // corridor, with discrete crosswise luminaires rather than a black void.
+ const ceilingMaterial=new THREE.MeshBasicMaterial({color:'#fff',map:ceilingTexture,toneMapped:false,side:THREE.DoubleSide});ceilingMaterial.userData.worldUV=1/4.8;
+ const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(b.width-3,b.depth-4),ceilingMaterial);ceiling.rotation.x=Math.PI/2;ceiling.position.set(b.x,ceilingY-.08,b.z);ceiling.castShadow=false;ceiling.receiveShadow=false;parent.add(ceiling);
+ const wallWidth=b.width-3,wallDepth=b.depth-4,wallHeight=T1_FLOOR_LEVELS[1]-.19-floorY,wallY=floorY+wallHeight/2,edgeX=b.x+wallWidth/2,edgeZ=b.z+wallDepth/2,
+  retainingWall=material('#aeb3ad',.9,.015),retainingBase=material('#7e8883',.84,.02),joint=material('#929994',.92,.005);
+ // Retain the cut below grade. Without these boundary walls the low camera
+ // sees the regional terrain edge behind the shop bays as an open horizon.
+ for(const side of [-1,1]){
+  box(parent,wallWidth,wallHeight,.46,b.x,wallY,b.z+side*edgeZ,retainingWall);
+  box(parent,.46,wallHeight,wallDepth,b.x+side*edgeX,wallY,b.z,retainingWall);
+  box(parent,wallWidth,.28,.48,b.x,floorY+.14,b.z+side*edgeZ,retainingBase);
+  box(parent,.48,.28,wallDepth,b.x+side*edgeX,floorY+.14,b.z,retainingBase);
+ }
+ for(let x=b.x-wallWidth/2+10;x<b.x+wallWidth/2-8;x+=12)for(const side of [-1,1])box(parent,.025,wallHeight-.35,.018,x,wallY,b.z+side*(edgeZ-.235),joint);
+ for(let z=b.z-wallDepth/2+10;z<b.z+wallDepth/2-8;z+=12)for(const side of [-1,1])box(parent,.018,wallHeight-.35,.025,b.x+side*(edgeX-.235),wallY,z,joint);
+ const basementLights:Item[]=[];
+ for(const xOffset of [-48,0,48])for(let z=b.z-108;z<=b.z+108;z+=36)basementLights.push({x:b.x+xOffset,y:ceilingY-.15,z,sx:5.2,sy:.055,sz:.72});
+ batch(parent,ceilingStrip,basementLights);
+ for(const xOffset of [-34,34])for(let z=b.z-96;z<=b.z+96;z+=48){const fill=new THREE.PointLight('#fff0d9',8,31,2);fill.position.set(b.x+xOffset,ceilingY-.22,z);fill.castShadow=false;parent.add(fill);}
  for(const shop of T1_BASEMENT_LAYOUT.shops)terminal1BasementShop(parent,b,floorY,shop);
  const bus=T1_BASEMENT_LAYOUT.bus,busX=b.x+bus.dx;
  terminal2MappedServiceDesk(parent,busX-10,floorY,b.z+bus.dz,'DA-YOU BUS  大有巴士',bus.accent,bus.length,4);
- sign(parent,'BUS ROUTES  國道客運',busX+5,floorY+4.2,b.z+bus.dz,bus.length*.72,'#5b847b',Math.PI/2,.8);
  // Public-service points are placed from the B1 map; equipment scale is estimated.
  const atmBody=material('#4b5b59',.38,.2),atmScreen=new THREE.MeshStandardMaterial({color:'#14343a',emissive:'#25636b',emissiveIntensity:.34,roughness:.34});
  for(const point of T1_BASEMENT_LAYOUT.atms){
@@ -1933,21 +1958,21 @@ function terminal1Basement(parent:THREE.Object3D,b:TerminalBounds,floorY:number)
 function terminal1(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials){
  // The current T1 2F map shows a large central opening, a narrow perimeter
  // gallery and mapped public shops/services along its sides.
- const levels=[...T1_FLOOR_LEVELS],atrium={fromLevel:2,toLevel:3,x:b.x+T1_SECOND_FLOOR_LAYOUT.atrium.xOffset,z:b.z+T1_SECOND_FLOOR_LAYOUT.atrium.zOffset,width:b.width*T1_SECOND_FLOOR_LAYOUT.atrium.widthRatio,depth:b.depth*T1_SECOND_FLOOR_LAYOUT.atrium.depthRatio},finishes=deckFinishes('T1',mats);
+ const levels=[...T1_FLOOR_LEVELS],floor1=levels[1],floor2=levels[2],floor3=levels[3],floor4=levels[4],atrium={fromLevel:2,toLevel:3,x:b.x+T1_SECOND_FLOOR_LAYOUT.atrium.xOffset,z:b.z+T1_SECOND_FLOOR_LAYOUT.atrium.zOffset,width:b.width*T1_SECOND_FLOOR_LAYOUT.atrium.widthRatio,depth:b.depth*T1_SECOND_FLOOR_LAYOUT.atrium.depthRatio},finishes=deckFinishes('T1',mats);
  addDecks(parent,b,levels.slice(0,4),mats.concrete,.16,atrium,finishes);terminalAtriumEdgeDetail(parent,atrium,levels.slice(0,4),'T1');terminal1FourthFloor(parent,b,levels[4],finishes);addStructure(parent,b,finishes.structure,'T1',levels[0]);verticalCirculation(parent,b,levels,'T1');terminal1Basement(parent,b,levels[0]);
  // The airport's visitor guide places T1's Departure Hall and counter 10 on
  // 1F; this public level shares the arrival, customs and meeting facilities.
- terminal1CheckIn(parent,b,.62,b.z-42);sign(parent,'DEPARTURES / CHECK-IN  出境報到',b.x,.62+7.2,b.z+2,11,'#aa9160',0,1.05);
- baggageClaim(parent,b,.58,b.z+57,6);customsHall(parent,b,.58,b.z+88);arrivalLobby(parent,b,.58,b.z+111);terminal1FirstFloorServices(parent,b,.58);
+ terminal1CheckIn(parent,b,floor1+.26,b.z-42);sign(parent,'DEPARTURES / CHECK-IN  出境報到',b.x,floor1+7.46,b.z+2,11,'#aa9160',0,1.05);
+ baggageClaim(parent,b,floor1+.22,b.z+57,6);customsHall(parent,b,floor1+.22,b.z+88);arrivalLobby(parent,b,floor1+.22,b.z+111);terminal1FirstFloorServices(parent,b,floor1+.22);
  // 2F is the mapped public retail/service gallery; the larger controlled
  // immigration and departure functions remain on the separate 3F level.
- terminal1MappedPublicServices(parent,b,6.05,'2F');
- immigrationHall(parent,b,11.55,b.z-84,10,b.x-38,true);seating(parent,b,11.55,b.z-58,2,9,true);decorateT1ArrivalArt(parent,b,11.3);
+ terminal1MappedPublicServices(parent,b,floor2+.25,'2F');
+ immigrationHall(parent,b,floor3+.25,b.z-84,10,b.x-38,true);seating(parent,b,floor3+.25,b.z-58,2,9,true);decorateT1ArrivalArt(parent,b,floor3);
   // The 3F public map names specific retailers and service cores; preserve the
   // broad central route and fit those landmarks into the mapped side zones.
-  terminal1MappedPublicServices(parent,b,11.55,'3F');terminal1ThirdFloorCheckIn(parent,b,11.55);terminal1HallPlanters(parent,b,11.55);
- securityHall(parent,b,11.55,b.z+43,6);seating(parent,b,11.55,b.z+64,4,11,true);flightBoards(parent,b,11.55,b.z+82);
- terminal1Lounge(parent,b,16.95);
+  terminal1MappedPublicServices(parent,b,floor3+.25,'3F');terminal1ThirdFloorCheckIn(parent,b,floor3+.25);terminal1HallPlanters(parent,b,floor3+.25);
+ securityHall(parent,b,floor3+.25,b.z+43,6);seating(parent,b,floor3+.25,b.z+64,4,11,true);flightBoards(parent,b,floor3+.25,b.z+82);
+ terminal1Lounge(parent,b,floor4+.25);
 }
 /** Side-facing rooms for the narrow service band shown on T2's 1F airport map. */
 function terminal2MappedRoom(parent:THREE.Object3D,x:number,y:number,z:number,w:number,d:number,label:string,kind:'restroom'|'nursing'|'shower',facing:1|-1){

@@ -115,7 +115,7 @@ export function createEnvironment():Environment {
  }
  // The airport's paired terminal concourses retain the recognizable RCTP arrangement.
  landsideDetail(staticGroup);
- for(const t of terminals){box(staticGroup,t.width+145,.09,t.depth+100,t.x,.12,t.z,concrete);if(t.id==='T3'||t.id==='T3-S'){completedTerminal3(staticGroup,t,curtainGlass,cladding,concrete);continue;}
+ for(const t of terminals){const apronPadTop=t.id==='T1' ? .005 : .165;box(staticGroup,t.width+145,.09,t.depth+100,t.x,apronPadTop-.045,t.z,concrete);if(t.id==='T3'||t.id==='T3-S'){completedTerminal3(staticGroup,t,curtainGlass,cladding,concrete);continue;}
   const bounds:TerminalBounds={x:t.x,z:t.z,width:t.width,depth:t.depth,height:t.height},terminalGates=t.id==='T3-N'?gates.filter(g=>g.terminal==='T3 North'):[],profile=t.id==='T1'||t.id==='T2'||t.id==='T3-N'?t.id:undefined;
   buildTerminalAtrium(staticGroup,bounds,{glass:curtainGlass,cladding,concrete,metal},terminalGates,terminalGates.some(g=>g.z<t.z)?-1:1,profile);terminalRoof(staticGroup,t);
 

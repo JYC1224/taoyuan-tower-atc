@@ -28,7 +28,9 @@ export function t1FirstFloorServiceCenter(centerX:number,centerZ:number,width:nu
  * The map is schematic, so only the named points are treated as evidence;
  * shop bays, corridor widths and the basement elevation are layout estimates.
  */
-export const T1_FLOOR_LEVELS=[-5.15,.36,5.8,11.3,16.7] as const;
+// Keep T1 1F aligned with the airport reference grade; with a shallow B1, the
+// basement ceiling must sit below the terrain mesh instead of coplanar with it.
+export const T1_FLOOR_LEVELS=[-5.51,0,5.44,10.94,16.34] as const;
 export const T1_BASEMENT_LAYOUT={
  shops:[
   {id:'7-eleven-north',name:'7-ELEVEN',dx:-56,side:1 as const,zOffset:-104,length:15,depth:9,accent:'#e95638',kind:'convenience' as const},
