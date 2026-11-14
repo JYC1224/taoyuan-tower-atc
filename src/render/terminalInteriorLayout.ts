@@ -23,6 +23,34 @@ export function t1FirstFloorServiceCenter(centerX:number,centerZ:number,width:nu
 }
 
 /**
+ * The official T1 B1 layer labels two 7-ELEVEN locations, Da-You bus service,
+ * three food outlets, two ATMs/AEDs, elevators, a restroom and a nursing room.
+ * The map is schematic, so only the named points are treated as evidence;
+ * shop bays, corridor widths and the basement elevation are layout estimates.
+ */
+export const T1_FLOOR_LEVELS=[-5.15,.36,5.8,11.3,16.7] as const;
+export const T1_BASEMENT_LAYOUT={
+ shops:[
+  {id:'7-eleven-north',name:'7-ELEVEN',dx:-56,side:1 as const,zOffset:-104,length:15,depth:9,accent:'#e95638',kind:'convenience' as const},
+  {id:'7-eleven-south',name:'7-ELEVEN',dx:-56,side:1 as const,zOffset:104,length:15,depth:9,accent:'#e95638',kind:'convenience' as const},
+  {id:'chatime',name:'日出茶太  Chatime',dx:56,side:-1 as const,zOffset:-46,length:17,depth:10,accent:'#6d8a52',kind:'tea' as const},
+  {id:'burger-king',name:'BURGER KING  漢堡王',dx:56,side:-1 as const,zOffset:-11,length:17,depth:10,accent:'#93462f',kind:'burger' as const},
+  {id:'han-zhan-ge',name:'韓饌閣',dx:56,side:-1 as const,zOffset:25,length:16,depth:9,accent:'#9a5948',kind:'dining' as const},
+ ],
+ bus:{dx:-55,dz:8,length:19,accent:'#4c8178'},
+ atms:[{dx:59,dz:-119},{dx:59,dz:119}],
+ aeds:[{dx:-69,dz:-73},{dx:-69,dz:73}],
+ lifts:[{dx:-62,dz:-86},{dx:-62,dz:91}],
+ restroom:{dx:-62,dz:116,width:18,depth:10,facing:1 as const},
+ nursing:{dx:59,dz:84,width:16,depth:10,facing:-1 as const},
+} as const;
+
+export function t1BasementShopCenter(centerX:number,centerZ:number,shop:typeof T1_BASEMENT_LAYOUT.shops[number]){
+ const x=centerX+shop.dx,frontX=x+shop.side*shop.depth/2;
+ return {x,z:centerZ+shop.zOffset,frontX};
+}
+
+/**
  * T1's public 2F map depicts a large central opening with a narrow public
  * circulation band around it. The map is schematic, so these ratios are a
  * visual fit to its footprint rather than surveyed dimensions.
@@ -179,6 +207,46 @@ export function t2ThirdFloorRetailUnits(centerX:number,centerZ:number,terminalWi
   const z=cursor+bay.length/2;cursor+=bay.length+retail.gap;
   return {...bay,frontX,x:frontX+bay.depth/2,z};
  });
+}
+
+/**
+ * T2 has two documented basement levels. The airport's public B2 map shows a
+ * west-side passenger passage, a linked Airport MRT area, six dining
+ * frontages, lifts/escalators and public amenities. The map is schematic and
+ * the B1 layer does not publish interior zoning, so vertical dimensions and
+ * all interior footprints below are model estimates; B1 is kept structural.
+ */
+export const T2_FLOOR_LEVELS=[-10.7,-5.2,.36,6.25,12.35,18.55,23.45] as const;
+export const T2_BASEMENT_LAYOUT={
+ aisle:{xOffsetRatio:-.4,width:16,northZOffset:-132,southZOffset:132},
+ shops:[
+  {id:'mi-alone',name:'米A LONE 個人燒肉',side:-1 as const,zOffset:48,length:15,depth:10,accent:'#8f523a',kind:'grill' as const},
+  {id:'le-pai-dui',name:'樂排隊＋全藥燉排骨',side:-1 as const,zOffset:73,length:17,depth:10,accent:'#a24b3e',kind:'soup' as const},
+  {id:'fuhang',name:'福勝亭',side:-1 as const,zOffset:103,length:14,depth:10,accent:'#9d683d',kind:'dining' as const},
+  {id:'royal-heritage',name:'皇家傳承',side:1 as const,zOffset:59,length:14,depth:10,accent:'#9f7546',kind:'bakery' as const},
+  {id:'songhe',name:'松鶴館',side:1 as const,zOffset:84,length:15,depth:10,accent:'#718064',kind:'dining' as const},
+  {id:'xiaonanmen',name:'小南門',side:1 as const,zOffset:112,length:14,depth:10,accent:'#a64c42',kind:'soup' as const},
+ ],
+ atm:{dx:-78,dz:-104},
+ aeds:[{dx:-63,dz:-68},{dx:-42,dz:-5}],
+ restroom:{dx:82,dz:118,width:16,depth:11,facing:-1 as const},
+ mrtLink:{zOffset:-40,width:18,length:38},
+ escalators:[{dx:-.26,zOffset:5},{dx:-.26,zOffset:40}],
+} as const;
+
+export function t2BasementAisleX(centerX:number,terminalWidth:number){
+ return centerX+terminalWidth*T2_BASEMENT_LAYOUT.aisle.xOffsetRatio;
+}
+
+export function t2BasementShopCenter(centerX:number,centerZ:number,terminalWidth:number,shop:typeof T2_BASEMENT_LAYOUT.shops[number]){
+ const aisleX=t2BasementAisleX(centerX,terminalWidth),frontX=aisleX+shop.side*T2_BASEMENT_LAYOUT.aisle.width/2;
+ return {x:frontX+shop.side*shop.depth/2,z:centerZ+shop.zOffset,frontX};
+}
+
+export function t2StructuralColumnCenters(centerX:number,centerZ:number,width:number,depth:number){
+ const columns:{x:number;z:number}[]=[];
+ for(const side of [-1,1])for(let z=centerZ-depth*.4;z<=centerZ+depth*.4;z+=27.5)columns.push({x:centerX+side*width*.29,z});
+ return columns;
 }
 
 export function t2FourthFloorShopCenter(centerX:number,centerZ:number,terminalWidth:number,terminalDepth:number,side:-1|1,zRatio:number,shopDepth:number=T2_FOURTH_FLOOR_LAYOUT.shop.depth){
