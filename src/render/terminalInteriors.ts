@@ -12,22 +12,35 @@ const unitBox=new THREE.BoxGeometry(1,1,1),steel=material('#aeb8b8',.42,.42),pil
 const t1CheckinTimber=new THREE.MeshStandardMaterial({color:'#c09a70',roughness:.68,metalness:.018,emissive:'#50381f',emissiveIntensity:.14}),t1CheckinRib=material('#9a724e',.62,.035),t1CheckinDownlight=new THREE.MeshStandardMaterial({color:'#fff7e5',emissive:'#ffda9a',emissiveIntensity:.78,roughness:.46});
 type DeckFinishes={floor:THREE.Material;ceiling:THREE.Material;edge:THREE.Material;structure:THREE.Material};
 const finishCache=new Map<string,THREE.Material>();
-const interiorReflectionCache=new Map<'T1'|'T2',THREE.CubeTexture>();
+const interiorReflectionCache=new Map<'T1'|'T2'|'T2-LOW',THREE.CubeTexture>();
 
 /** A low-cost indoor reflection card keeps polished stone from reflecting the outdoor sky. */
-function interiorReflection(profile:'T1'|'T2'){
+function interiorReflection(profile:'T1'|'T2'|'T2-LOW'){
  const cached=interiorReflectionCache.get(profile);if(cached)return cached;
- const t1=profile==='T1',size=t1?256:512;
+ const t1=profile==='T1',low=profile==='T2-LOW',size=t1?256:512;
  const face=()=>{const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;return canvas;},faces=Array.from({length:6},face),contexts=faces.map(c=>c.getContext('2d')!);
  // Keep the card's authored 256-unit layout while giving T2's dense lattice a
  // finer reflection sample. T1 remains at its existing texture resolution.
  if(!t1)for(const ctx of contexts)ctx.scale(2,2);
- const ceiling=contexts[2],background=t1?'#e5e7e2':'#303938',frame=t1?'rgba(111,119,115,.24)':'rgba(13,21,21,.72)';
+ const ceiling=contexts[2],background=t1?'#e5e7e2':low?'#b7bcb8':'#303938',frame=t1?'rgba(111,119,115,.24)':low?'rgba(53,67,65,.42)':'rgba(13,21,21,.72)';
  ceiling.fillStyle=background;ceiling.fillRect(0,0,256,256);
  if(t1){
   for(let y=0;y<256;y+=56){ceiling.fillStyle=y%112?'#eef0eb':'#f4f4ef';ceiling.fillRect(0,y,256,52);}
   ceiling.strokeStyle=frame;ceiling.lineWidth=3;for(let p=0;p<=256;p+=56){ceiling.beginPath();ceiling.moveTo(p,0);ceiling.lineTo(p,256);ceiling.stroke();}
   ceiling.strokeStyle='rgba(255,231,188,.9)';ceiling.lineWidth=5;for(let x=20;x<256;x+=72){ceiling.beginPath();ceiling.moveTo(x,0);ceiling.lineTo(x,256);ceiling.stroke();}
+ }else if(low){
+  // T2 1F/2F use a shallow, pale geometric ceiling rather than the 3F roof
+  // space frame. This matches the diamond-coffer ceiling in the 2023 arrivals
+  // photograph and keeps its reflected highlights on the correct floors.
+  ceiling.strokeStyle=frame;ceiling.lineWidth=2.6;
+  for(let p=0;p<=256;p+=48){ceiling.beginPath();ceiling.moveTo(p,0);ceiling.lineTo(p,256);ceiling.moveTo(0,p);ceiling.lineTo(256,p);ceiling.stroke();}
+  ceiling.strokeStyle='rgba(70,84,81,.3)';ceiling.lineWidth=1.8;
+  for(let row=0;row<6;row++)for(let col=0;col<6;col++){
+   const x=col*48,y=row*48;ceiling.beginPath();
+   if((row+col)%2===0){ceiling.moveTo(x,y);ceiling.lineTo(x+48,y+48);}else{ceiling.moveTo(x+48,y);ceiling.lineTo(x,y+48);}
+   ceiling.stroke();
+  }
+  ceiling.fillStyle='rgba(255,251,232,.72)';for(let y=24;y<256;y+=48)for(let x=24;x<256;x+=48){ceiling.beginPath();ceiling.arc(x,y,2.2,0,Math.PI*2);ceiling.fill();}
  }else{
   ceiling.strokeStyle=frame;ceiling.lineWidth=5;for(let p=0;p<=256;p+=48){ceiling.beginPath();ceiling.moveTo(p,0);ceiling.lineTo(p,256);ceiling.moveTo(0,p);ceiling.lineTo(256,p);ceiling.stroke();}
   // Alternating diagonals reproduce the triangulated roof web seen from below
@@ -42,12 +55,17 @@ function interiorReflection(profile:'T1'|'T2'){
  }
  for(const index of [0,1,4,5]){
   const ctx=contexts[index],gradient=ctx.createLinearGradient(0,0,0,256);
-  gradient.addColorStop(0,t1?'#cfd5d2':'#434b49');gradient.addColorStop(.48,t1?'#aeb6b3':'#313b39');gradient.addColorStop(1,t1?'#929a98':'#222b2b');ctx.fillStyle=gradient;ctx.fillRect(0,0,256,256);
-  ctx.strokeStyle=t1?'rgba(83,96,94,.3)':'rgba(13,22,22,.55)';ctx.lineWidth=t1?3:2.5;for(let x=24;x<256;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,256);ctx.stroke();}
+  gradient.addColorStop(0,t1?'#cfd5d2':low?'#d2d5d1':'#434b49');gradient.addColorStop(.48,t1?'#aeb6b3':low?'#b7bcb8':'#313b39');gradient.addColorStop(1,t1?'#929a98':low?'#9fa6a2':'#222b2b');ctx.fillStyle=gradient;ctx.fillRect(0,0,256,256);
+  ctx.strokeStyle=t1?'rgba(83,96,94,.3)':low?'rgba(52,66,64,.34)':'rgba(13,22,22,.55)';ctx.lineWidth=t1?3:low?2:2.5;for(let x=24;x<256;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,256);ctx.stroke();}
   if(t1){
    // The pale T1 hall returns long roof lights as soft bands across its stone.
    ctx.fillStyle='rgba(255,241,211,.58)';ctx.fillRect(0,112,256,4);ctx.fillRect(0,177,256,3);
    ctx.fillStyle='rgba(230,235,229,.52)';ctx.fillRect(0,70,256,2);ctx.fillRect(0,211,256,2);
+  }else if(low){
+   ctx.strokeStyle='rgba(49,64,61,.25)';ctx.lineWidth=1.8;
+   for(let y=40;y<256;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(256,y);ctx.stroke();}
+   ctx.fillStyle='rgba(244,243,232,.3)';for(let y=28;y<180;y+=72)for(let x=32;x<256;x+=80)ctx.fillRect(x,y,12,6);
+   ctx.fillStyle='rgba(45,56,53,.2)';for(let x=18;x<256;x+=64)ctx.fillRect(x,172,5,84);
   }else{
    // Near-horizon directions dominate a walker's floor reflection, so return
    // the same triangulated frame on the cubemap's side faces as overhead.
@@ -69,51 +87,52 @@ function interiorReflection(profile:'T1'|'T2'){
    }
   }
  }
- contexts[3].fillStyle=t1?'#d8dad5':'#858575';contexts[3].fillRect(0,0,256,256);
+ contexts[3].fillStyle=t1?'#d8dad5':low?'#c4c8c3':'#858575';contexts[3].fillRect(0,0,256,256);
  const texture=new THREE.CubeTexture(faces);texture.mapping=THREE.CubeReflectionMapping;texture.colorSpace=THREE.SRGBColorSpace;texture.generateMipmaps=true;texture.minFilter=THREE.LinearMipmapLinearFilter;texture.magFilter=THREE.LinearFilter;texture.needsUpdate=true;interiorReflectionCache.set(profile,texture);return texture;
 }
 
-function terminalFloor(profile:'T1'|'T2'){
- const key=`${profile}-floor`,cached=finishCache.get(key);if(cached)return cached;
- const rand=seeded(profile==='T1'?11807:21807),texture=canvasTexture(512,512,ctx=>{
-  const t1=profile==='T1',base=t1?'#c5c9c7':'#999b8d';ctx.fillStyle=base;ctx.fillRect(0,0,512,512);
+function terminalFloor(profile:'T1'|'T2',zone:'main'|'lower'='main'){
+ const lower=profile==='T2'&&zone==='lower',reflectionProfile=lower?'T2-LOW':profile,key=`${profile}-${zone}-floor`,cached=finishCache.get(key);if(cached)return cached;
+ const rand=seeded(profile==='T1'?11807:lower?21806:21807),texture=canvasTexture(512,512,ctx=>{
+  const t1=profile==='T1',base=t1?'#c5c9c7':lower?'#b7bab7':'#999b8d';ctx.fillStyle=base;ctx.fillRect(0,0,512,512);
   // Large, quiet stone modules with real-scale joints. T1 is pale cool terrazzo;
   // T2 is the darker, slightly green-grey polished stone visible in hall photos.
-  const delta=Math.floor((rand()-.5)*8),shade=t1?199+delta:146+delta,tileSize=t1?128:256;
+  const delta=Math.floor((rand()-.5)*8),shade=t1?199+delta:lower?166+delta:146+delta,tileSize=t1?128:lower?128:256;
   for(let y=2;y<512;y+=tileSize)for(let x=2;x<512;x+=tileSize){
-   const variation=Math.floor((rand()-.5)*(t1?5:9)),r=THREE.MathUtils.clamp(shade+variation,0,255),g=THREE.MathUtils.clamp(shade+(t1?1:7)+variation,0,255),b=THREE.MathUtils.clamp(shade+(t1?2:-16)+variation,0,255);
+   const variation=Math.floor((rand()-.5)*(t1?5:lower?17:9)),r=THREE.MathUtils.clamp(shade+variation,0,255),g=THREE.MathUtils.clamp(shade+(t1?1:lower?2:7)+variation,0,255),b=THREE.MathUtils.clamp(shade+(t1?2:lower?0:-16)+variation,0,255);
    ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillRect(x,y,tileSize-2,tileSize-2);
    const tileWash=ctx.createLinearGradient(x,y,x+tileSize,y+tileSize);tileWash.addColorStop(0,'rgba(255,255,255,.1)');tileWash.addColorStop(.55,'rgba(255,255,255,.015)');tileWash.addColorStop(1,'rgba(25,32,31,.035)');ctx.fillStyle=tileWash;ctx.fillRect(x+1,y+1,tileSize-4,tileSize-4);
   }
   const wash=ctx.createLinearGradient(0,0,512,512);wash.addColorStop(0,'rgba(255,255,255,.18)');wash.addColorStop(.46,'rgba(255,255,255,.035)');wash.addColorStop(1,'rgba(31,39,37,.055)');ctx.fillStyle=wash;ctx.fillRect(2,2,508,508);
   // Low-contrast cloudy mineral variation breaks the repeated colour-block look.
-  for(let i=0;i<64;i++){const x=rand()*512,y=rand()*512,r=9+rand()*28,light=rand()>.48,g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,t1?(light?'rgba(248,249,245,.10)':'rgba(74,82,82,.055)'):(light?'rgba(205,214,197,.10)':'rgba(35,51,45,.12)'));g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}
-  for(let i=0;i<10500;i++){const v=Math.floor(105+rand()*125),alpha=.022+rand()*.048;ctx.fillStyle=`rgba(${v},${v+((i%3)-1)*2},${Math.max(0,v+(t1?1:-5))},${alpha})`;const size=.6+rand()*1.8;ctx.fillRect(rand()*512,rand()*512,size,size);}
-  ctx.strokeStyle=t1?'rgba(55,65,66,.14)':'rgba(45,55,49,.27)';ctx.lineWidth=t1?.9:1.1;ctx.beginPath();for(let p=0;p<=512;p+=tileSize){ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);}ctx.stroke();
+  for(let i=0;i<64;i++){const x=rand()*512,y=rand()*512,r=9+rand()*28,light=rand()>.48,g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,t1?(light?'rgba(248,249,245,.10)':'rgba(74,82,82,.055)'):lower?(light?'rgba(242,244,239,.13)':'rgba(53,61,58,.08)'):(light?'rgba(205,214,197,.10)':'rgba(35,51,45,.12)'));g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}
+  for(let i=0;i<10500;i++){const v=Math.floor(105+rand()*125),alpha=lower?.035+rand()*.075:.022+rand()*.048;ctx.fillStyle=`rgba(${v},${v+((i%3)-1)*2},${Math.max(0,v+(t1?1:lower?0:-5))},${alpha})`;const size=.6+rand()*1.8;ctx.fillRect(rand()*512,rand()*512,size,size);}
+  ctx.strokeStyle=t1?'rgba(55,65,66,.14)':lower?'rgba(48,58,56,.19)':'rgba(45,55,49,.27)';ctx.lineWidth=t1?.9:lower?.9:1.1;ctx.beginPath();for(let p=0;p<=512;p+=tileSize){ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);}ctx.stroke();
   ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(4,6);ctx.lineTo(508,6);ctx.moveTo(6,4);ctx.lineTo(6,508);ctx.stroke();
   ctx.globalAlpha=.13;ctx.fillStyle=t1?'#626c6c':'#414d47';for(let y=18;y<512;y+=23)for(let x=20+(Math.floor(y/23)%2)*13;x<512;x+=37)ctx.fillRect(x,y,1.2,1.2);ctx.globalAlpha=1;
  });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;
  // Keep the stone readable under daylight. Strong self-emission had washed out
  // the grain, grout and T2's characteristic muted green-grey floor tone.
- const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':'#e7ecdf',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:.006,roughness:profile==='T1'?.13:.075,metalness:.025,clearcoat:profile==='T1'?.82:.92,clearcoatRoughness:profile==='T1'?.11:.055,emissive:profile==='T1'?'#77766f':'#8d8967',emissiveIntensity:profile==='T1'?.12:.24});
+ const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':lower?'#f1f2ef':'#e7ecdf',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:lower?.007:.006,roughness:profile==='T1'?.13:lower?.12:.075,metalness:.025,clearcoat:profile==='T1'?.82:lower?.88:.92,clearcoatRoughness:profile==='T1'?.11:lower?.09:.055,emissive:profile==='T1'?'#77766f':lower?'#7c807a':'#8d8967',emissiveIntensity:profile==='T1'?.12:lower?.12:.24});
  // Outdoor sky reflections look like windows on an indoor floor. Keep a low,
  // soft return so the polished stone reads without reflecting airport clouds.
- mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:1.7;mat.userData.reflectionMap=interiorReflection(profile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;finishCache.set(key,mat);return mat;
+ mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:lower?1.18:1.7;mat.userData.reflectionMap=interiorReflection(reflectionProfile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;mat.userData.terminalFloorZone=lower?'lower':'main';finishCache.set(key,mat);return mat;
 }
 function terminalCeiling(profile:'T1'|'T2'){
  const key=`${profile}-ceiling`,cached=finishCache.get(key);if(cached)return cached;
  const texture=canvasTexture(512,512,ctx=>{
-  const t1=profile==='T1',panel=t1?128:64;ctx.fillStyle=t1?'#edeee9':'#e6e8e1';ctx.fillRect(0,0,512,512);
-  for(let y=0;y<512;y+=panel)for(let x=0;x<512;x+=panel){ctx.fillStyle=((x/panel+y/panel)%2===0)?(t1?'rgba(255,255,250,.12)':'rgba(250,250,244,.09)'):(t1?'rgba(76,86,86,.018)':'rgba(37,48,48,.02)');ctx.fillRect(x+2,y+2,panel-4,panel-4);}
-  ctx.strokeStyle=t1?'rgba(72,83,82,.085)':'rgba(36,46,45,.085)';ctx.lineWidth=1.6;for(let p=0;p<=512;p+=panel){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);ctx.stroke();}
+  const t1=profile==='T1',panel=t1?128:256;ctx.fillStyle=t1?'#edeee9':'#e6e8e1';ctx.fillRect(0,0,512,512);
+  for(let y=0;y<512;y+=panel)for(let x=0;x<512;x+=panel){ctx.fillStyle=((x/panel+y/panel)%2===0)?(t1?'rgba(255,255,250,.12)':'rgba(250,250,244,.075)'):(t1?'rgba(76,86,86,.018)':'rgba(37,48,48,.014)');ctx.fillRect(x+2,y+2,panel-4,panel-4);}
+  ctx.strokeStyle=t1?'rgba(72,83,82,.085)':'rgba(36,46,45,.05)';ctx.lineWidth=t1?1.6:1.2;for(let p=0;p<=512;p+=panel){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);ctx.stroke();}
+  if(!t1){ctx.strokeStyle='rgba(47,61,58,.07)';ctx.lineWidth=1.2;for(let y=0;y<512;y+=panel)for(let x=0;x<512;x+=panel){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+panel,y+panel);ctx.stroke();}}
   ctx.fillStyle=t1?'rgba(83,94,92,.045)':'rgba(25,34,34,.04)';for(let y=12;y<512;y+=t1?48:32)for(let x=12;x<512;x+=t1?48:32)ctx.fillRect(x,y,1.4,1.4);
  });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;
  const lamps=canvasTexture(512,512,ctx=>{
   ctx.fillStyle='#000000';ctx.fillRect(0,0,512,512);
   if(profile==='T1')for(const y of [128,384]){ctx.fillStyle='#d3cbbb';ctx.fillRect(160,y-6,192,12);ctx.fillStyle='#fff4dc';ctx.fillRect(166,y-3,180,6);}
-  else for(const y of [128,384])for(const x of [128,384]){ctx.fillStyle='#c9c5b6';ctx.fillRect(x-24,y-20,48,40);ctx.fillStyle='#fff0ca';ctx.fillRect(x-19,y-15,38,30);}
+  else for(const y of [128,384])for(const x of [128,384]){ctx.fillStyle='#c9c5b6';ctx.fillRect(x-12,y-7,24,14);ctx.fillStyle='#fff0ca';ctx.fillRect(x-7,y-4,14,8);}
  });lamps.wrapS=lamps.wrapT=THREE.RepeatWrapping;lamps.anisotropy=8;
- const mat=new THREE.MeshStandardMaterial({color:profile==='T1'?'#f1f2ec':'#f5f6ef',map:texture,roughness:.84,metalness:.012,emissive:'#fff1d5',emissiveMap:lamps,emissiveIntensity:profile==='T1'?.42:.76});mat.userData.worldUV=1/9.6;finishCache.set(key,mat);return mat;
+ const mat=new THREE.MeshStandardMaterial({color:profile==='T1'?'#f1f2ec':'#f5f6ef',map:texture,roughness:.84,metalness:.012,emissive:'#fff1d5',emissiveMap:lamps,emissiveIntensity:profile==='T1'?.42:.62});mat.userData.worldUV=1/9.6;finishCache.set(key,mat);return mat;
 }
 function deckFinishes(profile:'T1'|'T2',mats:TerminalMaterials):DeckFinishes{
  const key=`${profile}-deck`,cached=finishCache.get(key);
@@ -162,33 +181,33 @@ function counterNumberSign(parent:THREE.Object3D,label:string,x:number,y:number,
  const geometry=new THREE.PlaneGeometry(width,height),front=new THREE.Mesh(geometry,mat),back=new THREE.Mesh(geometry,mat);front.position.set(x,y,z+.018);back.position.set(x,y,z-.018);back.rotation.y=Math.PI;front.castShadow=back.castShadow=false;parent.add(front,back);return front;
 }
 // `toLevel` is exclusive, so a public-hall void can stop before an occupied upper deck.
-function addDecks(parent:THREE.Object3D,b:TerminalBounds,levels:number[],finish:THREE.Material,gapRatio=.16,atrium?:{fromLevel:number;toLevel?:number;x:number;z:number;width:number;depth:number},surfaces?:DeckFinishes,firstUpperGapRatio?:number){
+function addDecks(parent:THREE.Object3D,b:TerminalBounds,levels:number[],finish:THREE.Material,gapRatio=.16,atrium?:{fromLevel:number;toLevel?:number;x:number;z:number;width:number;depth:number},surfaces?:DeckFinishes,firstUpperGapRatio?:number,floorByLevel?:ReadonlyMap<number,THREE.Material>){
  const thickness=.34,fullWidth=b.width-3,fullDepth=b.depth-4;
- const slab=(width:number,depth:number,x:number,z:number,y:number)=>{
+ const slab=(width:number,depth:number,x:number,z:number,y:number,levelIndex=0)=>{
   if(width<=2||depth<=2)return;box(parent,width,thickness,depth,x,y,z,surfaces?.edge??finish);
   if(!surfaces)return;
-  const top=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),surfaces.floor);top.rotation.x=-Math.PI/2;top.position.set(x,y+thickness/2+.012,z);top.castShadow=false;top.receiveShadow=true;parent.add(top);
+  const top=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),floorByLevel?.get(levelIndex)??surfaces.floor);top.rotation.x=-Math.PI/2;top.position.set(x,y+thickness/2+.012,z);top.castShadow=false;top.receiveShadow=true;parent.add(top);
   const underside=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),surfaces.ceiling);underside.rotation.x=Math.PI/2;underside.position.set(x,y-thickness/2-.012,z);underside.castShadow=false;parent.add(underside);
  };
- slab(fullWidth,fullDepth,b.x,b.z,levels[0]-.17);
+ slab(fullWidth,fullDepth,b.x,b.z,levels[0]-.17,0);
  for(let i=1;i<levels.length;i++){
   const y=levels[i]-.17;
   if(atrium&&i>=atrium.fromLevel&&(atrium.toLevel===undefined||i<atrium.toLevel)){
    const left=b.x-fullWidth/2,right=b.x+fullWidth/2,near=b.z-fullDepth/2,far=b.z+fullDepth/2;
    const holeLeft=THREE.MathUtils.clamp(atrium.x-atrium.width/2,left+2,right-2),holeRight=THREE.MathUtils.clamp(atrium.x+atrium.width/2,left+2,right-2);
    const holeNear=THREE.MathUtils.clamp(atrium.z-atrium.depth/2,near+2,far-2),holeFar=THREE.MathUtils.clamp(atrium.z+atrium.depth/2,near+2,far-2);
-   slab(fullWidth,holeNear-near,b.x,(near+holeNear)/2,y);
-   slab(fullWidth,far-holeFar,b.x,(holeFar+far)/2,y);
-   slab(holeLeft-left,holeFar-holeNear,(left+holeLeft)/2,(holeNear+holeFar)/2,y);
-   slab(right-holeRight,holeFar-holeNear,(holeRight+right)/2,(holeNear+holeFar)/2,y);
+   slab(fullWidth,holeNear-near,b.x,(near+holeNear)/2,y,i);
+   slab(fullWidth,far-holeFar,b.x,(holeFar+far)/2,y,i);
+   slab(holeLeft-left,holeFar-holeNear,(left+holeLeft)/2,(holeNear+holeFar)/2,y,i);
+   slab(right-holeRight,holeFar-holeNear,(holeRight+right)/2,(holeNear+holeFar)/2,y,i);
    const rail=new THREE.MeshPhysicalMaterial({color:'#c0d5d7',roughness:.18,metalness:.08,transparent:true,opacity:.36,depthWrite:false});
    for(const side of [-1,1])box(parent,atrium.width,1.08,.13,atrium.x,y+.71,atrium.z+side*(atrium.depth/2),rail);
    for(const side of [-1,1])box(parent,.13,1.08,atrium.depth,atrium.x+side*(atrium.width/2),y+.71,atrium.z,rail);
   }else if(atrium){
-   slab(fullWidth,fullDepth,b.x,b.z,y);
+   slab(fullWidth,fullDepth,b.x,b.z,y,i);
   }else{
    const first=i===1&&firstUpperGapRatio!==undefined,ratio=first?(firstUpperGapRatio??gapRatio):gapRatio,maxRatio=first ? .52 : .33,gap=Math.min(b.width*maxRatio,Math.max(20,b.width*ratio)),wing=(b.width-gap)/2;
-   for(const side of [-1,1])slab(wing,b.depth-7,b.x+side*(gap/2+wing/2),b.z,y);
+   for(const side of [-1,1])slab(wing,b.depth-7,b.x+side*(gap/2+wing/2),b.z,y,i);
   }
  }
  if(surfaces){
@@ -206,6 +225,16 @@ function addDecks(parent:THREE.Object3D,b:TerminalBounds,levels:number[],finish:
   }
   batch(parent,ceilingStrip,strips);
  }
+}
+const t2ArrivalCeilingMember=material('#cdd1cd',.58,.12);
+/** The 1F arrivals photograph shows a pale diagonal ceiling grid below the 2F deck. */
+function terminal2ArrivalCeilingGrid(parent:THREE.Object3D,b:TerminalBounds,ceilingY:number){
+ const pitch=4.8,left=b.x-(b.width-3)/2+pitch/2,right=b.x+(b.width-3)/2-pitch/2,near=b.z-(b.depth-4)/2+pitch/2,far=b.z+(b.depth-4)/2-pitch/2,y=ceilingY-.055,members:Item[]=[];
+ for(let x=left;x<=right;x+=pitch)for(let z=near;z<=far;z+=pitch){
+  const span=pitch*Math.SQRT2;
+  members.push({x,y,z,sx:span,sy:.075,sz:.075,ry:-Math.PI/4},{x,y,z,sx:span,sy:.075,sz:.075,ry:Math.PI/4});
+ }
+ batch(parent,t2ArrivalCeilingMember,members);
 }
 /** Refined atrium edge hardware over the simple continuous glass guard already
  * used by the floor cutout: shoes, regular mullions and a continuous cap rail. */
@@ -1811,7 +1840,7 @@ function terminal2WanLaiArt(parent:THREE.Object3D,b:TerminalBounds,y:number,z:nu
  for(const edge of [-1,1])box(parent,width,.12,.12,wallX+.24,y+height/2+edge*(height/2-.08),z,rail,Math.PI/2);
 }
 function terminal2(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials){
- const levels=[.36,6.25,12.35,18.55,23.45],atrium={fromLevel:3,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats);addDecks(parent,b,levels,mats.concrete,.16,atrium,finishes);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2');verticalCirculation(parent,b,levels,'T2');
+ const levels=[.36,6.25,12.35,18.55,23.45],atrium={fromLevel:3,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats),lowerFloor=terminalFloor('T2','lower');addDecks(parent,b,levels,mats.concrete,.16,atrium,finishes,undefined,new Map([[0,lowerFloor],[1,lowerFloor]]));terminal2ArrivalCeilingGrid(parent,b,levels[1]-.17-.17-.012);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2');verticalCirculation(parent,b,levels,'T2');
  baggageClaim(parent,b,.58,b.z-30,6,'x',b.x,1);
  baggageClaim(parent,b,.58,b.z-55,2,'x',b.x-58,7);terminal2WanLaiArt(parent,b,.58,b.z-55);
  customsHall(parent,b,.58,b.z-23);arrivalLobby(parent,b,.58,b.z+24,.72,false);terminal2ArrivalServices(parent,b,.58);terminal2ArrivalArt(parent,b,.58);sign(parent,'MRT  機場捷運',b.x+b.width*.28,.58+4,b.z+70,11,'#6f9898');
