@@ -246,16 +246,18 @@ export const T2_TEMPLE_AVENUE_LAYOUT={
 export const T2_THIRD_FLOOR_LAYOUT={
  checkIn:{
   centerZOffset:-67,
-  bankCount:5,
-  bankSpacingRatio:.085,
-  maxBankSpacing:26,
-  countersPerBank:[5,5,6,5,5] as const,
-  counterSpacing:3.45,
+  bankCount:13,
+  bankSpacingRatio:.03793,
+  maxBankSpacing:11,
+  numbersPerBank:2,
+  stationsPerNumber:10,
+  stationSpacing:2.8,
   islandDepth:5.8,
   counterFaceOffset:2,
-  queueBarrierOffset:4.2,
-  queueNearOffset:4.8,
-  queueFarOffset:9.2,
+  queueLaneCount:6,
+  queueBarrierOffset:3,
+  queueNearOffset:3.6,
+  queueFarOffset:4.8,
  },
  retail:{centerZOffset:85,frontOffsetRatio:.22,span:120,gap:1.5},
  services:[
@@ -271,14 +273,16 @@ export const T2_THIRD_FLOOR_LAYOUT={
  aeds:[{dx:55,dz:-5}]
 } as const;
 
-/** The official T2 3F map depicts paired counter rows grouped into five banks. */
+/** The T2 3F map numbers opposite faces in pairs (for example, 12/13 and 14/15). */
 export function t2ThirdFloorCheckInBanks(centerX:number,centerZ:number,terminalDepth:number){
  const layout=T2_THIRD_FLOOR_LAYOUT.checkIn,spacing=Math.min(layout.maxBankSpacing,terminalDepth*layout.bankSpacingRatio);
- return layout.countersPerBank.map((counterCount,index)=>({
+ return Array.from({length:layout.bankCount},(_,index)=>({
   x:centerX,
   z:centerZ+(index-(layout.bankCount-1)/2)*spacing,
-  counterCount,
-  rowWidth:Math.ceil(counterCount/2)*layout.counterSpacing,
+  counterCount:layout.numbersPerBank,
+  firstCounterNumber:index*layout.numbersPerBank+1,
+  lastCounterNumber:(index+1)*layout.numbersPerBank,
+  rowWidth:layout.stationsPerNumber*layout.stationSpacing,
  }));
 }
 

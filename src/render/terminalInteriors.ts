@@ -910,7 +910,7 @@ function checkInHall(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number,is
  for(let g=0;g<islands;g++){
   const counterCount=typeof countersPerIsland==='number'?countersPerIsland:(countersPerIsland[g]??countersPerIsland[countersPerIsland.length-1]??1);
   // T2's public 3F map stacks paired check-in rows along the long hall axis.
-  const t2Bank=t2Banks?.[g],cx=isT2?b.x:b.x+(g-(islands-1)/2)*(b.width/(islands+1.05)),rowZ=isT2?(t2Bank?.z??z):profile==='T1'?z+(g-(islands-1)/2)*7.2:z,first=nextNumber,last=first+counterCount-1,rowWidth=isT2?(t2Bank?.rowWidth??Math.ceil(counterCount/2)*t2Layout.counterSpacing):counterCount*3.45;nextNumber=last+1;
+  const t2Bank=t2Banks?.[g],cx=isT2?b.x:b.x+(g-(islands-1)/2)*(b.width/(islands+1.05)),rowZ=isT2?(t2Bank?.z??z):profile==='T1'?z+(g-(islands-1)/2)*7.2:z,first=nextNumber,last=first+counterCount-1,rowWidth=isT2?(t2Bank?.rowWidth??t2Layout.stationsPerNumber*t2Layout.stationSpacing):counterCount*3.45;nextNumber=last+1;
   if(profile){
    const islandZ=rowZ,bodyY=y+(isT2?.31:.47),baseMat=isT2?'#414947':'#6b7472',approach=isT2?1:-1;
    islandBases.push({x:cx,y:bodyY,z:islandZ,sx:rowWidth+1.4,sy:isT2?.58:.86,sz:isT2?t2Layout.islandDepth:3.05,color:baseMat});
@@ -920,20 +920,19 @@ function checkInHall(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number,is
    for(let rx=-rowWidth/2+.42;rx<=rowWidth/2-.42;rx+=.62)beltRollers.push({x:cx+rx,y:y+(isT2?.79:1.045),z:beltZ,sx:.075,sy:.055,sz:.9,color:'#a4aaa5'});
    if(isT2){
     for(const side of [-1,1] as const){
-     const faceCount=side===1?Math.ceil(counterCount/2):Math.floor(counterCount/2);if(!faceCount)continue;
-     const faceWidth=faceCount*t2Layout.counterSpacing,laneWidth=faceWidth/faceCount,postSpacing=Math.min(2.3,faceWidth/(faceCount+1)),frontZ=islandZ+side*t2Layout.queueBarrierOffset,
+     const laneWidth=rowWidth/t2Layout.queueLaneCount,postSpacing=laneWidth,frontZ=islandZ+side*t2Layout.queueBarrierOffset,
       queueNear=islandZ+side*t2Layout.queueNearOffset,queueFar=islandZ+side*t2Layout.queueFarOffset;
-     for(let post=0;post<=faceCount;post++){
-      const px=cx+(post-faceCount/2)*postSpacing;
+     for(let post=0;post<=t2Layout.queueLaneCount;post++){
+      const px=cx-rowWidth/2+post*postSpacing;
       posts.push({x:px,y:y+.57,z:frontZ,sx:.09,sy:1.14,sz:.09});
-      if(post<faceCount)queueRails.push({x:px+postSpacing/2,y:y+.94,z:frontZ,sx:postSpacing,sy:.06,sz:.055});
+      if(post<t2Layout.queueLaneCount)queueRails.push({x:px+postSpacing/2,y:y+.94,z:frontZ,sx:postSpacing,sy:.06,sz:.055});
      }
-     for(let boundary=0;boundary<=faceCount;boundary++){
-      const x=cx-faceWidth/2+boundary*laneWidth;
+     for(let boundary=0;boundary<=t2Layout.queueLaneCount;boundary++){
+      const x=cx-rowWidth/2+boundary*laneWidth;
       islandQueuePosts.push({x,y:y+.57,z:queueNear,sx:.09,sy:1.14,sz:.09},{x,y:y+.57,z:queueFar,sx:.09,sy:1.14,sz:.09});
       islandQueueRails.push({x,y:y+.94,z:(queueNear+queueFar)/2,sx:.055,sy:.06,sz:Math.abs(queueFar-queueNear)-.2});
      }
-     for(let lane=0;lane<faceCount;lane+=2)islandQueueRails.push({x:cx-faceWidth/2+(lane+.5)*laneWidth,y:y+.94,z:queueFar,sx:laneWidth-.18,sy:.06,sz:.055});
+     for(let lane=0;lane<t2Layout.queueLaneCount;lane+=2)islandQueueRails.push({x:cx-rowWidth/2+(lane+1)*laneWidth,y:y+.94,z:queueFar,sx:laneWidth*2-.18,sy:.06,sz:.055});
     }
    }else{
     const frontZ=islandZ+approach*4.9,postSpacing=Math.min(2.3,rowWidth/(counterCount+1));
@@ -949,11 +948,13 @@ function checkInHall(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number,is
   for(let j=0;j<counterCount;j++){
    const number=first+j,compact=profile==='T2';
    if(isT2){
-    const positiveFaceCount=Math.ceil(counterCount/2),side:(-1|1)=j<positiveFaceCount?1:-1,faceCount=side===1?positiveFaceCount:Math.floor(counterCount/2),faceIndex=side===1?j:j-positiveFaceCount,
-     x=cx+(faceIndex-(faceCount-1)/2)*t2Layout.counterSpacing,counterZ=rowZ+side*t2Layout.counterFaceOffset;
-    bases.push({x,y:y+.4,z:counterZ,sx:3.05,sy:.64,sz:1.24,color:'#777f7c'});tops.push({x,y:y+.75,z:counterZ,sx:3.22,sy:.12,sz:1.42,color:'#d2d4cc'});
-    stands.push({x:x+.9,y:y+1.08,z:counterZ+side*.2,sx:.13,sy:.5,sz:.12});monitors.push({x:x+.9,y:y+1.56,z:counterZ+side*.2,sx:.72,sy:.48,sz:.12});
-    counterNumberSign(parent,String(number).padStart(2,'0'),x,y+3.27,counterZ+side*.82,1.56,1.12);
+    const positiveFaceCount=Math.ceil(counterCount/2),side:(-1|1)=j<positiveFaceCount?1:-1,counterZ=rowZ+side*t2Layout.counterFaceOffset;
+    for(let station=0;station<t2Layout.stationsPerNumber;station++){
+     const x=cx+(station-(t2Layout.stationsPerNumber-1)/2)*t2Layout.stationSpacing,stationWidth=t2Layout.stationSpacing-.18;
+     bases.push({x,y:y+.4,z:counterZ,sx:stationWidth,sy:.64,sz:1.24,color:'#777f7c'});tops.push({x,y:y+.75,z:counterZ,sx:stationWidth+.12,sy:.12,sz:1.42,color:'#d2d4cc'});
+     stands.push({x:x+.72,y:y+1.08,z:counterZ+side*.2,sx:.13,sy:.5,sz:.12});monitors.push({x:x+.72,y:y+1.56,z:counterZ+side*.2,sx:.72,sy:.48,sz:.12});
+    }
+    counterNumberSign(parent,String(number).padStart(2,'0'),cx,y+3.27,counterZ+side*.82,2.8,1.8);
    }else{
     const x=cx+(j-(counterCount-1)/2)*3.45;
     bases.push({x,y:y+(compact?.4:.72),z:rowZ,sx:3.05,sy:compact?.64:1.05,sz:1.24,color:'#aab1ae'});tops.push({x,y:y+(compact?.75:1.31),z:rowZ,sx:3.22,sy:compact?.12:.14,sz:1.42,color:'#e8e9e3'});
@@ -964,7 +965,7 @@ function checkInHall(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number,is
   if(!profile)aislePosts(posts,cx,y,rowZ-5.3,counterCount+1,Math.min(2.3,rowWidth/(counterCount+1)));
  }
  batch(parent,profile==='T2'?t2Island:profile==='T1'?t1Island:counter,islandBases);batch(parent,islandTrim,beltSurfaces);batch(parent,beltRoller,beltRollers);batch(parent,counter,bases);batch(parent,counterTop,tops);batch(parent,steel,stands);batch(parent,screen,monitors);batch(parent,belt,bagBelts);batch(parent,queuePost,posts);batch(parent,steel,queueRails);batch(parent,queuePost,islandQueuePosts);batch(parent,steel,islandQueueRails);
- const kioskCount=Math.max(8,islands*3),bankCount=Math.ceil(kioskCount/2);for(let i=0;i<kioskCount;i++){const bank=i<bankCount?0:1,index=bank===0?i:i-bankCount,localCount=bank===0?bankCount:kioskCount-bankCount,side=bank===0?-1:1,x=b.x+side*b.width*.29+(index-(localCount-1)/2)*3.2,kioskZ=z-17;kiosks.push({x,y:y+1.05,z:kioskZ,sx:1.2,sy:2.1,sz:.85});kioskScreens.push({x,y:y+1.3,z:kioskZ-.45,sx:.62,sy:.58,sz:.055});}
+ const kioskCount=isT2?14:Math.max(8,islands*3),bankCount=Math.ceil(kioskCount/2);for(let i=0;i<kioskCount;i++){const bank=i<bankCount?0:1,index=bank===0?i:i-bankCount,localCount=bank===0?bankCount:kioskCount-bankCount,side=bank===0?-1:1,x=b.x+side*b.width*.29+(index-(localCount-1)/2)*3.2,kioskZ=z-17;kiosks.push({x,y:y+1.05,z:kioskZ,sx:1.2,sy:2.1,sz:.85});kioskScreens.push({x,y:y+1.3,z:kioskZ-.45,sx:.62,sy:.58,sz:.055});}
  batch(parent,counter,kiosks);batch(parent,screen,kioskScreens);
  sign(parent,'DEPARTURES  出境',b.x,y+5.4,z-23,Math.min(b.width*.055,10),'#aa9160');
 }
@@ -2543,7 +2544,7 @@ function terminal2(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials
  baggageClaim(parent,b,.58,b.z-55,2,'x',b.x-58,7);terminal2WanLaiArt(parent,b,.58,b.z-55);
  customsHall(parent,b,.58,b.z-23);arrivalLobby(parent,b,.58,b.z+24,.72,false);terminal2ArrivalServices(parent,b,.58);terminal2ArrivalArt(parent,b,.58);sign(parent,'MRT  機場捷運',b.x+b.width*.28,.58+4,b.z+70,11,'#6f9898');
   terminal2TransferServices(parent,b,6.48);securityHall(parent,b,6.48,b.z+48,4,'#86b9b8','TRANSFER SECURITY  轉機安檢');
- checkInHall(parent,b,12.62,b.z+checkInLayout.centerZOffset,checkInLayout.bankCount,checkInLayout.countersPerBank,1,'T2');
+ checkInHall(parent,b,12.62,b.z+checkInLayout.centerZOffset,checkInLayout.bankCount,checkInLayout.numbersPerBank,1,'T2');
  terminal2DepartureImmigration(parent,b,12.62,b.z+5);
  securityHall(parent,b,12.62,b.z+37,7);flightBoards(parent,b,12.62,b.z+60);seating(parent,b,12.62,b.z+78,3,12,true);
  terminal2DepartureRetailAndServices(parent,b,12.62);
