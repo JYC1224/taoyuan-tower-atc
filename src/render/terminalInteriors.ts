@@ -3,7 +3,7 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives';
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
-import {T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_THIRD_FLOOR_LAYOUT,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_THIRD_FLOOR_LAYOUT,t1FirstFloorServiceCenter,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
 type Item={x:number;y:number;z:number;sx:number;sy:number;sz:number;ry?:number;rx?:number;color?:THREE.ColorRepresentation};
@@ -1157,6 +1157,45 @@ function arrivalLobby(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number,b
  // an unverified row of opaque planter boxes across the main approach.
  if(includePlanters){const planters:Item[]=[];for(let i=0;i<8;i++)planters.push({x:b.x+(i-3.5)*Math.min(16,b.width/9),y:y+.65,z:z+62,sx:2.4,sy:1.3,sz:2.4,color:'#657b63'});batch(parent,material('#77735d',.86),planters);}
 }
+/** T1 1F map-marked arrival desks, ATMs, AEDs and public meeting points. */
+function terminal1FirstFloorServices(parent:THREE.Object3D,b:TerminalBounds,y:number){
+ const deskWall=material('#d1d5cf',.58,.055),deskBody=material('#aeb7b2',.48,.24),deskTop=material('#e8e9e2',.32,.08),dark=material('#23383c',.28,.18),glass=new THREE.MeshPhysicalMaterial({color:'#b6d2ce',roughness:.16,metalness:.04,transparent:true,opacity:.3,depthWrite:false,side:THREE.DoubleSide}),hardware=material('#7b8985',.42,.28);
+ for(const service of T1_FIRST_FLOOR_SERVICES.desks){
+  const center=t1FirstFloorServiceCenter(b.x,b.z,b.width,b.depth,service.side,service.zRatio),wallX=b.x+service.side*b.width*.36,counterX=wallX-service.side*3.1,length=service.length,accent=material(service.accent,.4,.12),serviceFace=material(service.kind==='bank'?'#77847b':service.kind==='telecom'?'#59767f':'#6f817b',.45,.16);
+  // The shallow side-wall bay keeps the arrival cross-aisle open between the counters and baggage flow.
+  box(parent,.2,3.24,length,wallX,y+1.62,center.z,deskWall);
+  box(parent,1.62,.94,length*.84,counterX,y+.57,center.z,deskBody);box(parent,1.7,.13,length*.86,counterX,y+1.1,center.z,deskTop);
+  box(parent,1.66,.16,length*.86,counterX,y+1.76,center.z,accent);
+  for(let station=0;station<service.stations;station++){
+   const stationZ=center.z+(station-(service.stations-1)/2)*(length*.64/Math.max(1,service.stations-1)),frontX=counterX-service.side*.88;
+   box(parent,.12,.74,.76,frontX,y+1.66,stationZ,dark);box(parent,.055,.44,.62,frontX-service.side*.24,y+1.68,stationZ,screen);
+   box(parent,.1,1.12,.88,frontX,y+2.47,stationZ,glass);box(parent,.1,.06,.92,frontX,y+3.05,stationZ,hardware);
+   box(parent,.22,.09,.48,counterX-service.side*.52,y+1.19,stationZ,serviceFace);
+  }
+  for(const end of [-1,1])box(parent,3.18,3.18,.16,wallX-service.side*1.55,y+1.59,center.z+end*(length/2),deskWall);
+  box(parent,.2,.15,length*.92,wallX-service.side*.14,y+3.18,center.z,accent);
+  sign(parent,service.label,wallX-service.side*.18,y+3.72,center.z,length*.92,service.accent,-service.side*Math.PI/2,.92);
+  const lineX=counterX-service.side*2.65;for(const end of [-1,1])cylinder(parent,.055,.055,1.05,lineX,y+.54,center.z+end*(length*.31),hardware,10);
+ }
+ const atmBody=material('#56635f',.38,.26),atmFace=new THREE.MeshStandardMaterial({color:'#18343a',emissive:'#25545a',emissiveIntensity:.24,roughness:.34}),atmKeys=material('#bdc3bb',.4,.22);
+ for(const point of T1_FIRST_FLOOR_SERVICES.atms){
+  const center=t1FirstFloorServiceCenter(b.x,b.z,b.width,b.depth,point.side,point.zRatio),x=b.x+point.side*b.width*.43,frontX=x-point.side*.58;
+  box(parent,1.12,2.15,.92,x,y+1.075,center.z,atmBody);box(parent,.055,.56,.58,frontX,y+1.62,center.z,atmFace);box(parent,.055,.22,.3,frontX-point.side*.045,y+1.17,center.z+.2,atmKeys);box(parent,.12,.1,.48,x,y+.18,center.z,hardware);
+  sign(parent,'ATM  自動提款機',x-point.side*.62,y+2.62,center.z,4.1,'#647d75',-point.side*Math.PI/2,.56);
+ }
+ const cabinet=material('#d6dad3',.58,.08),aedGreen=material('#188e79',.42,.06),aedWhite=material('#f5f1e7',.4,.03);
+ for(const point of T1_FIRST_FLOOR_SERVICES.aeds){
+  const center=t1FirstFloorServiceCenter(b.x,b.z,b.width,b.depth,point.side,point.zRatio),x=b.x+point.side*b.width*.4,frontX=x-point.side*.16;
+  box(parent,.24,1.02,.9,x,y+.51,center.z,cabinet);box(parent,.07,.66,.58,frontX,y+.51,center.z,aedGreen);box(parent,.035,.42,.11,frontX-point.side*.055,y+.51,center.z,aedWhite);
+  sign(parent,'AED',frontX,y+1.17,center.z,1.2,'#188e79',-point.side*Math.PI/2,.46);
+ }
+ const meetingFrame=material('#71817d',.42,.24),meetingFace=material('#3c857b',.38,.1),meetingWhite=material('#f3f1e9',.42,.025);
+ for(const point of T1_FIRST_FLOOR_SERVICES.meetingPoints){
+  const center=t1FirstFloorServiceCenter(b.x,b.z,b.width,b.depth,point.side,point.zRatio),x=b.x+point.side*b.width*.2;
+  box(parent,.14,2.8,.18,x,y+1.4,center.z,meetingFrame);box(parent,2.4,1.32,.14,x,y+2.46,center.z,meetingFace);box(parent,.12,.82,.055,x,y+2.45,center.z+.09,meetingWhite);
+  sign(parent,point.label,x,y+3.25,center.z+.1,7.6,'#3c857b',0,.72);
+ }
+}
 function addRetailLevel(parent:THREE.Object3D,b:TerminalBounds,y:number,food=false){shops(parent,b,y,b.z-b.depth*.25,food?5:7,food?'food':'retail');shops(parent,b,y,b.z+b.depth*.24,food?5:7,food?'food':'retail');if(food)addTableZone(parent,b,y,b.z);else seating(parent,b,y,b.z,3,10,true);}
 function addT2TempleAvenue(parent:THREE.Object3D,b:TerminalBounds,y:number){
  const south={...b,width:b.width*.82,depth:b.depth*.32,z:b.z+b.depth*.31};
@@ -1763,7 +1802,7 @@ function terminal1(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials
  // The airport's visitor guide places T1's Departure Hall and counter 10 on
  // 1F; this public level shares the arrival, customs and meeting facilities.
  terminal1CheckIn(parent,b,.62,b.z-42);sign(parent,'DEPARTURES / CHECK-IN  出境報到',b.x,.62+7.2,b.z+2,11,'#aa9160',0,1.05);
- baggageClaim(parent,b,.58,b.z+57,6);customsHall(parent,b,.58,b.z+88);arrivalLobby(parent,b,.58,b.z+111);
+ baggageClaim(parent,b,.58,b.z+57,6);customsHall(parent,b,.58,b.z+88);arrivalLobby(parent,b,.58,b.z+111);terminal1FirstFloorServices(parent,b,.58);
  // 2F is the mapped public retail/service gallery; the larger controlled
  // immigration and departure functions remain on the separate 3F level.
  terminal1MappedPublicServices(parent,b,6.05,'2F');

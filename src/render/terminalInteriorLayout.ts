@@ -1,5 +1,28 @@
 /** Public-map proportions for built terminal interior footprints. */
 /**
+ * Public-service points marked on the current T1 1F airport map. The map
+ * confirms the facilities and their broad side-of-hall placement, but does
+ * not publish lease dimensions or measured coordinates; offsets are fit-out
+ * estimates within the existing arrivals/public-hall footprint.
+ */
+export const T1_FIRST_FLOOR_SERVICES={
+ desks:[
+  {id:'baggage-service',side:-1,zRatio:.22,length:14,stations:2,label:'BAGGAGE SERVICE  行李服務',accent:'#65847c',kind:'baggage'},
+  {id:'bank-taiwan',side:-1,zRatio:.31,length:16,stations:3,label:'BANK OF TAIWAN  臺灣銀行',accent:'#8f7946',kind:'bank'},
+  {id:'megabank',side:-1,zRatio:.39,length:14,stations:2,label:'MEGA BANK  兆豐銀行',accent:'#587b74',kind:'bank'},
+  {id:'tourist-service',side:1,zRatio:.27,length:14,stations:2,label:'TOURIST SERVICE  旅客服務',accent:'#31877f',kind:'information'},
+  {id:'mobile-service',side:1,zRatio:.37,length:12,stations:2,label:'MOBILE SERVICE  電信服務',accent:'#517e89',kind:'telecom'},
+ ],
+ atms:[{id:'west-atm',side:-1,zRatio:.45},{id:'east-atm',side:1,zRatio:.45}],
+ aeds:[{id:'west-aed',side:-1,zRatio:.18},{id:'east-aed',side:1,zRatio:.34}],
+ meetingPoints:[{id:'north-meeting-point',side:-1,zRatio:.43,label:'MEETING POINT 會面點 A'},{id:'south-meeting-point',side:1,zRatio:.43,label:'MEETING POINT 會面點 B'}],
+} as const;
+
+export function t1FirstFloorServiceCenter(centerX:number,centerZ:number,width:number,depth:number,side:-1|1,zRatio:number){
+ return {x:centerX+side*(width*.36-1.5),z:centerZ+depth*zRatio};
+}
+
+/**
  * T1's public 2F map depicts a large central opening with a narrow public
  * circulation band around it. The map is schematic, so these ratios are a
  * visual fit to its footprint rather than surveyed dimensions.
