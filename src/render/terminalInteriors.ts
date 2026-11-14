@@ -1920,7 +1920,9 @@ function terminal1Basement(parent:THREE.Object3D,b:TerminalBounds,floorY:number)
  const ceilingMaterial=new THREE.MeshBasicMaterial({color:'#fff',map:ceilingTexture,toneMapped:false,side:THREE.DoubleSide});ceilingMaterial.userData.worldUV=1/4.8;
  const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(b.width-3,b.depth-4),ceilingMaterial);ceiling.rotation.x=Math.PI/2;ceiling.position.set(b.x,ceilingY-.08,b.z);ceiling.castShadow=false;ceiling.receiveShadow=false;parent.add(ceiling);
  const wallWidth=b.width-3,wallDepth=b.depth-4,wallHeight=T1_FLOOR_LEVELS[1]-.19-floorY,wallY=floorY+wallHeight/2,edgeX=b.x+wallWidth/2,edgeZ=b.z+wallDepth/2,
-  retainingWall=material('#aeb3ad',.9,.015),retainingBase=material('#7e8883',.84,.02),joint=material('#929994',.92,.005);
+  retainingWall=new THREE.MeshStandardMaterial({color:'#aeb3ad',roughness:.9,metalness:.015,side:THREE.DoubleSide}),
+  retainingBase=new THREE.MeshStandardMaterial({color:'#7e8883',roughness:.84,metalness:.02,side:THREE.DoubleSide}),
+  joint=new THREE.MeshStandardMaterial({color:'#929994',roughness:.92,metalness:.005,side:THREE.DoubleSide});
  // Retain the cut below grade. Without these boundary walls the low camera
  // sees the regional terrain edge behind the shop bays as an open horizon.
  for(const side of [-1,1]){
@@ -2066,7 +2068,8 @@ function terminal2Basement(parent:THREE.Object3D,b:TerminalBounds,floorY:number,
  const lowerFloor=terminalFloor('T2','lower'),aisleX=t2BasementAisleX(b.x,b.width),fullWidth=b.width-3,fullDepth=b.depth-4,
   westX=b.x-fullWidth/2,eastX=b.x+fullWidth/2,northZ=b.z-fullDepth/2,southZ=b.z+fullDepth/2,
   ceilingBottom=b1Y-.34,bottom=floorY+.05,wallHeight=ceilingBottom-bottom,wallY=(bottom+ceilingBottom)/2,
-  wall=material('#8a908c',.82,.015),wallEdge=material('#aeb3ad',.68,.045),mrt= T2_BASEMENT_LAYOUT.mrtLink,
+  wall=new THREE.MeshStandardMaterial({color:'#8a908c',roughness:.82,metalness:.015,side:THREE.DoubleSide}),
+  wallEdge=new THREE.MeshStandardMaterial({color:'#aeb3ad',roughness:.68,metalness:.045,side:THREE.DoubleSide}),mrt= T2_BASEMENT_LAYOUT.mrtLink,
   linkZ=b.z+mrt.zOffset,openingHalf=mrt.width/2+.7,portalX=westX-mrt.length;
  // Retaining walls close the below-grade hall; the west opening is the mapped
  // passenger connection toward Airport MRT. No unmapped B1 tenant fit-out is added.

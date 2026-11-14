@@ -268,18 +268,18 @@ const t1B1ShopViewSpots:ExploreSpot[]=T1_BASEMENT_LAYOUT.shops.map((shop,index)=
  const center=t1BasementShopCenter(t1.x,t1.z,shop),id=t1B1ShopSpotIds[index];
  return spot(id,`Terminal 1 ${shop.name} · B1`,`第一航廈 ${shop.name} · B1`,T1_FLOOR_LEVELS[0],
   {x:center.frontX+shop.side*13,y:T1_FLOOR_LEVELS[0]+1.62,z:center.z+shop.length*.18},
-  {x:center.frontX+shop.side*.25,y:T1_FLOOR_LEVELS[0]+1.92,z:center.z},inside(t1),t1B1Obstacles);
+  {x:center.frontX+shop.side*.25,y:T1_FLOOR_LEVELS[0]+1.78,z:center.z},inside(t1),t1B1Obstacles);
 });
 
 /** Walkable interior waypoints follow the current public floor maps and gate rows. */
 export const exploreSpots:ExploreSpot[]=[
  {id:'runway',en:'05L runway viewpoint',zh:'05L 跑道觀景點',floor:.2,position:{x:north.x-north.length/2+410,y:1.9,z:north.z+60},target:{x:north.x-north.length/2+50,y:8,z:north.z}},
  {id:'apron',en:'Terminal 1 apron',zh:'第一航廈機坪',floor:.2,position:{x:b5.x-60,y:1.9,z:b5.z+95},target:{x:b5.x,y:7,z:b5.z}},
- spot('t1-b1-west-bus','Terminal 1 B1 Da-You bus service','第一航廈 B1 大有巴士服務',T1_FLOOR_LEVELS[0],{x:t1.x-40,y:T1_FLOOR_LEVELS[0]+1.62,z:t1.z+15},{x:t1.x-65,y:T1_FLOOR_LEVELS[0]+2.12,z:t1.z+8},inside(t1),t1B1Obstacles),
- spot('t1-b1-east-food','Terminal 1 B1 dining passage','第一航廈 B1 餐飲服務通道',T1_FLOOR_LEVELS[0],{x:t1.x+44,y:T1_FLOOR_LEVELS[0]+1.7,z:t1.z-25},{x:t1.x+55,y:T1_FLOOR_LEVELS[0]+2.45,z:t1.z-11},inside(t1),t1B1Obstacles),
+ spot('t1-b1-west-bus','Terminal 1 B1 Da-You bus service','第一航廈 B1 大有巴士服務',T1_FLOOR_LEVELS[0],{x:t1.x-40,y:T1_FLOOR_LEVELS[0]+1.62,z:t1.z+15},{x:t1.x-65,y:T1_FLOOR_LEVELS[0]+1.76,z:t1.z+8},inside(t1),t1B1Obstacles),
+ spot('t1-b1-east-food','Terminal 1 B1 dining passage','第一航廈 B1 餐飲服務通道',T1_FLOOR_LEVELS[0],{x:t1.x+42,y:T1_FLOOR_LEVELS[0]+1.62,z:t1.z-72},{x:t1.x+42,y:T1_FLOOR_LEVELS[0]+1.68,z:t1.z+52},inside(t1),t1B1Obstacles),
  ...t1B1ShopViewSpots,
- spot('t1-b1-restroom','Terminal 1 B1 public restroom','第一航廈 B1 公共廁所',T1_FLOOR_LEVELS[0],{x:t1B1RestroomCenter.x+T1_BASEMENT_LAYOUT.restroom.depth/2+6,y:T1_FLOOR_LEVELS[0]+1.7,z:t1B1RestroomCenter.z},{x:t1B1RestroomCenter.x+T1_BASEMENT_LAYOUT.restroom.depth/2-.4,y:T1_FLOOR_LEVELS[0]+2.15,z:t1B1RestroomCenter.z},inside(t1),[...t1Columns,t1B1RestroomFeature]),
- spot('t1-b1-nursing','Terminal 1 B1 nursing room','第一航廈 B1 哺乳室',T1_FLOOR_LEVELS[0],{x:t1B1NursingCenter.x-T1_BASEMENT_LAYOUT.nursing.depth/2-6,y:T1_FLOOR_LEVELS[0]+1.7,z:t1B1NursingCenter.z},{x:t1B1NursingCenter.x-T1_BASEMENT_LAYOUT.nursing.depth/2+.4,y:T1_FLOOR_LEVELS[0]+2.15,z:t1B1NursingCenter.z},inside(t1),[...t1Columns,t1B1NursingFeature]),
+ spot('t1-b1-restroom','Terminal 1 B1 public restroom','第一航廈 B1 公共廁所',T1_FLOOR_LEVELS[0],{x:t1B1RestroomCenter.x+T1_BASEMENT_LAYOUT.restroom.depth/2+6,y:T1_FLOOR_LEVELS[0]+1.7,z:t1B1RestroomCenter.z},{x:t1B1RestroomCenter.x+T1_BASEMENT_LAYOUT.restroom.depth/2-.4,y:T1_FLOOR_LEVELS[0]+1.88,z:t1B1RestroomCenter.z},inside(t1),[...t1Columns,t1B1RestroomFeature]),
+ spot('t1-b1-nursing','Terminal 1 B1 nursing room','第一航廈 B1 哺乳室',T1_FLOOR_LEVELS[0],{x:t1B1NursingCenter.x-T1_BASEMENT_LAYOUT.nursing.depth/2-6,y:T1_FLOOR_LEVELS[0]+1.7,z:t1B1NursingCenter.z},{x:t1B1NursingCenter.x-T1_BASEMENT_LAYOUT.nursing.depth/2+.4,y:T1_FLOOR_LEVELS[0]+1.88,z:t1B1NursingCenter.z},inside(t1),[...t1Columns,t1B1NursingFeature]),
  spot('t1-arrivals','Terminal 1 arrivals · 1F','第一航廈入境大廳 · 1F',T1_FLOOR_LEVELS[1],{x:t1.x-35,y:T1_FLOOR_LEVELS[1]+1.7,z:t1.z+70},{x:t1.x-25,y:T1_FLOOR_LEVELS[1]+2.14,z:t1.z+56},inside(t1),[...t1Columns,...t1Checkin,...t1Baggage,...t1FirstFloorServiceFeatures]),
  spot('t1-arrival-services','Terminal 1 arrival services · 1F','第一航廈旅客服務、銀行與 ATM · 1F',T1_FLOOR_LEVELS[1],{x:t1.x-49,y:T1_FLOOR_LEVELS[1]+1.7,z:t1.z+85},{x:t1.x-64,y:T1_FLOOR_LEVELS[1]+2.19,z:t1.z+85},inside(t1),[...t1Columns,...t1Baggage,...t1FirstFloorServiceFeatures]),
  spot('t1-checkin','Terminal 1 check-in · 1F','第一航廈報到大廳 · 1F',T1_FLOOR_LEVELS[1],{x:t1.x+28,y:T1_FLOOR_LEVELS[1]+1.7,z:t1CheckInStartZ+16.2},{x:t1.x,y:T1_FLOOR_LEVELS[1]+2.24,z:t1CheckInStartZ},inside(t1),[...t1Columns,...t1Checkin]),
