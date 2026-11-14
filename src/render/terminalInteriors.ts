@@ -3,7 +3,7 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives';
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
-import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
@@ -183,9 +183,17 @@ function counterNumberSign(parent:THREE.Object3D,label:string,x:number,y:number,
  if(!mat){const texture=canvasTexture(256,192,ctx=>{const bg=ctx.createLinearGradient(0,0,0,192);bg.addColorStop(0,'#2849c4');bg.addColorStop(.55,'#162b8d');bg.addColorStop(1,'#0b1d68');ctx.fillStyle=bg;ctx.fillRect(0,0,256,192);ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(8,8,240,4);ctx.strokeStyle='rgba(183,211,255,.7)';ctx.lineWidth=5;ctx.strokeRect(4,4,248,184);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 94px Arial,sans-serif';ctx.fillText(label,128,98);ctx.fillStyle='#8de8ff';ctx.fillRect(24,169,208,5);});mat=new THREE.MeshBasicMaterial({map:texture,toneMapped:false,side:THREE.DoubleSide});counterNumberMaterials.set(label,mat);}
  const geometry=new THREE.PlaneGeometry(width,height),front=new THREE.Mesh(geometry,mat),back=new THREE.Mesh(geometry,mat);front.position.set(x,y,z+.018);back.position.set(x,y,z-.018);back.rotation.y=Math.PI;front.castShadow=back.castShadow=false;parent.add(front,back);return front;
 }
+type DeckOpening={x:number;z:number;width:number;depth:number};
+type DeckOpeningLayout={fromLevel:number;toLevel?:number;openings?:readonly DeckOpening[]}&Partial<DeckOpening>;
+function deckOpenings(layout:DeckOpeningLayout):readonly DeckOpening[]{
+ if(layout.openings?.length)return layout.openings;
+ if(layout.x!==undefined&&layout.z!==undefined&&layout.width!==undefined&&layout.depth!==undefined)return [layout as DeckOpening];
+ return [];
+}
 // `toLevel` is exclusive, so a public-hall void can stop before an occupied upper deck.
-function addDecks(parent:THREE.Object3D,b:TerminalBounds,levels:number[],finish:THREE.Material,gapRatio=.16,atrium?:{fromLevel:number;toLevel?:number;x:number;z:number;width:number;depth:number},surfaces?:DeckFinishes,firstUpperGapRatio?:number,floorByLevel?:ReadonlyMap<number,THREE.Material>){
+function addDecks(parent:THREE.Object3D,b:TerminalBounds,levels:number[],finish:THREE.Material,gapRatio=.16,atrium?:DeckOpeningLayout,surfaces?:DeckFinishes,firstUpperGapRatio?:number,floorByLevel?:ReadonlyMap<number,THREE.Material>){
  const thickness=.34,fullWidth=b.width-3,fullDepth=b.depth-4;
+ const openings=atrium?deckOpenings(atrium):[];
  const slab=(width:number,depth:number,x:number,z:number,y:number,levelIndex=0)=>{
   if(width<=2||depth<=2)return;box(parent,width,thickness,depth,x,y,z,surfaces?.edge??finish);
   if(!surfaces)return;
@@ -195,17 +203,35 @@ function addDecks(parent:THREE.Object3D,b:TerminalBounds,levels:number[],finish:
  slab(fullWidth,fullDepth,b.x,b.z,levels[0]-.17,0);
  for(let i=1;i<levels.length;i++){
   const y=levels[i]-.17;
-  if(atrium&&i>=atrium.fromLevel&&(atrium.toLevel===undefined||i<atrium.toLevel)){
+  if(atrium&&openings.length&&i>=atrium.fromLevel&&(atrium.toLevel===undefined||i<atrium.toLevel)){
    const left=b.x-fullWidth/2,right=b.x+fullWidth/2,near=b.z-fullDepth/2,far=b.z+fullDepth/2;
-   const holeLeft=THREE.MathUtils.clamp(atrium.x-atrium.width/2,left+2,right-2),holeRight=THREE.MathUtils.clamp(atrium.x+atrium.width/2,left+2,right-2);
-   const holeNear=THREE.MathUtils.clamp(atrium.z-atrium.depth/2,near+2,far-2),holeFar=THREE.MathUtils.clamp(atrium.z+atrium.depth/2,near+2,far-2);
-   slab(fullWidth,holeNear-near,b.x,(near+holeNear)/2,y,i);
-   slab(fullWidth,far-holeFar,b.x,(holeFar+far)/2,y,i);
-   slab(holeLeft-left,holeFar-holeNear,(left+holeLeft)/2,(holeNear+holeFar)/2,y,i);
-   slab(right-holeRight,holeFar-holeNear,(holeRight+right)/2,(holeNear+holeFar)/2,y,i);
+   const cutouts=openings.map(opening=>({
+    left:THREE.MathUtils.clamp(opening.x-opening.width/2,left+2,right-2),
+    right:THREE.MathUtils.clamp(opening.x+opening.width/2,left+2,right-2),
+    near:THREE.MathUtils.clamp(opening.z-opening.depth/2,near+2,far-2),
+    far:THREE.MathUtils.clamp(opening.z+opening.depth/2,near+2,far-2)
+   })).filter(hole=>hole.right-hole.left>2&&hole.far-hole.near>2);
+   if(cutouts.length===1){
+    const hole=cutouts[0];
+    slab(fullWidth,hole.near-near,b.x,(near+hole.near)/2,y,i);
+    slab(fullWidth,far-hole.far,b.x,(hole.far+far)/2,y,i);
+    slab(hole.left-left,hole.far-hole.near,(left+hole.left)/2,(hole.near+hole.far)/2,y,i);
+    slab(right-hole.right,hole.far-hole.near,(hole.right+right)/2,(hole.near+hole.far)/2,y,i);
+   }else{
+    const unique=(values:number[])=>[...new Set(values.map(value=>Math.round(value*1000)/1000))].sort((a,b)=>a-b),
+     xEdges=unique([left,right,...cutouts.flatMap(hole=>[hole.left,hole.right])]),
+     zEdges=unique([near,far,...cutouts.flatMap(hole=>[hole.near,hole.far])]);
+    for(let zi=0;zi<zEdges.length-1;zi++)for(let xi=0;xi<xEdges.length-1;xi++){
+     const cellLeft=xEdges[xi],cellRight=xEdges[xi+1],cellNear=zEdges[zi],cellFar=zEdges[zi+1],centerX=(cellLeft+cellRight)/2,centerZ=(cellNear+cellFar)/2,
+      insideOpening=cutouts.some(hole=>centerX>hole.left&&centerX<hole.right&&centerZ>hole.near&&centerZ<hole.far);
+     if(!insideOpening)slab(cellRight-cellLeft,cellFar-cellNear,(cellLeft+cellRight)/2,(cellNear+cellFar)/2,y,i);
+    }
+   }
    const rail=new THREE.MeshPhysicalMaterial({color:'#c0d5d7',roughness:.18,metalness:.08,transparent:true,opacity:.36,depthWrite:false});
-   for(const side of [-1,1])box(parent,atrium.width,1.08,.13,atrium.x,y+.71,atrium.z+side*(atrium.depth/2),rail);
-   for(const side of [-1,1])box(parent,.13,1.08,atrium.depth,atrium.x+side*(atrium.width/2),y+.71,atrium.z,rail);
+   for(const hole of cutouts){
+    for(const side of [-1,1])box(parent,hole.right-hole.left,1.08,.13,(hole.left+hole.right)/2,y+.71,hole.near+side*((hole.far-hole.near)/2),rail);
+    for(const side of [-1,1])box(parent,.13,1.08,hole.far-hole.near,hole.left+side*((hole.right-hole.left)/2),y+.71,(hole.near+hole.far)/2,rail);
+   }
   }else if(atrium){
    slab(fullWidth,fullDepth,b.x,b.z,y,i);
   }else{
@@ -221,7 +247,7 @@ function addDecks(parent:THREE.Object3D,b:TerminalBounds,levels:number[],finish:
     for(const row of [-1,0,1]){
      const z=b.z+row*b.depth*.23;
      if(!atrium&&Math.abs(x-b.x)<gap/2+2)continue;
-     if(atrium&&i>=atrium.fromLevel&&(atrium.toLevel===undefined||i<atrium.toLevel)&&Math.abs(x-atrium.x)<atrium.width/2+2&&Math.abs(z-atrium.z)<atrium.depth/2+2)continue;
+     if(atrium&&i>=atrium.fromLevel&&(atrium.toLevel===undefined||i<atrium.toLevel)&&openings.some(opening=>Math.abs(x-opening.x)<opening.width/2+2&&Math.abs(z-opening.z)<opening.depth/2+2))continue;
      strips.push({x,y,z,sx:6.2,sy:.055,sz:.19});
     }
    }
@@ -267,21 +293,25 @@ function terminal2ArrivalArtCeiling(parent:THREE.Object3D,b:TerminalBounds,ceili
 }
 /** Refined atrium edge hardware over the simple continuous glass guard already
  * used by the floor cutout: shoes, regular mullions and a continuous cap rail. */
-function terminalAtriumEdgeDetail(parent:THREE.Object3D,atrium:{fromLevel:number;toLevel?:number;x:number;z:number;width:number;depth:number},levels:number[],profile:'T1'|'T2'){
+function terminalAtriumEdgeDetail(parent:THREE.Object3D,atrium:DeckOpeningLayout,levels:number[],profile:'T1'|'T2'){
  const capMat=material(profile==='T1'?'#c5c8c2':'#747e7b',.34,.62),shoeMat=material(profile==='T1'?'#939b98':'#515b59',.4,.58),caps:Item[]=[],shoes:Item[]=[],posts:Item[]=[];
+ const openings=deckOpenings(atrium);
  for(let index=atrium.fromLevel;index<levels.length&&(atrium.toLevel===undefined||index<atrium.toLevel);index++){
   const level=levels[index],railTop=level+1.21;
-  for(const side of [-1,1]){
-   const z=atrium.z+side*(atrium.depth/2);
-   caps.push({x:atrium.x,y:railTop,z,sx:atrium.width+.18,sy:.14,sz:.2});
-   shoes.push({x:atrium.x,y:level+.055,z,sx:atrium.width+.12,sy:.11,sz:.16});
-   for(let x=atrium.x-atrium.width/2+2.3;x<atrium.x+atrium.width/2-1;x+=4.6)posts.push({x,y:level+.61,z,sx:.085,sy:1.12,sz:.1});
-   const edgeX=atrium.x+side*(atrium.width/2);
-   caps.push({x:edgeX,y:railTop,z:atrium.z,sx:.2,sy:.14,sz:atrium.depth+.18});
-   shoes.push({x:edgeX,y:level+.055,z:atrium.z,sx:.16,sy:.11,sz:atrium.depth+.12});
-   for(let z=atrium.z-atrium.depth/2+2.3;z<atrium.z+atrium.depth/2-1;z+=4.6)posts.push({x:edgeX,y:level+.61,z,sx:.1,sy:1.12,sz:.085});
+  for(const opening of openings){
+   const left=opening.x-opening.width/2,right=opening.x+opening.width/2,near=opening.z-opening.depth/2,far=opening.z+opening.depth/2;
+   for(const side of [-1,1]){
+    const z=near+side*(opening.depth/2);
+    caps.push({x:opening.x,y:railTop,z,sx:opening.width+.18,sy:.14,sz:.2});
+    shoes.push({x:opening.x,y:level+.055,z,sx:opening.width+.12,sy:.11,sz:.16});
+    for(let x=left+2.3;x<right-1;x+=4.6)posts.push({x,y:level+.61,z,sx:.085,sy:1.12,sz:.1});
+    const edgeX=left+((side+1)/2)*opening.width;
+    caps.push({x:edgeX,y:railTop,z:opening.z,sx:.2,sy:.14,sz:opening.depth+.18});
+    shoes.push({x:edgeX,y:level+.055,z:opening.z,sx:.16,sy:.11,sz:opening.depth+.12});
+    for(let z=near+2.3;z<far-1;z+=4.6)posts.push({x:edgeX,y:level+.61,z,sx:.1,sy:1.12,sz:.085});
+   }
+   for(const sx of [-1,1])for(const sz of [-1,1])posts.push({x:opening.x+sx*opening.width/2,y:level+.61,z:opening.z+sz*opening.depth/2,sx:.14,sy:1.18,sz:.14});
   }
-  for(const sx of [-1,1])for(const sz of [-1,1])posts.push({x:atrium.x+sx*atrium.width/2,y:level+.61,z:atrium.z+sz*atrium.depth/2,sx:.14,sy:1.18,sz:.14});
  }
  batch(parent,shoeMat,shoes);batch(parent,capMat,caps);batch(parent,capMat,posts);
 }
@@ -345,10 +375,13 @@ function verticalCirculation(parent:THREE.Object3D,b:TerminalBounds,levels:numbe
   // The official floor maps show two escalator cores in each public hall. T1's
   // central landing stays between its check-in rows; T2 keeps both cores by the
   // west-side circulation band, clear of its transverse counter banks.
-  const banks=profile==='T1'
+  const t1SecondFloorCores=T1_SECOND_FLOOR_LAYOUT.escalatorCores.zRatios.map(zRatio=>({x:b.x+b.width*T1_SECOND_FLOOR_LAYOUT.escalatorCores.xRatio,z:b.z+b.depth*zRatio})),
+   banks=profile==='T1'
    ?i===levels.length-2
     ?[{x:b.x,z:b.z+b.depth*.17}]
-    :[{x:b.x,z:b.z+(i%2===0?-.035:.072)*b.depth},{x:b.x-b.width*.32,z:b.z-42}]
+    :i===1||i===2
+     ?t1SecondFloorCores
+     :[{x:b.x,z:b.z+(i%2===0?-.035:.072)*b.depth},{x:b.x-b.width*.32,z:b.z-42}]
    :profile==='T2'
     ?[{x:b.x-b.width*.26,z:b.z+5},{x:b.x-b.width*.26,z:b.z+40}]
     :[{x:b.x,z:b.z+(i%2===0?-1:1)*Math.min(24,b.depth*.12)}];
@@ -1740,7 +1773,7 @@ function terminal2TransferServices(parent:THREE.Object3D,b:TerminalBounds,y:numb
   sign(parent,'AED',aed.x,y+2.22,aed.z-.2,1.1,'#168d76',0,.43);
  }
 }
-type T1MappedStore={dx?:number;dz?:number;side?:-1|1;zRatio?:number;rotationY?:number;label:string;accent:string;kind:'retail'|'food';profile:'design'|'tea'|'burger'|'bakery'|'craft'|'taiwan-goods'|'specialty';width?:number;depth?:number};
+type T1MappedStore={dx?:number;dz?:number;side?:-1|1;xRatio?:number;zRatio?:number;rotationY?:number;label:string;accent:string;kind:'retail'|'food';profile:'design'|'tea'|'burger'|'bakery'|'craft'|'taiwan-goods'|'specialty';width?:number;depth?:number};
 const mappedShopFasciaCache=new Map<string,THREE.Material>();
 function mappedShopFascia(store:T1MappedStore){
  const key=`${store.profile}|${store.label}|${store.accent}`,cached=mappedShopFasciaCache.get(key);if(cached)return cached;
@@ -1773,7 +1806,7 @@ function mappedShopFasciaFace(parent:THREE.Object3D,store:T1MappedStore,x:number
 }
 /** Floor-map named T1 2F shops get individual, open-front shells and fitted counters. */
 function terminal1MappedShop(sceneRoot:THREE.Object3D,b:TerminalBounds,y:number,store:T1MappedStore){
- const d=store.depth??T1_SECOND_FLOOR_LAYOUT.shop.depth,x=store.side?b.x+store.side*(b.width/2-d/2):b.x+(store.dx??0),z=b.z+(store.zRatio!==undefined?store.zRatio*b.depth:(store.dz??0)),w=store.width??T1_SECOND_FLOOR_LAYOUT.shop.width,parent=new THREE.Group(),
+ const d=store.depth??T1_SECOND_FLOOR_LAYOUT.shop.depth,x=store.xRatio!==undefined?b.x+store.xRatio*b.width:store.side?b.x+store.side*(b.width/2-d/2):b.x+(store.dx??0),z=b.z+(store.zRatio!==undefined?store.zRatio*b.depth:(store.dz??0)),w=store.width??T1_SECOND_FLOOR_LAYOUT.shop.width,parent=new THREE.Group(),
   floor=material('#c3c2b9',.52,.035),wall=new THREE.MeshStandardMaterial({color:'#eeeae1',roughness:.76,metalness:.02,emissive:'#4b4234',emissiveIntensity:.12}),sideWall=material(store.profile==='design'?'#302e2c':store.profile==='taiwan-goods'?'#80664c':store.profile==='specialty'?'#35342f':'#d4d3cb',.74,.035),fascia=material(store.accent,.48,.12),trim=material('#737d78',.4,.36),
   shelfMat=material('#8c908a',.56,.16),shopCeiling=new THREE.MeshStandardMaterial({color:'#f0eee7',roughness:.82,emissive:'#504b40',emissiveIntensity:.1}),displayGlass=new THREE.MeshPhysicalMaterial({color:'#d8e3df',roughness:.16,metalness:.03,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide}),
   glass=new THREE.MeshPhysicalMaterial({color:'#b8cfcb',roughness:.18,metalness:.04,transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide}),
@@ -1910,7 +1943,8 @@ function terminal1MappedShop(sceneRoot:THREE.Object3D,b:TerminalBounds,y:number,
  }
  parent.position.set(x,0,z);parent.rotation.y=store.side===-1?Math.PI/2:store.side===1?-Math.PI/2:(store.rotationY??0);sceneRoot.add(parent);
 }
-function terminal1MappedRoom(parent:THREE.Object3D,x:number,y:number,z:number,w:number,d:number,label:string,kind:'restroom'|'nursing'|'medical'){
+function terminal1MappedRoom(parent:THREE.Object3D,x:number,y:number,z:number,w:number,d:number,label:string,kind:'restroom'|'nursing'|'medical',facing:1|-1=1){
+ const container=parent,room=new THREE.Group();parent=room;
  const floor=material('#d2d2cb',.62,.025),wall=kind==='medical'?new THREE.MeshStandardMaterial({color:'#f1f2ed',roughness:.78,emissive:'#64665d',emissiveIntensity:.12}):material('#dedfd8',.76,.025),door=material('#66726f',.48,.08),trim=material('#9da49e',.42,.2),porcelain=material('#f1f1e9',.26,.035),backZ=z-d/2,frontZ=z+d/2;
  box(parent,w,.14,d,x,y+.07,z,floor);
  box(parent,w,3.35,.22,x,y+1.675,backZ,wall);
@@ -1991,22 +2025,25 @@ function terminal1MappedRoom(parent:THREE.Object3D,x:number,y:number,z:number,w:
   box(parent,1.25,1.65,.56,x+5.25,y+1.06,z-.95,wall);box(parent,1.1,.12,.08,x+5.25,y+1.84,z-1.25,trim);
   box(parent,.62,1.05,.64,x-5.2,y+.76,z-.85,porcelain);box(parent,.1,.62,.1,x-5.2,y+.43,z-.85,steel);
  }
+ const origin=new THREE.Vector3(x,y,z);
+ for(const child of room.children)child.position.sub(origin);
+ room.position.copy(origin);room.rotation.y=facing<0?Math.PI:0;container.add(room);
 }
 function terminal1MappedPublicServices(parent:THREE.Object3D,b:TerminalBounds,y:number,floor:'2F'|'3F'){
- const stores:T1MappedStore[]=[
-  {side:-1,zRatio:-.26,label:'TAIWAN BEER  台灣菸酒',accent:'#9a7545',kind:'retail',profile:'craft',width:17,depth:T1_SECOND_FLOOR_LAYOUT.shop.depth},
-  {side:-1,zRatio:-.02,label:'OLI DESIGN  設計師商店',accent:'#637c75',kind:'retail',profile:'design',width:17,depth:T1_SECOND_FLOOR_LAYOUT.shop.depth},
-  {side:-1,zRatio:.20,label:'HANLIN TEA  翰林茶館',accent:'#8b4836',kind:'food',profile:'tea',width:17,depth:T1_SECOND_FLOOR_LAYOUT.shop.depth},
-  {side:1,zRatio:-.26,label:'KUO YUAN YE  郭元益',accent:'#a17a45',kind:'food',profile:'bakery',width:18,depth:T1_SECOND_FLOOR_LAYOUT.shop.depth},
-  {side:1,zRatio:-.02,label:'MOS BURGER  摩斯漢堡',accent:'#ad4538',kind:'food',profile:'burger',width:17,depth:T1_SECOND_FLOOR_LAYOUT.shop.depth},
-  {side:1,zRatio:.20,label:'BISTRO:D  畢卓樂地餐廳',accent:'#8d754c',kind:'food',profile:'tea',width:20,depth:T1_SECOND_FLOOR_LAYOUT.shop.depth}
- ];
+ const shopDetails=[
+  {label:'TAIWAN BEER  台灣菸酒',accent:'#9a7545',kind:'retail' as const,profile:'craft' as const,width:17},
+  {label:'OLI DESIGN  設計師商店',accent:'#637c75',kind:'retail' as const,profile:'design' as const,width:17},
+  {label:'HANLIN TEA  翰林茶館',accent:'#8b4836',kind:'food' as const,profile:'tea' as const,width:17},
+  {label:'KUO YUAN YE  郭元益',accent:'#a17a45',kind:'food' as const,profile:'bakery' as const,width:18},
+  {label:'MOS BURGER  摩斯漢堡',accent:'#ad4538',kind:'food' as const,profile:'burger' as const,width:17},
+  {label:'BISTRO:D  畢卓樂地餐廳',accent:'#8d754c',kind:'food' as const,profile:'tea' as const,width:20}
+ ],stores:T1MappedStore[]=T1_SECOND_FLOOR_LAYOUT.shops.map((placement,index)=>({...shopDetails[index],...placement,depth:T1_SECOND_FLOOR_LAYOUT.shop.depth}));
  if(floor==='2F')for(const store of stores)terminal1MappedShop(parent,b,y,store);
  else for(const store of T1_THIRD_FLOOR_STORES)terminal1MappedShop(parent,b,y,store);
 
  // The 2F map groups ATM, exchange and bank counters along the north gallery.
  // The 3F map places its service points in a separate arrangement.
- const isSecondFloor=floor==='2F',serviceZ=isSecondFloor?b.z-b.depth*.44:b.z+T1_THIRD_FLOOR_SERVICES.atm.dz,
+ const isSecondFloor=floor==='2F',serviceZ=isSecondFloor?b.z+b.depth*T1_SECOND_FLOOR_LAYOUT.serviceRows.northZRatio:b.z+T1_THIRD_FLOOR_SERVICES.atm.dz,
   atmX=isSecondFloor?b.x-42:b.x+T1_THIRD_FLOOR_SERVICES.atm.dx,exchangeX=isSecondFloor?b.x-2:b.x+53,bankX=isSecondFloor?b.x+43:b.x+b.width*.31,
   housing=material('#d2d4ce',.5,.12),machine=material('#52635f',.36,.28),display=material('#17343b',.28,.16),wall=material('#d5d4cd',.68,.035),green=material('#168d76',.38,.08),cross=material('#f2f1e8',.42,.02);
  box(parent,11,.14,6.4,atmX,y+.07,serviceZ,housing);box(parent,11,3.4,.22,atmX,y+1.7,serviceZ-3.1,wall);
@@ -2044,17 +2081,17 @@ function terminal1MappedPublicServices(parent:THREE.Object3D,b:TerminalBounds,y:
  }
 
  if(isSecondFloor){
-  const serviceRoomZ=b.z+b.depth*.42;
-  terminal1MappedRoom(parent,b.x-28,y,serviceRoomZ,13,8,'RESTROOMS  廁所','restroom');
-  terminal1MappedRoom(parent,b.x,y,serviceRoomZ,13,8,'NURSING ROOM  哺集乳室','nursing');
-  terminal1MappedRoom(parent,b.x+29,y,serviceRoomZ,15,9,'MEDICAL CENTER  醫療中心','medical');
+  const serviceRoomZ=b.z+b.depth*T1_SECOND_FLOOR_LAYOUT.serviceRows.southZRatio;
+  terminal1MappedRoom(parent,b.x-28,y,serviceRoomZ,13,8,'RESTROOMS  廁所','restroom',-1);
+  terminal1MappedRoom(parent,b.x,y,serviceRoomZ,13,8,'NURSING ROOM  哺集乳室','nursing',-1);
+  terminal1MappedRoom(parent,b.x+29,y,serviceRoomZ,15,9,'MEDICAL CENTER  醫療中心','medical',-1);
  }else{
   terminal1MappedRoom(parent,b.x+b.width*.15,y,b.z-62,13,8,'RESTROOMS  廁所','restroom');
   terminal1MappedRoom(parent,b.x-b.width*.37,y,b.z-62,13,8,'NURSING ROOM  哺集乳室','nursing');
   terminal1MappedRoom(parent,b.x-b.width*.19,y,b.z+116,15,9,'MEDICAL CENTER  醫療中心','medical');
  }
  const aeds=isSecondFloor?
-  [{x:b.x-b.width*.43,z:b.z-18},{x:b.x+b.width*.43,z:b.z-18},{x:b.x,z:b.z+b.depth*.39}]:
+  T1_SECOND_FLOOR_LAYOUT.aeds.map(point=>({x:b.x+point.xRatio*b.width,z:b.z+point.zRatio*b.depth})):
   [{x:b.x-67,z:b.z-49},{x:b.x-65,z:b.z+11},{x:b.x+46,z:b.z+27}];
  for(const aed of aeds){
   box(parent,.82,.9,.18,aed.x,y+1.5,aed.z,wall);box(parent,.58,.62,.08,aed.x,y+1.5,aed.z-.12,green);
@@ -2174,9 +2211,9 @@ function terminal1Basement(parent:THREE.Object3D,b:TerminalBounds,floorY:number)
  terminal2MappedRoom(parent,b.x+nursing.dx,floorY,b.z+nursing.dz,nursing.width,nursing.depth,'NURSING ROOM  哺乳室','nursing',nursing.facing);
 }
 function terminal1(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials){
- // The current T1 2F map shows a large central opening, a narrow perimeter
- // gallery and mapped public shops/services along its sides.
- const levels=[...T1_FLOOR_LEVELS],floor1=levels[1],floor2=levels[2],floor3=levels[3],floor4=levels[4],atrium={fromLevel:2,toLevel:3,x:b.x+T1_SECOND_FLOOR_LAYOUT.atrium.xOffset,z:b.z+T1_SECOND_FLOOR_LAYOUT.atrium.zOffset,width:b.width*T1_SECOND_FLOOR_LAYOUT.atrium.widthRatio,depth:b.depth*T1_SECOND_FLOOR_LAYOUT.atrium.depthRatio},finishes=deckFinishes('T1',mats);
+ // The official 2F diagram is an H-shaped public floor: a narrow longitudinal
+ // spine links north/south galleries around two large open-to-below side bays.
+ const levels=[...T1_FLOOR_LEVELS],floor1=levels[1],floor2=levels[2],floor3=levels[3],floor4=levels[4],atrium:DeckOpeningLayout={fromLevel:2,toLevel:3,openings:t1SecondFloorVoids(b.x,b.z,b.width,b.depth)},finishes=deckFinishes('T1',mats);
  addDecks(parent,b,levels.slice(0,4),mats.concrete,.16,atrium,finishes);terminalAtriumEdgeDetail(parent,atrium,levels.slice(0,4),'T1');terminal1FourthFloor(parent,b,levels[4],finishes);addStructure(parent,b,finishes.structure,'T1',levels[0]);verticalCirculation(parent,b,levels,'T1');terminal1Basement(parent,b,levels[0]);
  // The airport's visitor guide places T1's Departure Hall and counter 10 on
  // 1F; this public level shares the arrival, customs and meeting facilities.

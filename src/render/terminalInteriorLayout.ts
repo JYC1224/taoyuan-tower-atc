@@ -68,22 +68,45 @@ export function t1BasementShopCenter(centerX:number,centerZ:number,shop:typeof T
 }
 
 /**
- * T1's public 2F map depicts a large central opening with a narrow public
- * circulation band around it. The map is schematic, so these ratios are a
- * visual fit to its footprint rather than surveyed dimensions.
+ * T1's official 2F map depicts a narrow longitudinal public spine joining
+ * full-width north and south galleries, with two large side voids between.
+ * The public diagram is schematic, so dimensions below are normalized visual
+ * fits, not surveyed structural measurements.
  */
 export const T1_SECOND_FLOOR_LAYOUT={
- atrium:{widthRatio:.78,depthRatio:.66,xOffset:0,zOffset:0},
+ atrium:{northGalleryDepthRatio:.09,southGalleryDepthRatio:.08,spineWidthRatio:.115,spineCenterXOffsetRatio:.04},
+ serviceRows:{northZRatio:-.44,southZRatio:.43},
+ aeds:[{xRatio:-.42,zRatio:-.415},{xRatio:.42,zRatio:-.415},{xRatio:.04,zRatio:0}],
+ escalatorCores:{xRatio:.04,zRatios:[-.14,.14],width:5.4,depth:12},
  shop:{width:17,depth:8.2},
  shops:[
-  {id:'taiwan-beer',side:-1,zRatio:-.26},
-  {id:'oli',side:-1,zRatio:-.02},
-  {id:'hanlin',side:-1,zRatio:.20},
-  {id:'kuo-yuan-ye',side:1,zRatio:-.26},
-  {id:'mos',side:1,zRatio:-.02},
-  {id:'bistro-d',side:1,zRatio:.20},
+  {id:'taiwan-beer',xRatio:-.31,zRatio:-.47,rotationY:0},
+  {id:'oli',xRatio:0,zRatio:-.47,rotationY:0},
+  {id:'hanlin',xRatio:.31,zRatio:-.47,rotationY:0},
+  {id:'kuo-yuan-ye',xRatio:-.31,zRatio:.47,rotationY:Math.PI},
+  {id:'mos',xRatio:0,zRatio:.47,rotationY:Math.PI},
+  {id:'bistro-d',xRatio:.31,zRatio:.47,rotationY:Math.PI},
  ]
 } as const;
+
+export function t1SecondFloorVoids(centerX:number,centerZ:number,width:number,depth:number){
+ const floorWidth=width-3,floorDepth=depth-4,left=centerX-floorWidth/2,right=centerX+floorWidth/2,
+  near=centerZ-floorDepth/2,far=centerZ+floorDepth/2,
+  northDepth=floorDepth*T1_SECOND_FLOOR_LAYOUT.atrium.northGalleryDepthRatio,
+  southDepth=floorDepth*T1_SECOND_FLOOR_LAYOUT.atrium.southGalleryDepthRatio,
+  spineWidth=floorWidth*T1_SECOND_FLOOR_LAYOUT.atrium.spineWidthRatio,
+  spineCenter=centerX+width*T1_SECOND_FLOOR_LAYOUT.atrium.spineCenterXOffsetRatio,
+  spineLeft=spineCenter-spineWidth/2,spineRight=spineCenter+spineWidth/2,
+  openingNear=near+northDepth,openingFar=far-southDepth,openingDepth=openingFar-openingNear,openingCenterZ=(openingNear+openingFar)/2;
+ return [
+  {x:(left+spineLeft)/2,z:openingCenterZ,width:spineLeft-left,depth:openingDepth},
+  {x:(spineRight+right)/2,z:openingCenterZ,width:right-spineRight,depth:openingDepth},
+ ] as const;
+}
+
+export function t1SecondFloorShopCenter(centerX:number,centerZ:number,width:number,depth:number,shop:typeof T1_SECOND_FLOOR_LAYOUT.shops[number]){
+ return {x:centerX+width*shop.xRatio,z:centerZ+depth*shop.zRatio,rotationY:shop.rotationY};
+}
 
 /** T1 3F public-map tenants; storefront dimensions/coordinates are estimates. */
 export const T1_THIRD_FLOOR_STORES=[
