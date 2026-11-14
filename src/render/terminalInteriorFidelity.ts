@@ -171,6 +171,54 @@ function flushBeams(parent:THREE.Object3D,mat:THREE.Material,matrices:THREE.Matr
  matrices.forEach((matrix,index)=>mesh.setMatrixAt(index,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;parent.add(mesh);
 }
 
+function reliefShape(points:Array<[number,number]>,depth:number){
+ const shape=new THREE.Shape();points.forEach(([x,y],index)=>index===0?shape.moveTo(x,y):shape.lineTo(x,y));shape.closePath();
+ return new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:.08,bevelSize:.07,bevelSegments:2,curveSegments:7});
+}
+
+function addRelief(parent:THREE.Object3D,points:Array<[number,number]>,x:number,y:number,z:number,depth:number,color:THREE.ColorRepresentation,roughness=.72){
+ const mesh=new THREE.Mesh(reliefShape(points,depth),material(color,roughness,.035));mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
+}
+
+/** Airport-documented T1 arrival-hall relief art: island and mountain forms arranged by four seasons. */
+export function decorateT1ArrivalArt(parent:THREE.Object3D,b:Bounds,floorY:number){
+ const wallX=b.x,wallZ=b.z-b.depth*.41,width=Math.min(44,b.width*.27),height=4.5,wallY=floorY+2.38;
+ const wallMat=material('#f0eee6',.86,.015),frameMat=material('#aaa99f',.48,.16),
+  snowColor='#e4e4d8',deepColor='#177c8e';
+ box(parent,width+1.2,height+.72,.36,wallX,wallY,wallZ,wallMat);
+ box(parent,width+1.55,.15,.52,wallX,wallY+height/2+.43,wallZ,frameMat);
+ box(parent,width+1.55,.15,.52,wallX,wallY-height/2-.43,wallZ,frameMat);
+ const panelW=width/4-1.25,baseY=wallY-.54,baseZ=wallZ+.22;
+ const seasons=[
+  {color:'#6f8b68',peak:'#8a9c75',snow:false},
+  {color:'#668675',peak:'#718d79',snow:false},
+  {color:'#b27d4e',peak:'#c39259',snow:false},
+  {color:'#899598',peak:'#949f9f',snow:true}
+ ];
+ for(let season=0;season<4;season++){
+  const cx=wallX+(season-1.5)*(panelW+1.25),scale=panelW/8.3;
+  box(parent,panelW+.32,height-.52,.12,cx,wallY,baseZ,material('#e8e6de',.82));
+  const coast:[number,number][]=[[-4.05,-.75],[-3.52,-.46],[-2.56,-.58],[-1.65,-.35],[-.66,-.51],[.45,-.22],[1.5,-.38],[2.3,-.12],[3.22,-.35],[4.1,-.05],[3.54,-1.07],[1.82,-1.42],[-.12,-1.38],[-2.2,-1.29],[-3.7,-1.08]];
+  addRelief(parent,coast.map(([x,y])=>[x*scale,y*scale]),cx,baseY,baseZ+.1,.42,deepColor,.44);
+  const mountainX=[-2.9,-1.8,-.56,.72,1.94,2.92],mountainH=[1.35,2.2,1.64,2.3,1.72,1.28];
+  for(let peak=0;peak<mountainX.length;peak++){
+   const px=cx+mountainX[peak]*scale,py=baseY+(.15+(peak%2)*.12)*scale,half=(.55+(peak%3)*.14)*scale,h=mountainH[peak]*scale;
+   addRelief(parent,[[-half,0],[-half*.38,h*.68],[0,h],[half*.42,h*.62],[half,0]],px,py,baseZ+.63,.33,seasons[season].color);
+   if(seasons[season].snow&&peak%2===0)addRelief(parent,[[-half*.35,h*.62],[0,h],[half*.38,h*.57],[half*.1,h*.39],[-half*.08,h*.47]],px,py,baseZ+1.01,.12,snowColor,.84);
+   if(!seasons[season].snow&&peak%2===1)addRelief(parent,[[-half*.24,h*.45],[0,h],[half*.28,h*.48],[half*.1,h*.4],[-half*.12,h*.39]],px,py,baseZ+1.0,.1,seasons[season].peak,.8);
+  }
+  for(let wave=0;wave<3;wave++){
+   const z=baseZ+1.42+wave*.1,y=baseY-.83*scale-wave*.12;
+   const line=new THREE.Mesh(new THREE.TorusGeometry(1.1*scale,.035*scale,5,28,Math.PI*1.46),material(wave===1?'#6ec5c6':'#7bc6c4',.4,.06));
+   line.position.set(cx+(wave-1)*.4*scale,y,z);line.rotation.x=Math.PI/2;line.rotation.z=.04*(wave-1);line.castShadow=false;parent.add(line);
+  }
+  box(parent,panelW*.72,.035,.08,cx,wallY-height/2+.28,wallZ+.82,material(season===2?'#b98653':'#9a9d94',.64));
+ }
+ const titleTexture=canvasTexture(1024,128,ctx=>{ctx.clearRect(0,0,1024,128);ctx.fillStyle='#343b39';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='600 47px Arial,sans-serif';ctx.fillText('THE ISLAND  ·  FOUR SEASONS  ·  四季島嶼',512,65,960);ctx.fillStyle='#84988a';ctx.fillRect(32,112,960,4);});
+ const title=new THREE.Mesh(new THREE.PlaneGeometry(width*.72,.75),new THREE.MeshBasicMaterial({map:titleTexture,transparent:true,toneMapped:false,side:THREE.DoubleSide}));title.position.set(wallX,wallY+height/2+.12,wallZ+.48);title.castShadow=false;parent.add(title);
+ const spots:Instance[]=[];for(let i=0;i<6;i++)spots.push({x:wallX+(i-2.5)*6.1,y:floorY+4.42,z:wallZ+1.9,sx:.46,sy:.13,sz:.56,color:'#f5ebcf'});batch(parent,material('#f1e8cf',.34,.16),spots);
+}
+
 /** Distinctive public art and tropical atrium details documented inside Terminal 2. */
 export function decorateTerminal2(parent:THREE.Object3D,b:Bounds){
  // The terminal roof already supplies the steel space-frame and glazing;

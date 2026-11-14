@@ -1,8 +1,9 @@
 import {gates,runways,terminals} from '../data/airport';
+import {T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorShopCenter} from './terminalInteriorLayout';
 
 export type ExploreSpotId=
- 'runway'|'apron'|'t1-arrivals'|'t1-checkin'|'t1-immigration'|'t1-departures'|'t1-a-gates'|'t1-b-gates'|
- 't2-arrivals'|'t2-transfer'|'t2-departures'|'t2-food'|'t2-atrium'|'t2-north-deck'|'t2-south-deck'|'t2-c-gates'|'t2-d-gates'|
+ 'runway'|'apron'|'t1-arrivals'|'t1-checkin'|'t1-upper-gallery'|'t1-transfer-security'|'t1-immigration'|'t1-departures'|'t1-3f-public-services'|'t1-3f-oli'|'t1-3f-taiwan-goods'|'t1-3f-hanlin'|'t1-3f-mos'|'t1-3f-vigor'|'t1-3f-specialties'|'t1-3f-medical'|'t1-lounge'|'t1-lounge-other'|'t1-a-gates'|'t1-b-gates'|
+ 't2-forecourt'|'t2-arrivals'|'t2-arrival-services'|'t2-arrival-art'|'t2-baggage-art'|'t2-transfer-services'|'t2-public-amenities'|'t2-transfer'|'t2-departures'|'t2-passport'|'t2-security'|'t2-retail'|'t2-food'|'t2-shops'|'t2-lounge'|'t2-lounge-2'|'t2-lounge-3'|'t2-lounge-4'|'t2-atrium'|'t2-north-amenities'|'t2-south-amenities'|'t2-north-deck'|'t2-south-deck'|'t2-c-gates'|'t2-d-gates'|
  't3-gates'|'tower';
 type Rect={left:number;right:number;near:number;far:number};
 type Position={x:number;y:number;z:number};
@@ -11,9 +12,12 @@ export interface ExploreSpot {
 }
 
 const t1=terminals.find(t=>t.id==='T1')!,t2=terminals.find(t=>t.id==='T2')!,t3n=terminals.find(t=>t.id==='T3-N')!;
+const t2ForecourtCenterX=t2.x-t2.width/2-16,t2ForecourtWalkX=t2.x-t2.width/2-4,t2ForecourtCenterZ=t2.z-70,t2ForecourtLength=t2.width*.58;
 const north=runways.find(r=>r.id==='north')!,b5=gates.find(g=>g.id==='B5')!;
 const inset=(x:number,z:number,width:number,depth:number,margin=1):Rect=>({left:x-width/2+margin,right:x+width/2-margin,near:z-depth/2+margin,far:z+depth/2-margin});
 const expanded=(x:number,z:number,width:number,depth:number,margin=.65):Rect=>({left:x-width/2-margin,right:x+width/2+margin,near:z-depth/2-margin,far:z+depth/2+margin});
+const t1CheckInStartZ=t1.z-42,t1CheckInSpacing=t1.depth*.60/5;
+const t2CheckInStartZ=t2.z-67,t2CheckInSpacing=Math.min(26,t2.depth*.085);
 function columnsFor(t:{x:number;z:number;width:number;depth:number},profile?:'T1'|'T2'){
  const columns:Rect[]=[],spacingX=t.width>300?30:26,spacingZ=t.depth>180?34:22;
  if(profile){
@@ -41,12 +45,104 @@ function concourseColumns(x:number,z:number,width:number,depth:number){
  return columns;
 }
 const t1Columns=columnsFor(t1,'T1'),t2Columns=columnsFor(t2,'T2'),t1Checkin:Rect[]=[];
-for(let i=0;i<6;i++)t1Checkin.push(expanded(t1.x-t1.width*.34+i*(t1.width*.68/5),t1.z-42,7.8,39));
+// Match the transverse islands shown in the current 1F model: long X axis,
+// six centres along Z. Keep walker collision at the rendered furniture.
+for(let i=0;i<6;i++)t1Checkin.push(expanded(t1.x,t1CheckInStartZ+(i-2.5)*t1CheckInSpacing,40,13));
+const t1Baggage:Rect[]=[];for(let i=0;i<6;i++){const spacing=Math.min(23.2,t1.width/(6+.9)),x=t1.x-(5*spacing)/2+i*spacing,zOffset=[-1.1,.65,-.25,.3,-.65,.8][i];t1Baggage.push(expanded(x,t1.z+57+zOffset,18.5,9.5));}
 const t1Planters:Rect[]=[];for(const side of [-1,1])for(const offset of [-100,-16,44,100])t1Planters.push(expanded(t1.x+side*t1.width*.36,t1.z+offset,2.8,1.7));
+const t1ImmigrationCenter=t1.x-38,t1Immigration:Rect[]=[];for(let i=0;i<10;i++)t1Immigration.push(expanded(t1ImmigrationCenter+(i-4.5)*5.2,t1.z-84,3.5,2.8));
+const t1ImmigrationQueue:Rect[]=[];for(let i=0;i<8;i++)t1ImmigrationQueue.push(expanded(t1ImmigrationCenter+(i-3.5)*5.55,t1.z-84+8.85,4.65,7.5));
+const t1ArrivalArt=[expanded(t1.x,t1.z-t1.depth*.41,45,5.2)];
+const t1TransferSecurity=[expanded(t1.x,t1.z+43,54,22)],t1UpperAtrium=[expanded(t1.x,t1.z-42,Math.min(104,t1.width*.6),124)];
+const t1LoungeWidth=t1.width*T1_FOURTH_FLOOR_LAYOUT.widthRatio,t1LoungeDepth=t1.depth*T1_FOURTH_FLOOR_LAYOUT.depthRatio,t1LoungeSuiteDepth=t1.depth*T1_FOURTH_FLOOR_LAYOUT.suiteDepthRatio,t1LoungeCenters=t1FourthFloorSuiteCenters(t1.z,t1.depth),t1LoungeSuiteX=t1FourthFloorSuiteCenterX(t1.x,t1.width),t1LoungeSpineWidth=t1.width*T1_FOURTH_FLOOR_LAYOUT.spineWidthRatio,t1LoungeBoundsLeft=t1.x-t1LoungeSpineWidth/2,t1LoungeBoundsRight=t1LoungeSuiteX+t1LoungeWidth/2,t1LoungeBounds=inset((t1LoungeBoundsLeft+t1LoungeBoundsRight)/2,t1.z,t1LoungeBoundsRight-t1LoungeBoundsLeft,t1LoungeDepth,2);
+const t1LoungeFurniture:Rect[]=[];
+ for(const offset of [-.3,-.1,.1])for(const side of [-1,1]){
+ const center=t1LoungeCenters[0],rowZ=center+t1LoungeSuiteDepth*offset,x=t1LoungeSuiteX+side*t1LoungeWidth*.235;
+ // Blossom's high privacy bays occupy a wider U-shaped booth footprint.
+ t1LoungeFurniture.push(expanded(x-side*.06,rowZ,4.25,2.98));
+}
+for(const xOffset of [-2.55,2.55])t1LoungeFurniture.push(expanded(t1LoungeSuiteX+xOffset-.55,t1LoungeCenters[0]+t1LoungeSuiteDepth*.29,3.35,3.25));
+const jadeCenter=t1LoungeCenters[1],jadeBenchX=t1LoungeSuiteX+t1LoungeWidth*.31;
+t1LoungeFurniture.push(expanded(jadeBenchX,jadeCenter,1.8,t1LoungeSuiteDepth*.68));
+for(const offset of [-.27,-.09,.09,.27]){
+ const rowZ=jadeCenter+t1LoungeSuiteDepth*offset,tableX=t1LoungeSuiteX+t1LoungeWidth*.105,chairX=tableX-1.1;
+ t1LoungeFurniture.push(expanded(tableX,rowZ,1.8,1.7),expanded(chairX,rowZ,1.3,1.6));
+}
+t1LoungeFurniture.push(expanded(t1LoungeSuiteX-2.45,jadeCenter+t1LoungeSuiteDepth*.24,5.2,3.5));
+const t1LoungeReception=t1LoungeCenters.map((center,suite)=>expanded(t1LoungeSuiteX-t1LoungeWidth/2+3.65,center+(suite===0?3.55:-3.55),2.1,suite===0?7.5:5.5));
+const t1LoungeBuffets=t1LoungeCenters.map((center,suite)=>expanded(t1LoungeSuiteX+(suite===0?1:-1)*t1LoungeWidth*.42,center+t1LoungeSuiteDepth*.27,2.1,9));
+const t1LoungePartitions:Rect[]=[];
+const t1DepartureFood:Rect[]=[
+ expanded(t1.x-12,t1.z-9,17,12),expanded(t1.x-12,t1.z+8,17,8),expanded(t1.x-8,t1.z+25,17,12),expanded(t1.x-60,t1.z+82,17,12),
+ expanded(t1.x-8,t1.z+90,18,12),expanded(t1.x-42,t1.z+106,20,12)
+];
+const t1MappedFacilities:Rect[]=[
+ expanded(t1.x-5,t1.z-96,11,6),expanded(t1.x+53,t1.z-96,8.5,4.8),
+ expanded(t1.x+t1.width*.31,t1.z-66,16,7),expanded(t1.x+t1.width*.15,t1.z-62,13,8),
+ expanded(t1.x-t1.width*.37,t1.z-62,13,8),expanded(t1.x-t1.width*.19,t1.z+116,15,9),
+ expanded(t1.x-67,t1.z-49,1.1,1.2),expanded(t1.x-65,t1.z+11,1.1,1.2),expanded(t1.x+46,t1.z+27,1.1,1.2)
+];
+const t1ThirdFloorFeatures=[...t1DepartureFood,...t1MappedFacilities];
+const t2NorthFeatures=[expanded(t2.x-t2.width*.275,t2.z-t2.depth*.43,23,9),expanded(t2.x+t2.width*.235,t2.z-t2.depth*.43-1.4,22,11)];
+const t2SouthFeatures=[expanded(t2.x+t2.width*.275,t2.z+t2.depth*.13,23,9),expanded(t2.x-t2.width*.245,t2.z+t2.depth*.13-2.1,24,7),expanded(t2.x-t2.width*.08,t2.z+t2.depth*.13+7,16,8)];
 const t2Checkin:Rect[]=[];
-for(let i=0;i<5;i++)t2Checkin.push(expanded(t2.x+(i-2)*t2.width/6.05,t2.z-35+(i-2)*6.6,24,4.2));
-const t2Baggage:Rect[]=[];
-for(let i=0;i<4;i++)t2Baggage.push(expanded(t2.x+(i-1.5)*25,t2.z-53,19,5));
+// T2's five bank centres follow the long hall axis; include the counter,
+// baggage belt and passenger-side queue lane in each footprint.
+for(let i=0;i<5;i++)t2Checkin.push(expanded(t2.x,t2CheckInStartZ+(i-2)*t2CheckInSpacing+4.6,24,17));
+const t2DepartureImmigration=[expanded(t2.x+12,t2.z+5,105,28)];
+const t2DepartureSecurity=[expanded(t2.x,t2.z+37,54,22)];
+const t2DepartureRetail:Rect[]=[];
+for(let i=0;i<6;i++)t2DepartureRetail.push(expanded(t2.x+t2.width*.22+6.5,t2.z+100+(i-2.5)*20,13,19.5));
+const t2Baggage:Rect[]=[],t2BaggageCenterZ=t2.z-30,t2BaggageSpacing=Math.min(23.2,t2.width/(6+.9)),t2BaggageOffsets=[-1.1,.65,-.25,.3,-.65,.8];
+for(let i=0;i<6;i++)t2Baggage.push(expanded(t2.x+(i-2.5)*t2BaggageSpacing,t2BaggageCenterZ+t2BaggageOffsets[i],19,9.5));
+const t2TopCarouselCenterX=t2.x-58,t2TopCarouselZ=t2BaggageCenterZ-25,t2TopCarouselSpacing=Math.min(23.2,t2.width/(2+.9));
+for(let i=0;i<2;i++)t2Baggage.push(expanded(t2TopCarouselCenterX+(i-.5)*t2TopCarouselSpacing,t2TopCarouselZ+[-1.1,.65][i],19,9.5));
+const t2BaggageArtWallX=t2.x-t2.width/2+3.2,t2BaggageArtZ=t2TopCarouselZ,t2BaggageArtObstacle=expanded(t2BaggageArtWallX+.18,t2BaggageArtZ,1.5,13.8,1);
+const t2ArrivalWallX=t2.x-t2.width*.43,t2ArrivalCounterX=t2ArrivalWallX+3.05,t2ArrivalWestRoomX=t2ArrivalCounterX+6,t2ArrivalEastX=t2.x+t2.width*.39;
+const t2ArrivalServices=[
+ expanded(t2ArrivalCounterX,t2.z-132,8,11),expanded(t2ArrivalCounterX,t2.z-104,8,15),expanded(t2ArrivalCounterX,t2.z-76,8,13),
+ expanded(t2ArrivalCounterX,t2.z+45,8,17),expanded(t2ArrivalCounterX,t2.z+63,8,13),
+ expanded(t2ArrivalWallX+1.2,t2.z+82,3,9),expanded(t2ArrivalWestRoomX,t2.z+105,11,14),
+ expanded(t2ArrivalEastX,t2.z-94,10,15),expanded(t2ArrivalEastX,t2.z+43,10,15),
+ expanded(t2ArrivalWallX+.2,t2.z-57,1.2,1.2),expanded(t2ArrivalWallX+.2,t2.z+27,1.2,1.2),expanded(t2ArrivalEastX-.2,t2.z+15,1.2,1.2)
+];
+const t2ArrivalArtCenterX=t2.x+24,t2ArrivalArtZ=t2.z+78,t2ArrivalArtObstacles=[
+ ...Array.from({length:5},(_,i)=>expanded(t2ArrivalArtCenterX+(i-2)*9,t2ArrivalArtZ,3.8,3.7)),
+ expanded(t2ArrivalArtCenterX-18+1.3,t2ArrivalArtZ,5.8,4.2),
+ expanded(t2ArrivalArtCenterX-34,t2ArrivalArtZ+1,3.2,3.2),expanded(t2ArrivalArtCenterX+34,t2ArrivalArtZ+1,3.2,3.2)
+];
+const t2TransferServices=[
+ expanded(t2.x-t2.width*.31,t2.z-40,10,9),
+ expanded(t2.x-t2.width*.19,t2.z-41.1,13,9)
+];
+const t2PublicAmenities=[expanded(t2.x+t2.width*.30,t2.z-58,14,9)];
+const t2TransferSecurity=[expanded(t2.x,t2.z+48,38,22)];
+const t2FourthFloorShops=T2_FOURTH_FLOOR_SHOPS.map(shop=>{
+ const center=t2FourthFloorShopCenter(t2.x,t2.z,t2.width,t2.depth,shop.side,shop.zRatio);
+ return expanded(center.x,center.z,T2_FOURTH_FLOOR_LAYOUT.shop.depth,T2_FOURTH_FLOOR_LAYOUT.shop.length,.75);
+});
+const t2FourthFloorLounges=T2_FOURTH_FLOOR_LOUNGES.map(lounge=>{
+ const center=t2FourthFloorLoungeCenter(t2.x,t2.z,t2.width,t2.depth,lounge.side,lounge.zRatio);
+ return expanded(center.x,center.z,T2_FOURTH_FLOOR_LAYOUT.lounge.width,T2_FOURTH_FLOOR_LAYOUT.lounge.depth,.65);
+});
+const t2FourthFloorFoodZ=t2.z+t2.depth*T2_FOURTH_FLOOR_LAYOUT.foodCourt.zRatio;
+const t2FourthFloorDining:Rect[]=[];
+for(let row=0;row<4;row++)for(let col=0;col<7;col++)t2FourthFloorDining.push(expanded(t2.x+(col-3)*12.4,t2FourthFloorFoodZ+(row-1.5)*14,3.5,3.4));
+const t2FourthFloorAtrium={x:t2.x+T2_FOURTH_FLOOR_LAYOUT.atrium.xOffset,z:t2.z+T2_FOURTH_FLOOR_LAYOUT.atrium.zOffset,width:T2_FOURTH_FLOOR_LAYOUT.atrium.width,depth:T2_FOURTH_FLOOR_LAYOUT.atrium.depth},t2FourthFloorGalleryDining:Rect[]=[],t2FourthFloorWingWidth=(t2.width-T2_FOURTH_FLOOR_LAYOUT.atrium.width)/2-8;
+for(const side of [-1,1])for(let row=0;row<5;row++)t2FourthFloorGalleryDining.push(expanded(t2FourthFloorAtrium.x+side*(T2_FOURTH_FLOOR_LAYOUT.atrium.width/2+t2FourthFloorWingWidth*.58), t2FourthFloorAtrium.z+(row-2)*27,3.6,3.5));
+const t2FourthFloorObstacles=[...t2Columns,...t2FourthFloorShops,...t2FourthFloorLounges,...t2FourthFloorDining,...t2FourthFloorGalleryDining];
+const t2Shop=T2_FOURTH_FLOOR_SHOPS[2],t2ShopCenter=t2FourthFloorShopCenter(t2.x,t2.z,t2.width,t2.depth,t2Shop.side,t2Shop.zRatio);
+function t2LoungeFurnitureFor(index:number):Rect[]{
+ const lounge=T2_FOURTH_FLOOR_LOUNGES[index],center=t2FourthFloorLoungeCenter(t2.x,t2.z,t2.width,t2.depth,lounge.side,lounge.zRatio),frontX=center.x-lounge.side*(T2_FOURTH_FLOOR_LAYOUT.lounge.width/2-.2),receptionX=center.x+lounge.side*(T2_FOURTH_FLOOR_LAYOUT.lounge.width/2-5.4),receptionZ=center.z-T2_FOURTH_FLOOR_LAYOUT.lounge.depth*.32;
+ return [
+  expanded(receptionX,receptionZ,1.4,8.5),
+  ...Array.from({length:4},(_,cluster)=>expanded(center.x+lounge.side*(-4.5+cluster*3),center.z+(cluster-1.5)*4.8,4.6,4.6)),
+  ...Array.from({length:5},(_,row)=>expanded(center.x+lounge.side*9.6,center.z+(row-2)*3.35,2.2,1.5)),
+  expanded(center.x+lounge.side*(T2_FOURTH_FLOOR_LAYOUT.lounge.width/2-.18),center.z,1,T2_FOURTH_FLOOR_LAYOUT.lounge.depth),
+  ...[-1,1].map(end=>expanded(center.x,center.z+end*(T2_FOURTH_FLOOR_LAYOUT.lounge.depth/2-.16),T2_FOURTH_FLOOR_LAYOUT.lounge.width,1)),
+  ...[-1,1].map(end=>expanded(frontX,center.z+end*T2_FOURTH_FLOOR_LAYOUT.lounge.depth*.34,.8,T2_FOURTH_FLOOR_LAYOUT.lounge.depth*.31))
+ ];
+}
 const t1AColumns=concourseColumns(451,-240,660,120),t1BColumns=concourseColumns(408,112.5,650,45),
  t2CColumns=concourseColumns(-243.5,135,750,80),t2DColumns=concourseColumns(-245,-250,840,110);
 const northShops:Rect[]=[];
@@ -58,22 +154,65 @@ const outdoorObstacles:Rect[]=[
 ];
 const inside=(t:{x:number;z:number;width:number;depth:number},margin=2)=>inset(t.x,t.z,t.width,t.depth,margin);
 const spot=(id:ExploreSpotId,en:string,zh:string,floor:number,position:Position,target:Position,bounds:Rect,obstacles:Rect[]=[]):ExploreSpot=>({id,en,zh,floor,position,target,bounds,obstacles});
+const t2LoungeSpotIds:ExploreSpotId[]=['t2-lounge','t2-lounge-2','t2-lounge-3','t2-lounge-4'];
+const t2LoungeViewSpots=t2LoungeSpotIds.map((id,index)=>{
+ const lounge=T2_FOURTH_FLOOR_LOUNGES[index],center=t2FourthFloorLoungeCenter(t2.x,t2.z,t2.width,t2.depth,lounge.side,lounge.zRatio),frontX=center.x-lounge.side*(T2_FOURTH_FLOOR_LAYOUT.lounge.width/2-.2),operator=lounge.operator==='EVA Air'?'長榮航空':'環亞';
+ return spot(id,`Terminal 2 ${lounge.operator} lounge ${index+1} · 4F`,`第二航廈${operator}貴賓室 ${index+1} · 4F`,18.55,
+  {x:frontX+lounge.side*2.8,y:20.25,z:center.z},
+  {x:center.x+lounge.side*(T2_FOURTH_FLOOR_LAYOUT.lounge.width/2-1.7),y:19.55,z:center.z},
+  inset(center.x,center.z,T2_FOURTH_FLOOR_LAYOUT.lounge.width,T2_FOURTH_FLOOR_LAYOUT.lounge.depth,1),
+  [...t2Columns,...t2LoungeFurnitureFor(index)]);
+});
 
 /** Walkable interior waypoints follow the current public floor maps and gate rows. */
 export const exploreSpots:ExploreSpot[]=[
  {id:'runway',en:'05L runway viewpoint',zh:'05L 跑道觀景點',floor:.2,position:{x:north.x-north.length/2+410,y:1.9,z:north.z+60},target:{x:north.x-north.length/2+50,y:8,z:north.z}},
  {id:'apron',en:'Terminal 1 apron',zh:'第一航廈機坪',floor:.2,position:{x:b5.x-60,y:1.9,z:b5.z+95},target:{x:b5.x,y:7,z:b5.z}},
- spot('t1-arrivals','Terminal 1 arrivals · 1F','第一航廈入境大廳 · 1F',.36,{x:t1.x-45,y:2.06,z:t1.z+126},{x:t1.x-45,y:2.3,z:t1.z+94},inside(t1),[...t1Columns,...t1Checkin]),
- spot('t1-checkin','Terminal 1 check-in · 1F','第一航廈報到大廳 · 1F',.36,{x:t1.x,y:2.06,z:t1.z-66},{x:t1.x,y:2.6,z:t1.z-42},inside(t1),[...t1Columns,...t1Checkin,...t1Planters]),
- spot('t1-immigration','Terminal 1 immigration · 2F','第一航廈證照查驗 · 2F',5.8,{x:t1.x-35,y:7.5,z:t1.z-71},{x:t1.x-35,y:7.8,z:t1.z-18},inside(t1),t1Columns),
- spot('t1-departures','Terminal 1 security & departure hall · 3F','第一航廈安檢與出境大廳 · 3F',11.3,{x:t1.x-35,y:13,z:t1.z+24},{x:t1.x-35,y:13.3,z:t1.z-20},inside(t1),[...t1Columns,...t1Planters]),
+ spot('t1-arrivals','Terminal 1 arrivals · 1F','第一航廈入境大廳 · 1F',.36,{x:t1.x-35,y:2.06,z:t1.z+70},{x:t1.x-25,y:2.5,z:t1.z+56},inside(t1),[...t1Columns,...t1Checkin,...t1Baggage]),
+ spot('t1-checkin','Terminal 1 check-in · 1F','第一航廈報到大廳 · 1F',.36,{x:t1.x+28,y:2.06,z:t1CheckInStartZ+16.2},{x:t1.x,y:2.6,z:t1CheckInStartZ},inside(t1),[...t1Columns,...t1Checkin]),
+ spot('t1-upper-gallery','Terminal 1 upper circulation · 2F (schematic)','第一航廈二樓通行廊示意 · 2F',5.8,{x:t1.x-t1.width*.21-18,y:7.85,z:t1.z+23},{x:t1.x-t1.width*.21,y:8.1,z:t1.z+35},inside(t1),[...t1Columns,...t1UpperAtrium]),
+ spot('t1-transfer-security','Terminal 1 transfer-screening route concept · departure level','第一航廈轉機安檢路徑示意 · 出境層',11.3,{x:t1.x-32,y:13.35,z:t1.z+25},{x:t1.x-3,y:13.55,z:t1.z+43},inside(t1),[...t1Columns,...t1Planters,...t1ThirdFloorFeatures,...t1TransferSecurity]),
+ spot('t1-immigration','Terminal 1 arrival passport control · 3F','第一航廈入境證照查驗 · 3F',11.3,{x:t1.x-24,y:13.35,z:t1.z-68},{x:t1.x-5,y:13.85,z:t1.z-84},inside(t1),[...t1Columns,...t1Immigration,...t1ImmigrationQueue,...t1ArrivalArt]),
+ // Keep the camera in the clear central aisle; the former west-side position
+ // sat beside a mapped shop and a support pier, which filled the foreground.
+ spot('t1-departures','Terminal 1 security & departure hall · 3F','第一航廈安檢與出境大廳 · 3F',11.3,{x:t1.x+38,y:13.35,z:t1.z+29},{x:t1.x+7,y:13.75,z:t1.z+43},inside(t1),[...t1Columns,...t1Planters,...t1ThirdFloorFeatures]),
+ spot('t1-3f-public-services','Terminal 1 3F mapped public services · ATM / FX / bank','第一航廈 3F 公共服務 · ATM／換匯／銀行',11.3,{x:t1.x-5,y:13.35,z:t1.z-67},{x:t1.x-5,y:13.8,z:t1.z-96},inside(t1),[...t1Columns,...t1ThirdFloorFeatures]),
+ // Stay outside the adjacent specialty shop's side wall while keeping OLI's
+ // glazed storefront and fascia large enough to inspect from the public aisle.
+ spot('t1-3f-oli','Terminal 1 3F OLI designer store','第一航廈 3F OLI 設計師商店',11.3,{x:t1.x-36,y:13.35,z:t1.z+14},{x:t1.x-20,y:13.75,z:t1.z-3},inside(t1),[...t1Columns,...t1ThirdFloorFeatures]),
+ spot('t1-3f-taiwan-goods','Terminal 1 3F Taiwan Specialty Goods','第一航廈 3F 台灣特色商品館',11.3,{x:t1.x-22,y:13.35,z:t1.z+15},{x:t1.x-12,y:13.75,z:t1.z+8},inside(t1),[...t1Columns,...t1ThirdFloorFeatures]),
+ spot('t1-3f-hanlin','Terminal 1 3F Hanlin Tea','第一航廈 3F 翰林茶館',11.3,{x:t1.x-33,y:13.35,z:t1.z+44},{x:t1.x-8,y:13.75,z:t1.z+25},inside(t1),[...t1Columns,...t1ThirdFloorFeatures,...t1TransferSecurity]),
+ spot('t1-3f-mos','Terminal 1 3F MOS Burger','第一航廈 3F 摩斯漢堡',11.3,{x:t1.x-60,y:13.35,z:t1.z+112},{x:t1.x-60,y:13.75,z:t1.z+82},inside(t1),[...t1Columns,...t1ThirdFloorFeatures]),
+ spot('t1-3f-vigor','Terminal 1 3F Vigor Bakery','第一航廈 3F 維格餅家',11.3,{x:t1.x-8,y:13.35,z:t1.z+112},{x:t1.x-8,y:13.75,z:t1.z+90},inside(t1),[...t1Columns,...t1ThirdFloorFeatures]),
+ spot('t1-3f-specialties','Terminal 1 3F popular Taiwan specialties','第一航廈 3F 人氣土特產展銷專區',11.3,{x:t1.x-49,y:13.35,z:t1.z+128},{x:t1.x-42,y:13.75,z:t1.z+106},inside(t1),[...t1Columns,...t1ThirdFloorFeatures]),
+ spot('t1-3f-medical','Terminal 1 3F medical center','第一航廈 3F 醫療中心',11.3,{x:t1.x-33,y:13.35,z:t1.z+130},{x:t1.x-33,y:13.75,z:t1.z+116},inside(t1),[...t1Columns,...t1ThirdFloorFeatures]),
+ spot('t1-lounge',`Terminal 1 Plaza Premium Lounge ${T1_FOURTH_FLOOR_LOUNGES[1].nameEn} · Zone ${T1_FOURTH_FLOOR_LOUNGES[1].zone}`,`第一航廈${T1_FOURTH_FLOOR_LOUNGES[1].nameZh}・4F`,16.7,{x:t1LoungeSuiteX,y:18.35,z:t1LoungeCenters[1]-6.5},{x:t1LoungeSuiteX,y:17.55,z:t1LoungeCenters[1]+6.1},t1LoungeBounds,[...t1LoungeFurniture,...t1LoungeReception,...t1LoungeBuffets,...t1LoungePartitions]),
+ spot('t1-lounge-other',`Terminal 1 Plaza Premium Lounge ${T1_FOURTH_FLOOR_LOUNGES[0].nameEn} · Zone ${T1_FOURTH_FLOOR_LOUNGES[0].zone}`,`第一航廈${T1_FOURTH_FLOOR_LOUNGES[0].nameZh}・4F`,16.7,{x:t1LoungeSuiteX,y:18.35,z:t1LoungeCenters[0]+7.9},{x:t1LoungeSuiteX,y:17.55,z:t1LoungeCenters[0]-5.2},t1LoungeBounds,[...t1LoungeFurniture,...t1LoungeReception,...t1LoungeBuffets,...t1LoungePartitions]),
  spot('t1-a-gates','Terminal 1 A gates','第一航廈 A 區登機廊廳',.36,{x:451,y:2.06,z:-240},{x:386,y:2.7,z:-240},inset(451,-240,660,120,1),t1AColumns),
  spot('t1-b-gates','Terminal 1 B gates','第一航廈 B 區登機廊廳',.36,{x:408,y:2.06,z:112.5},{x:343,y:2.7,z:112.5},inset(408,112.5,650,45,1),t1BColumns),
- spot('t2-arrivals','Terminal 2 arrivals · 1F','第二航廈入境大廳 · 1F',.36,{x:t2.x,y:2.06,z:t2.z+78},{x:t2.x,y:2.3,z:t2.z+38},inside(t2),[...t2Columns,...t2Baggage]),
- spot('t2-transfer','Terminal 2 transfer & immigration · 2F','第二航廈轉機與證照查驗 · 2F',6.25,{x:t2.x,y:7.95,z:t2.z-44},{x:t2.x,y:8.2,z:t2.z-10},inside(t2),t2Columns),
- spot('t2-departures','Terminal 2 check-in & departures · 3F','第二航廈報到與出境大廳 · 3F',12.35,{x:t2.x,y:14.05,z:t2.z-18},{x:t2.x,y:13.55,z:t2.z-48},inside(t2),[...t2Columns,...t2Checkin]),
- spot('t2-food','Terminal 2 dining hall · 4F','第二航廈餐飲與候機區 · 4F',18.55,{x:t2.x-55,y:20.25,z:t2.z+70},{x:t2.x-15,y:19.4,z:t2.z+110},inside(t2),t2Columns),
- spot('t2-atrium','Terminal 2 atrium gallery · 4F','第二航廈中庭觀景廊 · 4F',18.55,{x:t2.x-75,y:20.25,z:t2.z-4},{x:t2.x+20,y:16.8,z:t2.z-42},inside(t2),t2Columns),
+ spot('t2-arrivals','Terminal 2 arrivals · 1F','第二航廈入境大廳 · 1F',.36,{x:t2.x+70,y:2.06,z:t2.z-2},{x:t2.x,y:2.3,z:t2BaggageCenterZ},inside(t2),[...t2Columns,...t2Baggage,...t2ArrivalServices,...t2ArrivalArtObstacles,t2BaggageArtObstacle]),
+ spot('t2-arrival-services','Terminal 2 arrival services · 1F','第二航廈入境服務帶 · 1F',.36,{x:t2.x-72,y:2.06,z:t2.z+18},{x:t2ArrivalCounterX,y:2.55,z:t2.z+45},inside(t2),[...t2Columns,...t2Baggage,...t2ArrivalServices]),
+ spot('t2-arrival-art','Terminal 2 Welcome to Taiwan public art · 1F','第二航廈入境公共藝術 · 1F',.36,{x:t2ArrivalArtCenterX,y:2.06,z:t2ArrivalArtZ+29},{x:t2ArrivalArtCenterX,y:2.75,z:t2ArrivalArtZ},inside(t2),[...t2Columns,...t2Baggage,...t2ArrivalServices,...t2ArrivalArtObstacles]),
+ spot('t2-baggage-art','Terminal 2 Wealthy Island Wan Wan Lai · 1F','第二航廈寶島旺旺徠彩繪玻璃 · 1F',.36,{x:t2BaggageArtWallX+31,y:2.06,z:t2BaggageArtZ+17},{x:t2BaggageArtWallX+.4,y:2.35,z:t2BaggageArtZ},inside(t2),[...t2Columns,...t2Baggage,t2BaggageArtObstacle]),
+ spot('t2-forecourt','Terminal 2 coach drop-off canopy','第二航廈接駁車下客雨棚',.2,
+  {x:t2ForecourtWalkX,y:2.06,z:t2ForecourtCenterZ},
+  {x:t2ForecourtWalkX,y:3.2,z:t2ForecourtCenterZ-34},
+  {left:t2ForecourtCenterX-20,right:t2.x-t2.width/2-2,near:t2ForecourtCenterZ-t2ForecourtLength/2-5,far:t2ForecourtCenterZ+t2ForecourtLength/2+5}),
+  spot('t2-transfer-services','Terminal 2 iTravel & public services · 2F','第二航廈 iTravel 與公共服務 · 2F',6.25,{x:t2.x-35,y:7.95,z:t2.z-8},{x:t2.x-t2.width*.31,y:8.2,z:t2.z-40},inside(t2),[...t2Columns,...t2TransferServices]),
+  spot('t2-public-amenities','Terminal 2 restrooms & AED · 2F','第二航廈廁所與 AED · 2F',6.25,{x:t2.x+58,y:7.95,z:t2.z-84},{x:t2.x+t2.width*.38,y:8.2,z:t2.z-58},inside(t2),[...t2Columns,...t2PublicAmenities]),
+  spot('t2-transfer','Terminal 2 transfer security · 2F','第二航廈轉機安檢 · 2F',6.25,{x:t2.x-24,y:7.95,z:t2.z+23},{x:t2.x-5,y:8.2,z:t2.z+48},inside(t2),[...t2Columns,...t2TransferSecurity]),
+ spot('t2-departures','Terminal 2 check-in & departures · 3F','第二航廈報到與出境大廳 · 3F',12.35,{x:t2.x-25,y:14.05,z:t2CheckInStartZ+39},{x:t2.x-5,y:13.4,z:t2CheckInStartZ+24.65},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity]),
+ spot('t2-passport','Terminal 2 departure immigration · 3F','第二航廈出境證照查驗 · 3F',12.35,{x:t2.x-18,y:14.05,z:t2.z+17},{x:t2.x,y:13.55,z:t2.z+5},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity,...t2DepartureRetail]),
+ spot('t2-security','Terminal 2 departure security · 3F','第二航廈出境安檢 · 3F',12.35,{x:t2.x-20,y:14.05,z:t2.z+47},{x:t2.x-5,y:13.55,z:t2.z+37},inside(t2),[...t2Columns,...t2Checkin,...t2DepartureImmigration,...t2DepartureSecurity,...t2DepartureRetail]),
+ spot('t2-retail','Terminal 2 airside retail · 3F','第二航廈免稅商店與候機服務 · 3F',12.35,
+  {x:t2.x+t2.width*.22-24,y:14.05,z:t2.z+100},
+  {x:t2.x+t2.width*.22,y:13.75,z:t2.z+100},inside(t2),[...t2Columns,...t2DepartureRetail]),
+ spot('t2-food','Terminal 2 dining hall · 4F','第二航廈餐飲與候機區 · 4F',18.55,{x:t2.x-29,y:20.25,z:t2FourthFloorFoodZ-14},{x:t2.x-5,y:19.4,z:t2FourthFloorFoodZ+7},inside(t2),t2FourthFloorObstacles),
+ spot('t2-shops','Terminal 2 4F mapped restaurants','第二航廈 4F 商店與餐飲 · 4F',18.55,{x:t2ShopCenter.frontX-t2Shop.side*5.2,y:20.25,z:t2ShopCenter.z+5.3},{x:t2ShopCenter.frontX+t2Shop.side*.25,y:19.8,z:t2ShopCenter.z},inside(t2),t2FourthFloorObstacles),
+ ...t2LoungeViewSpots,
+ spot('t2-atrium','Terminal 2 atrium gallery · 4F','第二航廈中庭觀景廊 · 4F',18.55,{x:t2.x-58,y:20.25,z:t2.z-40},{x:t2.x-10,y:12.65,z:t2.z-31},inside(t2),t2Columns),
+ spot('t2-north-amenities','Terminal 2 north deck services · 5F','第二航廈北側商店與候機服務 · 5F',23.45,{x:t2.x-t2.width*.275,y:25.15,z:t2.z-t2.depth*.36},{x:t2.x-t2.width*.275,y:25.45,z:t2.z-t2.depth*.43+4.2},inside(t2),[...t2Columns,...t2NorthFeatures]),
+ spot('t2-south-amenities','Terminal 2 south deck services · 5F','第二航廈南側商店與休息服務 · 5F',23.45,{x:t2.x+t2.width*.275,y:25.15,z:t2.z+t2.depth*.13-24},{x:t2.x+t2.width*.275,y:25.45,z:t2.z+t2.depth*.13-4.2},inside(t2),[...t2Columns,...t2SouthFeatures]),
  spot('t2-north-deck','Terminal 2 north observation deck · 5F','第二航廈北側觀景台 · 5F',23.45,{x:t2.x-40,y:25.15,z:t2.z-124},{x:t2.x-40,y:25.4,z:t2.z-142},inside(t2),t2Columns),
  spot('t2-south-deck','Terminal 2 south observation deck & Taiwan Temple Avenue · 5F','第二航廈南側觀景台與臺灣玩藝大街 · 5F',23.45,{x:t2.x-40,y:25.15,z:t2.z+120},{x:t2.x-40,y:25.4,z:t2.z+143},inside(t2),t2Columns),
  spot('t2-c-gates','Terminal 2 C gates','第二航廈 C 區登機廊廳',.36,{x:-346.5,y:2.06,z:110},{x:-346.5,y:2.7,z:95},inset(-243.5,135,750,80,1),t2CColumns),
