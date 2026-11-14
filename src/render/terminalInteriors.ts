@@ -3,7 +3,7 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives';
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
-import {T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_THIRD_FLOOR_LAYOUT,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorShopCenter,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_THIRD_FLOOR_LAYOUT,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
 type Item={x:number;y:number;z:number;sx:number;sy:number;sz:number;ry?:number;rx?:number;color?:THREE.ColorRepresentation};
@@ -965,48 +965,82 @@ function terminal2AtriumDining(parent:THREE.Object3D,b:TerminalBounds,y:number,a
  }
  batch(parent,counterTop,tables);batch(parent,steel,supports);batch(parent,seatDark,seats);batch(parent,seatDark,backs);batch(parent,steel,legs);
 }
-/** A floor-map-listed 4F café/restaurant bay with an open service front and fitted counter. */
+const t2FoodMenuCache=new Map<string,THREE.Material>();
+function t2FoodMenuMaterial(kind:typeof T2_FOURTH_FLOOR_SHOPS[number]['kind'],accent:string){
+ const key=`${kind}|${accent}`,cached=t2FoodMenuCache.get(key);if(cached)return cached;
+ const heading={noodles:'NOODLES',coffee:'COFFEE',seafood:'DINING',burger:'MOS BURGER',dining:'DINING',tofu:'DINING'}[kind];
+ const texture=canvasTexture(512,320,ctx=>{
+  ctx.fillStyle='#f2f0e9';ctx.fillRect(0,0,512,320);ctx.fillStyle='#17272a';ctx.fillRect(0,0,512,68);ctx.fillStyle=accent;ctx.fillRect(0,64,512,8);
+  ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='bold 30px Arial,sans-serif';ctx.fillText(heading,24,34,460);
+  for(let row=0;row<4;row++){
+   const y=104+row*48;ctx.fillStyle=row%2?'#e8e6df':'#eeece5';ctx.fillRect(18,y-16,476,38);
+   ctx.fillStyle=accent;ctx.beginPath();ctx.arc(36,y+2,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#56605c';ctx.fillRect(54,y-3,210+(row%2)*36,5);ctx.fillRect(54,y+8,130+(row%3)*22,3);ctx.fillStyle='#a6aaa3';ctx.fillRect(432,y-2,38,4);
+  }
+  ctx.strokeStyle='rgba(43,55,51,.24)';ctx.lineWidth=2;ctx.strokeRect(2,2,508,316);
+ });
+ const menu=new THREE.MeshBasicMaterial({map:texture,toneMapped:false,side:THREE.DoubleSide});t2FoodMenuCache.set(key,menu);return menu;
+}
+/** The official 4F map identifies these seven outlets; dimensions and fit-outs are interpreted. */
 function terminal2FourthFloorShop(parent:THREE.Object3D,b:TerminalBounds,y:number,shop:typeof T2_FOURTH_FLOOR_SHOPS[number]){
- const {x,z,frontX}=t2FourthFloorShopCenter(b.x,b.z,b.width,b.depth,shop.side,shop.zRatio),{depth,length,height}=T2_FOURTH_FLOOR_LAYOUT.shop,rotation=-shop.side*Math.PI/2,floorY=y-.24;
- const trim=material(shop.accent,.44,.14),stone=material('#d6d2c8',.78,.025),glass=new THREE.MeshPhysicalMaterial({color:'#d8e3df',roughness:.2,metalness:.045,transparent:true,opacity:.22,depthWrite:false,side:THREE.DoubleSide}),floorMat=material('#b9b8ac',.46,.025),equipment=material('#737b75',.45,.2);
- const counterX=frontX+shop.side*1.55;
+ const {depth,length,height}=shop,{x,z,frontX}=t2FourthFloorShopCenter(b.x,b.z,b.width,b.depth,shop.side,shop.zRatio,depth),rotation=-shop.side*Math.PI/2,floorY=y-.24;
+ const trim=material(shop.accent,.46,.12),stone=material('#dedbd2',.78,.02),glass=new THREE.MeshPhysicalMaterial({color:'#d8e3df',roughness:.2,metalness:.045,transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide}),floorMat=material('#b9b8ac',.46,.025),equipment=material('#727b77',.45,.18),steelClad=material('#aeb6b2',.38,.56);
+ const counterX=frontX+shop.side*1.5,counterLength=length*.66,menuMaterial=t2FoodMenuMaterial(shop.kind,shop.accent);
  box(parent,length,height,.34,x+shop.side*(depth*.39),floorY+height/2,z,stone,rotation);
  for(const end of [-1,1])box(parent,depth,height,.28,x,floorY+height/2,z+end*(length/2-.14),stone);
  box(parent,depth-.4,.08,length-.7,x,floorY+.05,z,floorMat);
- // A low open counter makes the concourse-facing edge legible as an operating shop.
- box(parent,length*.72,1.08,.92,counterX,floorY+.62,z,counterTop,rotation);
- box(parent,length*.72,.12,1.02,counterX-shop.side*.12,floorY+1.23,z,counterTop,rotation);
- for(const offset of [-length*.24,0,length*.24]){
-  box(parent,3.1,1.5,.12,x+shop.side*2.35,floorY+2.45,z+offset,glass,rotation);
-  box(parent,2.6,2.15,.44,x+shop.side*5.7,floorY+1.25,z+offset,shop.kind==='burger'?warmWood:equipment,rotation);
+ // Low counter, metallic edge and a recessed service plinth keep the frontage open.
+ box(parent,counterLength,1.02,.92,counterX,floorY+.59,z,stone,rotation);
+ box(parent,counterLength,.13,1.02,counterX-shop.side*.12,floorY+1.16,z,trim,rotation);
+ box(parent,counterLength*.96,.12,.06,counterX+shop.side*.03,floorY+.16,z,steelClad,rotation);
+ for(const offset of [-length*.28,0,length*.28]){
+  box(parent,2.8,1.45,.1,x+shop.side*2.3,floorY+2.38,z+offset,glass,rotation);
+  box(parent,2.15,1.9,.4,x+shop.side*5.2,floorY+1.2,z+offset,shop.kind==='burger'?warmWood:equipment,rotation);
+  box(parent,2.2,.08,.12,x+shop.side*5.2,floorY+2.18,z+offset,steelClad,rotation);
  }
- box(parent,length*.88,.28,.52,frontX+shop.side*.42,floorY+height-.2,z,trim,rotation);
- sign(parent,shop.name,x+shop.side*.58,floorY+height+.52,z,Math.min(length-1,shop.name.length*.63),shop.accent,rotation,1.18);
- for(let i=-1;i<=1;i++){
-  box(parent,4.2,.1,.18,frontX+shop.side*1.05,floorY+2.1,z+i*4.3,light,rotation);
-  box(parent,3.1,.08,.35,x+shop.side*5.2,floorY+2.95,z+i*3.8,shop.kind==='dining'?counterTop:trim,rotation);
+ const fasciaWidth=Math.min(length-1.5,Math.max(7,shop.name.length*.54));
+ box(parent,fasciaWidth,.12,.62,frontX+shop.side*.44,floorY+height-.23,z,trim,rotation);
+ sign(parent,shop.name,frontX+shop.side*.44,floorY+height+.35,z,fasciaWidth*.9,shop.accent,rotation,.92);
+ // Two individually composed menu panels replace the repeated generic boards.
+ for(const offset of [-Math.min(4.2,length*.19),Math.min(4.2,length*.19)]){
+  box(parent,.08,1.58,2.55,x+shop.side*2.35,floorY+2.7,z+offset,steelClad,rotation);
+  const face=new THREE.Mesh(new THREE.PlaneGeometry(2.36,1.38),menuMaterial);face.position.set(x+shop.side*2.35-shop.side*.055,floorY+2.7,z+offset);face.rotation.y=rotation;face.castShadow=false;parent.add(face);
  }
- // Menu boards sit above each service opening; they read as individual outlets at hall scale.
- for(let i=-1;i<=1;i++)sign(parent,shop.kind==='burger'?'BURGER  套餐':shop.kind==='dining'?'MENU  餐點':'COFFEE  咖啡',x+shop.side*2.5,floorY+2.8,z+i*3.8,2.7,shop.accent,rotation,.56);
+ // Category-specific counter equipment gives mapped coffee and dining tenants a distinct silhouette.
+ if(shop.kind==='coffee'){
+  for(let unit=-1;unit<=1;unit++){
+   const machineX=x+shop.side*1.45,machineZ=z+unit*Math.min(3.2,length*.17);
+   box(parent,1.3,1.02,.92,machineX,floorY+1.72,machineZ,equipment,rotation);box(parent,.9,.28,.08,machineX+shop.side*.49,floorY+1.91,machineZ,screen,rotation);
+   cylinder(parent,.11,.11,.2,machineX,floorY+2.35,machineZ+.37,material('#ece5d7',.68),12);
+  }
+ }else{
+  for(const unit of [-1,1]){
+   const itemX=x+shop.side*1.75,itemZ=z+unit*Math.min(2.6,length*.16);
+   box(parent,1.25,.72,.92,itemX,floorY+1.56,itemZ,shop.kind==='burger'?equipment:counterTop,rotation);
+   box(parent,.72,.34,.08,itemX+shop.side*.5,floorY+2.08,itemZ,screen,rotation);
+  }
+ }
+ // Slim task lights sit below the shop canopy rather than competing with the terminal roof.
+ for(const offset of [-length*.26,0,length*.26])box(parent,2.8,.08,.16,frontX+shop.side*.88,floorY+height-.62,z+offset,light,rotation);
+ sign(parent,'ORDER  點餐',counterX-shop.side*.45,floorY+2.32,z,Math.min(5.8,length*.28),shop.accent,rotation,.64);
 }
-const terminal2LoungeCarpetCache=new Map<boolean,THREE.Material>();
-function terminal2LoungeCarpet(plaza:boolean){
- const cached=terminal2LoungeCarpetCache.get(plaza);if(cached)return cached;
+const terminal2LoungeCarpetCache=new Map<string,THREE.Material>();
+function terminal2LoungeCarpet(style:string){
+ const cached=terminal2LoungeCarpetCache.get(style);if(cached)return cached;
  const texture=canvasTexture(512,512,ctx=>{
-  const rand=seeded(plaza?40203:40201);
-  const base=plaza?'#91908a':'#9ca18f';ctx.fillStyle=base;ctx.fillRect(0,0,512,512);
+  const rand=seeded(style==='china'?40202:style==='oriental'?40203:40201);
+  const base=style==='china'?'#92938f':style==='oriental'?'#959187':'#9ca18f';ctx.fillStyle=base;ctx.fillRect(0,0,512,512);
   for(let y=0;y<512;y+=8){ctx.fillStyle=y%16===0?'rgba(238,231,210,.14)':'rgba(32,42,39,.12)';ctx.fillRect(0,y,512,2);}
   for(let x=0;x<512;x+=8){ctx.fillStyle=x%16===0?'rgba(245,238,218,.10)':'rgba(28,38,36,.1)';ctx.fillRect(x,0,2,512);}
   ctx.globalAlpha=.28;for(let row=0;row<16;row++)for(let col=0;col<16;col++){
-   const xx=col*32+(row%2)*16,yy=row*32;ctx.fillStyle=(row+col)%5===0?(plaza?'#957f77':'#b4975c'):(plaza?'#65716e':'#596a62');ctx.fillRect(xx+5,yy+5,6,6);
+   const xx=col*32+(row%2)*16,yy=row*32;ctx.fillStyle=(row+col)%5===0?(style==='oriental'?'#a17e67':'#b4975c'):(style==='china'?'#625d65':'#596a62');ctx.fillRect(xx+5,yy+5,6,6);
   }ctx.globalAlpha=1;
-  for(let i=0;i<6200;i++){const shade=plaza?92+Math.floor(rand()*54):87+Math.floor(rand()*55),alpha=.025+rand()*.045;ctx.fillStyle=`rgba(${shade},${shade+1},${shade-2},${alpha})`;ctx.fillRect(rand()*512,rand()*512,.7+rand()*1.1,.7+rand()*1.1);}
+  for(let i=0;i<6200;i++){const shade=90+Math.floor(rand()*54),alpha=.025+rand()*.045;ctx.fillStyle=`rgba(${shade},${shade+1},${shade-2},${alpha})`;ctx.fillRect(rand()*512,rand()*512,.7+rand()*1.1,.7+rand()*1.1);}
  });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(5,4);texture.anisotropy=8;
- const carpet=new THREE.MeshStandardMaterial({color:'#fff',map:texture,roughness:.96,metalness:0});carpet.userData.worldUV=1/2.6;terminal2LoungeCarpetCache.set(plaza,carpet);return carpet;
+ const carpet=new THREE.MeshStandardMaterial({color:'#fff',map:texture,roughness:.96,metalness:0});carpet.userData.worldUV=1/2.6;terminal2LoungeCarpetCache.set(style,carpet);return carpet;
 }
 /** Separate glazed lounge footprints on the T2 4F plan, each with a reception and seating clusters. */
 function terminal2FourthFloorLounge(parent:THREE.Object3D,b:TerminalBounds,y:number,index:number){
- const lounge=T2_FOURTH_FLOOR_LOUNGES[index],{x,z}=t2FourthFloorLoungeCenter(b.x,b.z,b.width,b.depth,lounge.side,lounge.zRatio),{width,depth,height}=T2_FOURTH_FLOOR_LAYOUT.lounge,side=lounge.side,frontX=x-side*(width/2-.2),deckY=y-.24,wood=material('#806547',.62,.08),woodDisplay=material('#ffffff',.72,.035),stone=material('#d6d4ca',.74,.025),glass=new THREE.MeshPhysicalMaterial({color:'#c7d9d5',roughness:.2,metalness:.075,transparent:true,opacity:.24,depthWrite:false,side:THREE.DoubleSide}),accent=material(lounge.accent,.45,.18),fabric=material('#ffffff',.78,.025),armMaterial=material('#ffffff',.68,.02),carpet=terminal2LoungeCarpet(index===3);
+ const lounge=T2_FOURTH_FLOOR_LOUNGES[index],{x,z}=t2FourthFloorLoungeCenter(b.x,b.z,b.width,b.depth,lounge.side,lounge.zRatio),width=lounge.width??T2_FOURTH_FLOOR_LAYOUT.lounge.width,depth=lounge.depth??T2_FOURTH_FLOOR_LAYOUT.lounge.depth,height=lounge.height??T2_FOURTH_FLOOR_LAYOUT.lounge.height,side=lounge.side,frontX=x-side*(width/2-.2),deckY=y-.24,wood=material('#806547',.62,.08),woodDisplay=material('#ffffff',.72,.035),stone=material('#d6d4ca',.74,.025),glass=new THREE.MeshPhysicalMaterial({color:'#c7d9d5',roughness:.2,metalness:.075,transparent:true,opacity:.24,depthWrite:false,side:THREE.DoubleSide}),accent=material(lounge.accent,.45,.18),fabric=material('#ffffff',.78,.025),armMaterial=material('#ffffff',.68,.02),carpet=terminal2LoungeCarpet(lounge.style),seatColor=lounge.style==='china'?'#85878c':lounge.style==='oriental'?'#9a8674':'#8c9787',seatBackColor=lounge.style==='china'?'#96979a':lounge.style==='oriental'?'#a18e7d':'#929a88';
  // Three opaque sides and segmented clear frontage leave the public-map entrance legible.
  box(parent,.36,height,depth,x+side*(width/2-.18),deckY+height/2,z,stone);
  for(const end of [-1,1])box(parent,width,height,.32,x,deckY+height/2,z+end*(depth/2-.16),stone);
@@ -1018,13 +1052,15 @@ function terminal2FourthFloorLounge(parent:THREE.Object3D,b:TerminalBounds,y:num
  sign(parent,lounge.name,x-side*(width/2+.28),deckY+height-.2,z,Math.min(15,lounge.name.length*.56),lounge.accent,-side*Math.PI/2,1.05);
  sign(parent,lounge.operator.toUpperCase(),x+side*(width/2-.55),deckY+3.08,z,Math.min(15,lounge.operator.length*.58),lounge.accent,-side*Math.PI/2,.86);
  const tables:Item[]=[],tableStems:Item[]=[],tableFeet:Item[]=[],seats:Item[]=[],backs:Item[]=[],arms:Item[]=[],chairLegs:Item[]=[],screens:Item[]=[],lamps:Item[]=[],woodSlats:Item[]=[],ceilingLights:Item[]=[];
- for(let cluster=0;cluster<4;cluster++){
-  const cx=x+side*(-4.5+cluster*3),cz=z+(cluster-1.5)*4.8;
+ for(const {x:cx,z:cz} of t2FourthFloorLoungeSeatCenters(x,z,side,depth)){
   tables.push({x:cx,y:deckY+.78,z:cz,sx:1.45,sy:.1,sz:.86,color:'#d7d1c3'});tableStems.push({x:cx,y:deckY+.43,z:cz,sx:.1,sy:.66,sz:.1});tableFeet.push({x:cx,y:deckY+.1,z:cz,sx:.62,sy:.1,sz:.48});
   for(const end of [-1,1]){
-   const sx=cx+side*end*1.24;seats.push({x:sx,y:deckY+.46,z:cz,sx:1.35,sy:.18,sz:.72,color:index===3?'#667c83':'#788774'});backs.push({x:sx,y:deckY+.98,z:cz-.27,sx:1.35,sy:.78,sz:.14,color:index===3?'#71858a':'#899383'});
+   const sx=cx+side*end*1.24;seats.push({x:sx,y:deckY+.46,z:cz,sx:1.35,sy:.18,sz:.72,color:seatColor});backs.push({x:sx,y:deckY+.98,z:cz-.27,sx:1.35,sy:.78,sz:.14,color:seatBackColor});
    for(const armSide of [-1,1])arms.push({x:sx+armSide*.62,y:deckY+.68,z:cz,sx:.14,sy:.42,sz:.72,color:'#806c50'});
    for(const legX of [-.48,.48])for(const legZ of [-.24,.24])chairLegs.push({x:sx+legX,y:deckY+.19,z:cz+legZ,sx:.065,sy:.38,sz:.065,color:'#4e5b59'});
+   const seatZ=cz+end*1.52;seats.push({x:cx,y:deckY+.46,z:seatZ,sx:1.35,sy:.18,sz:.72,ry:Math.PI/2,color:seatColor});backs.push({x:cx+side*.27,y:deckY+.98,z:seatZ,sx:1.35,sy:.78,sz:.14,ry:Math.PI/2,color:seatBackColor});
+   for(const armSide of [-1,1])arms.push({x:cx,y:deckY+.68,z:seatZ+armSide*.62,sx:.72,sy:.42,sz:.14,ry:Math.PI/2,color:'#806c50'});
+   for(const legZ of [-.48,.48])for(const legX of [-.24,.24])chairLegs.push({x:cx+legX,y:deckY+.19,z:seatZ+legZ,sx:.065,sy:.38,sz:.065,color:'#4e5b59'});
   }
   screens.push({x:cx+side*3.3,y:deckY+1.12,z:cz,sx:.12,sy:1.72,sz:1.72,color:'#ad9975'});
   lamps.push({x:cx,y:deckY+height+.46,z:cz,sx:1.05,sy:.08,sz:.72,color:'#f0dfb7'});
@@ -1032,8 +1068,8 @@ function terminal2FourthFloorLounge(parent:THREE.Object3D,b:TerminalBounds,y:num
  // A quiet seating row follows the outside wall, while the central pods retain an open route.
  for(let row=0;row<5;row++){
   const seatZ=z+(row-2)*3.35,seatX=x+side*9.6;
-  seats.push({x:seatX,y:deckY+.46,z:seatZ,sx:1.38,sy:.18,sz:.72,color:index===3?'#718087':'#8c9787'});
-  backs.push({x:seatX+side*.5,y:deckY+.99,z:seatZ,sx:.14,sy:.84,sz:1.3,color:index===3?'#7e8d91':'#929a88'});
+  seats.push({x:seatX,y:deckY+.46,z:seatZ,sx:1.38,sy:.18,sz:.72,color:seatColor});
+  backs.push({x:seatX+side*.5,y:deckY+.99,z:seatZ,sx:.14,sy:.84,sz:1.3,color:seatBackColor});
   for(const armSide of [-1,1])arms.push({x:seatX+side*.5,y:deckY+.68,z:seatZ+armSide*.58,sx:.82,sy:.42,sz:.12,color:'#a58c67'});
   for(const legZ of [-.24,.24])chairLegs.push({x:seatX,y:deckY+.19,z:seatZ+legZ,sx:.065,sy:.38,sz:.065,color:'#4e5b59'});
  }
@@ -1739,7 +1775,7 @@ function terminal1(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials
  terminal1Lounge(parent,b,16.95);
 }
 /** Side-facing rooms for the narrow service band shown on T2's 1F airport map. */
-function terminal2MappedRoom(parent:THREE.Object3D,x:number,y:number,z:number,w:number,d:number,label:string,kind:'restroom'|'nursing',facing:1|-1){
+function terminal2MappedRoom(parent:THREE.Object3D,x:number,y:number,z:number,w:number,d:number,label:string,kind:'restroom'|'nursing'|'shower',facing:1|-1){
  const room=new THREE.Group();room.position.set(x,y,z);room.rotation.y=facing*Math.PI/2;
  const floor=material('#c9cbc5',.66,.025),wall=material('#dedfd8',.76,.025),door=material('#697571',.46,.1),trim=material('#9da49e',.42,.2),porcelain=material('#f1f1e9',.26,.035),front=d/2,back=-d/2;
  box(room,w,.14,d,0,.07,0,floor);box(room,w,3.35,.22,0,1.675,back,wall);
@@ -1757,14 +1793,36 @@ function terminal2MappedRoom(parent:THREE.Object3D,x:number,y:number,z:number,w:
    const bx=(basin-1)*1.82;box(room,.76,.14,.54,bx,.98,front-1.65,porcelain);box(room,.1,.38,.1,bx,.7,front-1.65,steel);
   }
   box(room,5.55,1.08,.045,0,1.75,front-1.95,new THREE.MeshPhysicalMaterial({color:'#b7c2c1',metalness:.58,roughness:.16,envMapIntensity:.65}));
- }else{
+ }else if(kind==='nursing'){
   const upholstery=material('#a99578',.82,.015),babyPad=material('#e7e6dc',.72,.02),partition=material('#d8e1dc',.6,.02);
   box(room,2.2,.42,.95,-3.1,.54,-.6,upholstery);box(room,2.2,.78,.18,-3.1,.96,-1.05,upholstery);
   box(room,1.25,.82,.72,3,.49,-.5,counter);box(room,1.35,.12,.8,3,.96,-.5,counterTop);
   box(room,.82,.9,.62,3,1.48,-.5,porcelain);box(room,1.75,.2,.78,3,.92,1.45,steel);box(room,1.68,.1,.72,3,1.07,1.45,babyPad);
   box(room,.08,2.2,1.9,0,1.1,-.3,partition);box(room,.08,2.2,1.9,0,1.1,-2.25,partition);
+ }else{
+  const glass=new THREE.MeshPhysicalMaterial({color:'#b9d1d0',roughness:.18,metalness:.04,transparent:true,opacity:.26,depthWrite:false,side:THREE.DoubleSide}),stallWidth=(w-1.2)/3,upholstery=material('#aaa89f',.78,.01);
+  for(let stall=0;stall<3;stall++){
+   const sx=(stall-1)*stallWidth;box(room,stallWidth-.16,.12,d-1.5,sx,.16,-.12,porcelain);
+   for(const side of [-1,1])box(room,.08,2.25,d-2.4,sx+side*(stallWidth/2-.08),1.18,-.62,glass);
+   box(room,stallWidth-.2,.08,.08,sx,2.3,d/2-1.18,steel);
+   box(room,.08,2.2,.12,sx,1.18,d/2-1.18,glass);
+   box(room,.09,1.8,.09,sx,1.08,-d/2+1.45,steel);box(room,.42,.09,.42,sx,2.02,-d/2+1.45,steel);
+   box(room,Math.min(2.35,stallWidth*.62),.44,.58,sx,.38,d/2-2.15,upholstery);
+  }
  }
  parent.add(room);
+}
+/** 4F public showers, restroom and AED points are present on the airport map. */
+function terminal2FourthFloorServices(parent:THREE.Object3D,b:TerminalBounds,y:number){
+ const restroom=T2_FOURTH_FLOOR_SERVICES.restroom;
+ terminal2MappedRoom(parent,b.x+restroom.dx,y,b.z+restroom.dz,restroom.width,restroom.depth,'RESTROOMS  廁所','restroom',restroom.facing);
+ for(const room of T2_FOURTH_FLOOR_SERVICES.showers)terminal2MappedRoom(parent,b.x+room.dx,y,b.z+room.dz,room.width,room.depth,'SHOWERS  淋浴室','shower',room.facing);
+ const cabinet=material('#d6dad3',.58,.08),green=material('#188e79',.42,.06),white=material('#f5f1e7',.4,.03);
+ for(const point of T2_FOURTH_FLOOR_SERVICES.aeds){
+  const x=b.x+point.dx,z=b.z+point.dz;
+  box(parent,.24,.98,.9,x,y+.49,z,cabinet);box(parent,.08,.64,.58,x+point.facing*.16,y+.49,z,green);
+  box(parent,.035,.42,.11,x+point.facing*.22,y+.49,z,white);sign(parent,'AED',x+point.facing*.2,y+1.32,z,1.2,'#188e79',point.facing*Math.PI/2,.44);
+ }
 }
 function terminal2MappedServiceDesk(parent:THREE.Object3D,wallX:number,y:number,z:number,label:string,accent:string,length:number,stations=3){
  const counterX=wallX+3.05,wall=material('#d2d4ce',.58,.06),body=material('#aeb7b2',.48,.24),top=material('#e8e9e2',.32,.08),accentMat=material(accent,.4,.12),dark=material('#23383c',.28,.18),glass=new THREE.MeshPhysicalMaterial({color:'#b6d2ce',roughness:.16,metalness:.04,transparent:true,opacity:.3,depthWrite:false,side:THREE.DoubleSide});
@@ -1936,6 +1994,7 @@ function terminal2(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials
  const fourthFloorAtrium={x:b.x+T2_FOURTH_FLOOR_LAYOUT.atrium.xOffset,z:b.z+T2_FOURTH_FLOOR_LAYOUT.atrium.zOffset,width:T2_FOURTH_FLOOR_LAYOUT.atrium.width,depth:T2_FOURTH_FLOOR_LAYOUT.atrium.depth};
  for(const shop of T2_FOURTH_FLOOR_SHOPS)terminal2FourthFloorShop(parent,b,18.82,shop);
  for(let i=0;i<T2_FOURTH_FLOOR_LOUNGES.length;i++)terminal2FourthFloorLounge(parent,b,18.82,i);
+ terminal2FourthFloorServices(parent,b,18.82);
  terminal2AtriumDining(parent,b,18.82,fourthFloorAtrium);terminal2FoodCourt(parent,b,18.82);
  addT2TempleAvenue(parent,b,23.72);observationDeck(parent,b,23.72,-1);observationDeck(parent,b,23.72,1);terminal2DeckAmenities(parent,b,23.72,-1);terminal2DeckAmenities(parent,b,23.72,1);
  decorateTerminal2(parent,b);

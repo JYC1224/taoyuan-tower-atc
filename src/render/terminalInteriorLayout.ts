@@ -80,23 +80,37 @@ export const T2_FOURTH_FLOOR_LAYOUT={
  atrium:{xOffset:0,zOffset:-42,width:110,depth:140},
  foodCourt:{xOffset:0,zRatio:.29,widthRatio:.52,depthRatio:.24},
  shop:{frontOffsetRatio:.43,depth:8.4,length:13.2,height:3.65},
- lounge:{centerOffsetRatio:.36,width:27,depth:22,height:3.8},
+ // Keep lounge suites in the side galleries outside the open atrium edge.
+ lounge:{centerOffsetRatio:.34,width:27,depth:22,height:3.8},
 } as const;
 
 export const T2_FOURTH_FLOOR_SHOPS=[
- {name:'MANNER COFFEE',side:1,zRatio:-.36,accent:'#ad1d2c',kind:'coffee'},
- {name:'MOS BURGER',side:-1,zRatio:-.30,accent:'#d3a52f',kind:'burger'},
- {name:'STARBUCKS',side:-1,zRatio:-.17,accent:'#176b50',kind:'coffee'},
- {name:'XINGBO COFFEE',side:1,zRatio:-.12,accent:'#55695c',kind:'coffee'},
- {name:'YOUSHAN DOUJIA',side:1,zRatio:.24,accent:'#8c5838',kind:'dining'},
+ {id:'t2-shop-shishen-noodles',name:'仕紳品麵',side:-1,zRatio:-.31,depth:9.5,length:18,height:3.55,accent:'#9b6449',kind:'noodles'},
+ {id:'t2-shop-starbucks',name:'STARBUCKS  星巴克',side:-1,zRatio:-.08,depth:9.5,length:17,height:3.55,accent:'#176b50',kind:'coffee'},
+ {id:'t2-shop-baiba-fish',name:'百八漁場 桃機店',side:-1,zRatio:.18,depth:10.8,length:20,height:3.7,accent:'#587b7b',kind:'seafood'},
+ {id:'t2-shop-xiaonanmen',name:'小南門',side:1,zRatio:-.31,depth:9.5,length:18,height:3.55,accent:'#a44b42',kind:'dining'},
+ {id:'t2-shop-mos-burger',name:'摩斯漢堡',side:1,zRatio:-.13,depth:9.5,length:17,height:3.55,accent:'#b78639',kind:'burger'},
+ {id:'t2-shop-xingbo-coffee',name:'興波咖啡',side:1,zRatio:.10,depth:9.5,length:17,height:3.5,accent:'#65584b',kind:'coffee'},
+ {id:'t2-shop-shangshan-doujia',name:'上善豆家',side:1,zRatio:.32,depth:9.5,length:18,height:3.6,accent:'#718064',kind:'tofu'},
 ] as const;
 
 export const T2_FOURTH_FLOOR_LOUNGES=[
- {name:'EVERGREEN LOUNGE',operator:'EVA Air',side:-1,zRatio:.28,accent:'#8c7448',style:'quiet'},
- {name:'EVERGREEN LOUNGE',operator:'EVA Air',side:1,zRatio:.27,accent:'#8c7448',style:'quiet'},
- {name:'EVERGREEN LOUNGE',operator:'EVA Air',side:-1,zRatio:.39,accent:'#8c7448',style:'quiet'},
- {name:'PLAZA PREMIUM LOUNGE',operator:'Plaza Premium',side:1,zRatio:.39,accent:'#88744e',style:'dining'},
+ {name:'中華航空貴賓室',operator:'China Airlines',side:-1,zRatio:-.27,width:27,depth:36,height:3.8,accent:'#7b4d55',style:'china'},
+ {name:'長榮航空貴賓室',operator:'EVA Air',side:-1,zRatio:-.06,width:27,depth:34,height:3.8,accent:'#8c7448',style:'eva'},
+ {name:'長榮航空貴賓室',operator:'EVA Air',side:1,zRatio:.14,width:27,depth:36,height:3.8,accent:'#8c7448',style:'eva'},
+ {name:'長榮航空貴賓室',operator:'EVA Air',side:1,zRatio:.32,width:27,depth:36,height:3.8,accent:'#8c7448',style:'eva'},
+ {name:'東方宇逸貴賓室',operator:'Oriental Club',side:1,zRatio:.43,width:27,depth:32,height:3.8,accent:'#8b7059',style:'oriental'},
 ] as const;
+
+/** 4F public amenities read from the official map; room sizes and offsets are schematic. */
+export const T2_FOURTH_FLOOR_SERVICES={
+ restroom:{dx:-78,dz:118,width:15,depth:10,facing:1 as const},
+ showers:[
+  {id:'north-showers',dx:82,dz:-135,width:16,depth:10,facing:-1 as const},
+  {id:'central-showers',dx:82,dz:-43,width:16,depth:10,facing:-1 as const},
+ ],
+ aeds:[{id:'west-aed',dx:-74,dz:-18,facing:1 as const},{id:'south-aed',dx:24,dz:128,facing:1 as const}],
+} as const;
 
 /** T2's official 3F map names five separate airside retail/service frontages. */
 export const T2_THIRD_FLOOR_LAYOUT={
@@ -137,11 +151,20 @@ export function t2ThirdFloorRetailUnits(centerX:number,centerZ:number,terminalWi
  });
 }
 
-export function t2FourthFloorShopCenter(centerX:number,centerZ:number,terminalWidth:number,terminalDepth:number,side:-1|1,zRatio:number){
+export function t2FourthFloorShopCenter(centerX:number,centerZ:number,terminalWidth:number,terminalDepth:number,side:-1|1,zRatio:number,shopDepth:number=T2_FOURTH_FLOOR_LAYOUT.shop.depth){
  const frontX=centerX+side*terminalWidth*T2_FOURTH_FLOOR_LAYOUT.shop.frontOffsetRatio;
- return {x:frontX+side*T2_FOURTH_FLOOR_LAYOUT.shop.depth/2,z:centerZ+terminalDepth*zRatio,frontX};
+ return {x:frontX+side*shopDepth/2,z:centerZ+terminalDepth*zRatio,frontX};
 }
 
 export function t2FourthFloorLoungeCenter(centerX:number,centerZ:number,terminalWidth:number,terminalDepth:number,side:-1|1,zRatio:number){
  return {x:centerX+side*terminalWidth*T2_FOURTH_FLOOR_LAYOUT.lounge.centerOffsetRatio,z:centerZ+terminalDepth*zRatio};
+}
+
+/** Regular two-column seating groups leave a continuous center aisle through each lounge. */
+export function t2FourthFloorLoungeSeatCenters(centerX:number,centerZ:number,side:-1|1,depth:number){
+ const rows=depth>=34?3:2,spacing=rows===3?8:7;
+ return Array.from({length:rows*2},(_,index)=>{
+  const row=Math.floor(index/2),column=index%2===0?-1:1;
+  return {x:centerX+side*column*5.1,z:centerZ+(row-(rows-1)/2)*spacing};
+ });
 }
