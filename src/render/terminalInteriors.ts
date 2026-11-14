@@ -73,10 +73,10 @@ function terminalFloor(profile:'T1'|'T2'){
  });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;
  // Keep the stone readable under daylight. Strong self-emission had washed out
  // the grain, grout and T2's characteristic muted green-grey floor tone.
- const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':'#e7ecdf',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:.009,roughness:profile==='T1'?.13:.17,metalness:.025,clearcoat:profile==='T1'?.82:.76,clearcoatRoughness:profile==='T1'?.11:.14,emissive:profile==='T1'?'#77766f':'#8d8967',emissiveIntensity:profile==='T1'?.12:.24});
+ const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':'#e7ecdf',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:.006,roughness:profile==='T1'?.13:.105,metalness:.025,clearcoat:profile==='T1'?.82:.9,clearcoatRoughness:profile==='T1'?.11:.075,emissive:profile==='T1'?'#77766f':'#8d8967',emissiveIntensity:profile==='T1'?.12:.24});
  // Outdoor sky reflections look like windows on an indoor floor. Keep a low,
  // soft return so the polished stone reads without reflecting airport clouds.
- mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:.92;mat.userData.reflectionMap=interiorReflection(profile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;finishCache.set(key,mat);return mat;
+ mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:1.15;mat.userData.reflectionMap=interiorReflection(profile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;finishCache.set(key,mat);return mat;
 }
 function terminalCeiling(profile:'T1'|'T2'){
  const key=`${profile}-ceiling`,cached=finishCache.get(key);if(cached)return cached;
