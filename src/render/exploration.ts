@@ -1,5 +1,5 @@
 import {gates,runways,terminals} from '../data/airport';
-import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type ExploreSpotId=
@@ -23,7 +23,8 @@ const t1CheckInStartZ=t1.z-42,t1CheckInSpacing=t1.depth*.60/5;
 const t1LandmarkCenterX=t1.x+T1_DEPARTURE_LANDMARK_LAYOUT.xOffset,
  t1LandmarkCenterZ=t1.z+T1_DEPARTURE_LANDMARK_LAYOUT.checkInCenterOffset+t1.depth*T1_DEPARTURE_LANDMARK_LAYOUT.checkInSpanRatio*(T1_DEPARTURE_LANDMARK_LAYOUT.islandIndex/(T1_DEPARTURE_LANDMARK_LAYOUT.islandCount-1)-.5),
  t1DepartureLandmarkFeature=expanded(t1LandmarkCenterX,t1LandmarkCenterZ,T1_DEPARTURE_LANDMARK_LAYOUT.width,T1_DEPARTURE_LANDMARK_LAYOUT.depth,.7);
-const t2CheckInStartZ=t2.z-67,t2CheckInSpacing=Math.min(26,t2.depth*.085);
+const t2CheckInLayout=T2_THIRD_FLOOR_LAYOUT.checkIn,t2CheckInStartZ=t2.z+t2CheckInLayout.centerZOffset,
+ t2CheckInBanks=t2ThirdFloorCheckInBanks(t2.x,t2CheckInStartZ,t2.depth);
 function columnsFor(t:{x:number;z:number;width:number;depth:number},profile?:'T1'|'T2'){
  const columns:Rect[]=[],spacingX=t.width>300?30:26,spacingZ=t.depth>180?34:22;
  if(profile){
@@ -118,9 +119,11 @@ const t1SouthBank=T1_THIRD_FLOOR_SERVICES.banks[1];
 const t2NorthFeatures=[expanded(t2.x-t2.width*.275,t2.z-t2.depth*.43,23,9),expanded(t2.x+t2.width*.235,t2.z-t2.depth*.43-1.4,22,11)];
 const t2SouthFeatures=[expanded(t2.x+t2.width*.275,t2.z+t2.depth*.13,23,9),expanded(t2.x-t2.width*.245,t2.z+t2.depth*.13-2.1,24,7),expanded(t2.x-t2.width*.08,t2.z+t2.depth*.13+7,16,8)];
 const t2Checkin:Rect[]=[];
-// T2's five bank centres follow the long hall axis; include the counter,
-// baggage belt and passenger-side queue lane in each footprint.
-for(let i=0;i<5;i++)t2Checkin.push(expanded(t2.x,t2CheckInStartZ+(i-2)*t2CheckInSpacing+4.6,24,17));
+// The paired counters and queue lanes follow the shared T2 3F bank layout.
+for(const bank of t2CheckInBanks){
+ t2Checkin.push(expanded(bank.x,bank.z,bank.rowWidth+1.4,t2CheckInLayout.islandDepth));
+ for(const side of [-1,1])t2Checkin.push(expanded(bank.x,bank.z+side*(t2CheckInLayout.queueNearOffset+t2CheckInLayout.queueFarOffset)/2,bank.rowWidth+2,t2CheckInLayout.queueFarOffset-t2CheckInLayout.queueNearOffset));
+}
 const t2DepartureImmigration=[expanded(t2.x+12,t2.z+5,105,28)];
 const t2DepartureSecurity=[expanded(t2.x,t2.z+37,54,22)];
 const t2DepartureRetail=t2ThirdFloorRetailUnits(t2.x,t2.z,t2.width).map(unit=>expanded(unit.x,unit.z,unit.depth,unit.length));

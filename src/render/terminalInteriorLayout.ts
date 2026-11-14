@@ -244,6 +244,19 @@ export const T2_TEMPLE_AVENUE_LAYOUT={
 
 /** T2's official 3F map names five separate airside retail/service frontages. */
 export const T2_THIRD_FLOOR_LAYOUT={
+ checkIn:{
+  centerZOffset:-67,
+  bankCount:5,
+  bankSpacingRatio:.085,
+  maxBankSpacing:26,
+  countersPerBank:[5,5,6,5,5] as const,
+  counterSpacing:3.45,
+  islandDepth:5.8,
+  counterFaceOffset:2,
+  queueBarrierOffset:4.2,
+  queueNearOffset:4.8,
+  queueFarOffset:9.2,
+ },
  retail:{centerZOffset:85,frontOffsetRatio:.22,span:120,gap:1.5},
  services:[
   {id:'nursing',dx:-24,dz:-89,width:14,depth:10,label:'NURSING ROOM  哺集乳室',kind:'nursing',facing:-1 as const},
@@ -257,6 +270,17 @@ export const T2_THIRD_FLOOR_LAYOUT={
  exchange:{dx:-70,dz:-27},
  aeds:[{dx:55,dz:-5}]
 } as const;
+
+/** The official T2 3F map depicts paired counter rows grouped into five banks. */
+export function t2ThirdFloorCheckInBanks(centerX:number,centerZ:number,terminalDepth:number){
+ const layout=T2_THIRD_FLOOR_LAYOUT.checkIn,spacing=Math.min(layout.maxBankSpacing,terminalDepth*layout.bankSpacingRatio);
+ return layout.countersPerBank.map((counterCount,index)=>({
+  x:centerX,
+  z:centerZ+(index-(layout.bankCount-1)/2)*spacing,
+  counterCount,
+  rowWidth:Math.ceil(counterCount/2)*layout.counterSpacing,
+ }));
+}
 
 /**
  * Shop names follow the airport's current 3F map. Individual frontage lengths,

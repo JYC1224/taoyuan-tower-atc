@@ -3,7 +3,7 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives';
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
-import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
@@ -904,48 +904,66 @@ function terminal1Lounge(parent:THREE.Object3D,b:TerminalBounds,level:number){
  for(let suite=0;suite<suiteCenters.length;suite++)sign(parent,'QUIET SEATING  靜憩區',suiteX+w*.29,base+3.3,suiteCenters[suite]+suiteDepth*.23,Math.min(10,w*.25),T1_FOURTH_FLOOR_LOUNGES[suite].accent,Math.PI,.82);
 }
 
-function checkInHall(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number,islands:number,countersPerIsland:number|number[],startNumber:number=1,profile?:'T1'|'T2'){
- const bases:Item[]=[],tops:Item[]=[],monitors:Item[]=[],stands:Item[]=[],bagBelts:Item[]=[],posts:Item[]=[],queueRails:Item[]=[],islandQueuePosts:Item[]=[],islandQueueRails:Item[]=[],islandBases:Item[]=[],beltSurfaces:Item[]=[],beltRollers:Item[]=[],kiosks:Item[]=[],kioskScreens:Item[]=[],headerSupports:Item[]=[];let nextNumber=startNumber;
+function checkInHall(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number,islands:number,countersPerIsland:number|readonly number[],startNumber:number=1,profile?:'T1'|'T2'){
+ const bases:Item[]=[],tops:Item[]=[],monitors:Item[]=[],stands:Item[]=[],bagBelts:Item[]=[],posts:Item[]=[],queueRails:Item[]=[],islandQueuePosts:Item[]=[],islandQueueRails:Item[]=[],islandBases:Item[]=[],beltSurfaces:Item[]=[],beltRollers:Item[]=[],kiosks:Item[]=[],kioskScreens:Item[]=[];let nextNumber=startNumber;
+ const isT2=profile==='T2',t2Banks=isT2?t2ThirdFloorCheckInBanks(b.x,z,b.depth):undefined,t2Layout=T2_THIRD_FLOOR_LAYOUT.checkIn;
  for(let g=0;g<islands;g++){
-  const counterCount=Array.isArray(countersPerIsland)?(countersPerIsland[g]??countersPerIsland.at(-1)??1):countersPerIsland;
-  // T2's public 3F map stacks the check-in islands along the building's long
-  // hall axis; the counter runs span the short axis across X.
-  const isT2=profile==='T2',cx=isT2?b.x:b.x+(g-(islands-1)/2)*(b.width/(islands+1.05)),rowZ=isT2?z+(g-(islands-1)/2)*Math.min(26,b.depth*.085):profile==='T1'?z+(g-(islands-1)/2)*7.2:z,first=nextNumber,last=first+counterCount-1,rowWidth=counterCount*3.45;nextNumber=last+1;
+  const counterCount=typeof countersPerIsland==='number'?countersPerIsland:(countersPerIsland[g]??countersPerIsland[countersPerIsland.length-1]??1);
+  // T2's public 3F map stacks paired check-in rows along the long hall axis.
+  const t2Bank=t2Banks?.[g],cx=isT2?b.x:b.x+(g-(islands-1)/2)*(b.width/(islands+1.05)),rowZ=isT2?(t2Bank?.z??z):profile==='T1'?z+(g-(islands-1)/2)*7.2:z,first=nextNumber,last=first+counterCount-1,rowWidth=isT2?(t2Bank?.rowWidth??Math.ceil(counterCount/2)*t2Layout.counterSpacing):counterCount*3.45;nextNumber=last+1;
   if(profile){
    const islandZ=rowZ,bodyY=y+(isT2?.31:.47),baseMat=isT2?'#414947':'#6b7472',approach=isT2?1:-1;
-   islandBases.push({x:cx,y:bodyY,z:islandZ,sx:rowWidth+1.4,sy:isT2?.58:.86,sz:3.05,color:baseMat});
-   // A full-width baggage belt is the defining shape missing from the old
-   // individual counter boxes. Metal rollers stay visible at its public edge.
-   beltSurfaces.push({x:cx,y:y+(isT2?.69:.94),z:islandZ-approach*1.9,sx:rowWidth+.5,sy:isT2?.14:.18,sz:1.05,color:'#252b2a'});
-   for(let rx=-rowWidth/2+.42;rx<=rowWidth/2-.42;rx+=.62)beltRollers.push({x:cx+rx,y:y+(isT2?.79:1.045),z:islandZ-approach*1.9,sx:.075,sy:.055,sz:.9,color:'#a4aaa5'});
-   for(let post=0;post<counterCount+1;post++){
-    const px=cx+(post-counterCount/2)*Math.min(2.3,rowWidth/(counterCount+1)),frontZ=islandZ+approach*4.9;
-    posts.push({x:px,y:y+(isT2?.43:.62),z:frontZ,sx:.09,sy:isT2?1:1.24,sz:.09});
-    if(post<counterCount)queueRails.push({x:px+Math.min(2.3,rowWidth/(counterCount+1))/2,y:y+(isT2?.57:.69),z:frontZ,sx:Math.min(2.3,rowWidth/(counterCount+1)),sy:.05,sz:.055});
-   }
+   islandBases.push({x:cx,y:bodyY,z:islandZ,sx:rowWidth+1.4,sy:isT2?.58:.86,sz:isT2?t2Layout.islandDepth:3.05,color:baseMat});
+   // The paired T2 faces share one dark central baggage-belt core.
+   const beltZ=isT2?islandZ:islandZ-approach*1.9;
+   beltSurfaces.push({x:cx,y:y+(isT2?.69:.94),z:beltZ,sx:rowWidth+.5,sy:isT2?.14:.18,sz:1.05,color:'#252b2a'});
+   for(let rx=-rowWidth/2+.42;rx<=rowWidth/2-.42;rx+=.62)beltRollers.push({x:cx+rx,y:y+(isT2?.79:1.045),z:beltZ,sx:.075,sy:.055,sz:.9,color:'#a4aaa5'});
    if(isT2){
-    const laneWidth=rowWidth/counterCount,queueNear=islandZ+approach*5.8,queueFar=islandZ+approach*11.6;
-    for(let boundary=0;boundary<=counterCount;boundary++){
-     const x=cx-rowWidth/2+boundary*laneWidth;
-     islandQueuePosts.push({x,y:y+.57,z:queueNear,sx:.09,sy:1.14,sz:.09},{x,y:y+.57,z:queueFar,sx:.09,sy:1.14,sz:.09});
-     islandQueueRails.push({x,y:y+.94,z:(queueNear+queueFar)/2,sx:.055,sy:.06,sz:queueFar-queueNear-.2});
+    for(const side of [-1,1] as const){
+     const faceCount=side===1?Math.ceil(counterCount/2):Math.floor(counterCount/2);if(!faceCount)continue;
+     const faceWidth=faceCount*t2Layout.counterSpacing,laneWidth=faceWidth/faceCount,postSpacing=Math.min(2.3,faceWidth/(faceCount+1)),frontZ=islandZ+side*t2Layout.queueBarrierOffset,
+      queueNear=islandZ+side*t2Layout.queueNearOffset,queueFar=islandZ+side*t2Layout.queueFarOffset;
+     for(let post=0;post<=faceCount;post++){
+      const px=cx+(post-faceCount/2)*postSpacing;
+      posts.push({x:px,y:y+.57,z:frontZ,sx:.09,sy:1.14,sz:.09});
+      if(post<faceCount)queueRails.push({x:px+postSpacing/2,y:y+.94,z:frontZ,sx:postSpacing,sy:.06,sz:.055});
+     }
+     for(let boundary=0;boundary<=faceCount;boundary++){
+      const x=cx-faceWidth/2+boundary*laneWidth;
+      islandQueuePosts.push({x,y:y+.57,z:queueNear,sx:.09,sy:1.14,sz:.09},{x,y:y+.57,z:queueFar,sx:.09,sy:1.14,sz:.09});
+      islandQueueRails.push({x,y:y+.94,z:(queueNear+queueFar)/2,sx:.055,sy:.06,sz:Math.abs(queueFar-queueNear)-.2});
+     }
+     for(let lane=0;lane<faceCount;lane+=2)islandQueueRails.push({x:cx-faceWidth/2+(lane+.5)*laneWidth,y:y+.94,z:queueFar,sx:laneWidth-.18,sy:.06,sz:.055});
     }
-    for(let lane=0;lane<counterCount;lane+=2)islandQueueRails.push({x:cx-rowWidth/2+(lane+.5)*laneWidth,y:y+.94,z:queueFar,sx:laneWidth-.18,sy:.06,sz:.055});
+   }else{
+    const frontZ=islandZ+approach*4.9,postSpacing=Math.min(2.3,rowWidth/(counterCount+1));
+    for(let post=0;post<counterCount+1;post++){
+     const px=cx+(post-counterCount/2)*postSpacing;
+     posts.push({x:px,y:y+.62,z:frontZ,sx:.09,sy:1.24,sz:.09});
+     if(post<counterCount)queueRails.push({x:px+postSpacing/2,y:y+.69,z:frontZ,sx:postSpacing,sy:.05,sz:.055});
+    }
    }
   }
-  const headerWidth=profile==='T2'?6.6:Math.max(7.5,Math.min(9.5,rowWidth*.5));
-  sign(parent,`CHECK-IN  ${String(first).padStart(2,'0')}–${String(last).padStart(2,'0')}  報到`,cx,y+4.1,rowZ-6,headerWidth,g%2?'#aa9160':'#718b88',0,profile==='T2'?1.1:1.55);
-  if(profile==='T2')for(const side of [-1,1])headerSupports.push({x:cx+side*(headerWidth/2-.18),y:y+3.38,z:rowZ-6,sx:.09,sy:1.45,sz:.09});
+  const headerWidth=Math.max(7.5,Math.min(9.5,rowWidth*.5));
+  if(profile!=='T2')sign(parent,`CHECK-IN  ${String(first).padStart(2,'0')}–${String(last).padStart(2,'0')}  報到`,cx,y+4.1,rowZ-6,headerWidth,g%2?'#aa9160':'#718b88',0,1.55);
   for(let j=0;j<counterCount;j++){
-   const x=cx+(j-(counterCount-1)/2)*3.45,number=first+j;
-   const compact=profile==='T2';bases.push({x,y:y+(compact?.4:.72),z:rowZ,sx:3.05,sy:compact?.64:1.05,sz:1.24,color:profile==='T2'?'#777f7c':'#aab1ae'});tops.push({x,y:y+(compact?.75:1.31),z:rowZ,sx:3.22,sy:compact?.12:.14,sz:1.42,color:profile==='T2'?'#d2d4cc':'#e8e9e3'});
-   const approach=profile==='T2'?1:-1;stands.push({x:x+.9,y:y+(compact?1.08:1.8),z:rowZ+approach*.2,sx:.13,sy:compact?.5:.82,sz:.12});monitors.push({x:x+.9,y:y+(compact?1.56:2.23),z:rowZ+approach*.2,sx:compact?.72:.82,sy:compact?.48:.63,sz:.12});
-   if(profile==='T2')counterNumberSign(parent,String(number).padStart(2,'0'),x,y+3.27,rowZ-3.2,1.56,1.12);
-   if(!profile&&j%2===0)bagBelts.push({x:x-1.18,y:y+.57,z:rowZ+.13,sx:.52,sy:.34,sz:.9});
+   const number=first+j,compact=profile==='T2';
+   if(isT2){
+    const positiveFaceCount=Math.ceil(counterCount/2),side:(-1|1)=j<positiveFaceCount?1:-1,faceCount=side===1?positiveFaceCount:Math.floor(counterCount/2),faceIndex=side===1?j:j-positiveFaceCount,
+     x=cx+(faceIndex-(faceCount-1)/2)*t2Layout.counterSpacing,counterZ=rowZ+side*t2Layout.counterFaceOffset;
+    bases.push({x,y:y+.4,z:counterZ,sx:3.05,sy:.64,sz:1.24,color:'#777f7c'});tops.push({x,y:y+.75,z:counterZ,sx:3.22,sy:.12,sz:1.42,color:'#d2d4cc'});
+    stands.push({x:x+.9,y:y+1.08,z:counterZ+side*.2,sx:.13,sy:.5,sz:.12});monitors.push({x:x+.9,y:y+1.56,z:counterZ+side*.2,sx:.72,sy:.48,sz:.12});
+    counterNumberSign(parent,String(number).padStart(2,'0'),x,y+3.27,counterZ+side*.82,1.56,1.12);
+   }else{
+    const x=cx+(j-(counterCount-1)/2)*3.45;
+    bases.push({x,y:y+(compact?.4:.72),z:rowZ,sx:3.05,sy:compact?.64:1.05,sz:1.24,color:'#aab1ae'});tops.push({x,y:y+(compact?.75:1.31),z:rowZ,sx:3.22,sy:compact?.12:.14,sz:1.42,color:'#e8e9e3'});
+    stands.push({x:x+.9,y:y+(compact?1.08:1.8),z:rowZ-.2,sx:.13,sy:compact?.5:.82,sz:.12});monitors.push({x:x+.9,y:y+(compact?1.56:2.23),z:rowZ-.2,sx:compact?.72:.82,sy:compact?.48:.63,sz:.12});
+    if(!profile&&j%2===0)bagBelts.push({x:x-1.18,y:y+.57,z:rowZ+.13,sx:.52,sy:.34,sz:.9});
+   }
   }
   if(!profile)aislePosts(posts,cx,y,rowZ-5.3,counterCount+1,Math.min(2.3,rowWidth/(counterCount+1)));
  }
- batch(parent,profile==='T2'?t2Island:profile==='T1'?t1Island:counter,islandBases);batch(parent,islandTrim,beltSurfaces);batch(parent,beltRoller,beltRollers);batch(parent,counter,bases);batch(parent,counterTop,tops);batch(parent,steel,stands);batch(parent,screen,monitors);batch(parent,belt,bagBelts);batch(parent,queuePost,posts);batch(parent,steel,queueRails);batch(parent,queuePost,islandQueuePosts);batch(parent,steel,islandQueueRails);batch(parent,steel,headerSupports);
+ batch(parent,profile==='T2'?t2Island:profile==='T1'?t1Island:counter,islandBases);batch(parent,islandTrim,beltSurfaces);batch(parent,beltRoller,beltRollers);batch(parent,counter,bases);batch(parent,counterTop,tops);batch(parent,steel,stands);batch(parent,screen,monitors);batch(parent,belt,bagBelts);batch(parent,queuePost,posts);batch(parent,steel,queueRails);batch(parent,queuePost,islandQueuePosts);batch(parent,steel,islandQueueRails);
  const kioskCount=Math.max(8,islands*3),bankCount=Math.ceil(kioskCount/2);for(let i=0;i<kioskCount;i++){const bank=i<bankCount?0:1,index=bank===0?i:i-bankCount,localCount=bank===0?bankCount:kioskCount-bankCount,side=bank===0?-1:1,x=b.x+side*b.width*.29+(index-(localCount-1)/2)*3.2,kioskZ=z-17;kiosks.push({x,y:y+1.05,z:kioskZ,sx:1.2,sy:2.1,sz:.85});kioskScreens.push({x,y:y+1.3,z:kioskZ-.45,sx:.62,sy:.58,sz:.055});}
  batch(parent,counter,kiosks);batch(parent,screen,kioskScreens);
  sign(parent,'DEPARTURES  出境',b.x,y+5.4,z-23,Math.min(b.width*.055,10),'#aa9160');
@@ -2518,14 +2536,14 @@ function terminal2WanLaiArt(parent:THREE.Object3D,b:TerminalBounds,y:number,z:nu
  for(const edge of [-1,1])box(parent,width,.12,.12,wallX+.24,y+height/2+edge*(height/2-.08),z,rail,Math.PI/2);
 }
 function terminal2(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials){
- const levels=[...T2_FLOOR_LEVELS],atrium={fromLevel:5,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats),lowerFloor=terminalFloor('T2','lower');
+ const levels=[...T2_FLOOR_LEVELS],atrium={fromLevel:5,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats),lowerFloor=terminalFloor('T2','lower'),checkInLayout=T2_THIRD_FLOOR_LAYOUT.checkIn;
  addDecks(parent,b,levels,mats.concrete,.16,atrium,finishes,undefined,new Map([[0,lowerFloor],[1,mats.concrete],[2,lowerFloor],[3,lowerFloor]]));
  const arrivalCeilingY=levels[3]-.17-.17-.012;terminal2ArrivalCeilingGrid(parent,b,arrivalCeilingY);terminal2ArrivalDropCeiling(parent,b,arrivalCeilingY);terminal2ArrivalArtCeiling(parent,b,arrivalCeilingY);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2',levels[0]);verticalCirculation(parent,b,levels,'T2');terminal2Basement(parent,b,levels[0],levels[1]);
  baggageClaim(parent,b,.58,b.z-30,6,'x',b.x,1);
  baggageClaim(parent,b,.58,b.z-55,2,'x',b.x-58,7);terminal2WanLaiArt(parent,b,.58,b.z-55);
  customsHall(parent,b,.58,b.z-23);arrivalLobby(parent,b,.58,b.z+24,.72,false);terminal2ArrivalServices(parent,b,.58);terminal2ArrivalArt(parent,b,.58);sign(parent,'MRT  機場捷運',b.x+b.width*.28,.58+4,b.z+70,11,'#6f9898');
   terminal2TransferServices(parent,b,6.48);securityHall(parent,b,6.48,b.z+48,4,'#86b9b8','TRANSFER SECURITY  轉機安檢');
- checkInHall(parent,b,12.62,b.z-67,5,[5,5,6,5,5],1,'T2');
+ checkInHall(parent,b,12.62,b.z+checkInLayout.centerZOffset,checkInLayout.bankCount,checkInLayout.countersPerBank,1,'T2');
  terminal2DepartureImmigration(parent,b,12.62,b.z+5);
  securityHall(parent,b,12.62,b.z+37,7);flightBoards(parent,b,12.62,b.z+60);seating(parent,b,12.62,b.z+78,3,12,true);
  terminal2DepartureRetailAndServices(parent,b,12.62);
