@@ -94,10 +94,10 @@ function interiorReflection(profile:'T1'|'T2'|'T2-LOW'){
 function terminalFloor(profile:'T1'|'T2',zone:'main'|'lower'='main'){
  const lower=profile==='T2'&&zone==='lower',reflectionProfile=lower?'T2-LOW':profile,key=`${profile}-${zone}-floor`,cached=finishCache.get(key);if(cached)return cached;
  const rand=seeded(profile==='T1'?11807:lower?21806:21807),texture=canvasTexture(512,512,ctx=>{
-  const t1=profile==='T1',base=t1?'#c5c9c7':lower?'#b7bab7':'#999b8d';ctx.fillStyle=base;ctx.fillRect(0,0,512,512);
+  const t1=profile==='T1',base=t1?'#c5c9c7':lower?'#a7aaa8':'#999b8d';ctx.fillStyle=base;ctx.fillRect(0,0,512,512);
   // Large, quiet stone modules with real-scale joints. T1 is pale cool terrazzo;
   // T2 is the darker, slightly green-grey polished stone visible in hall photos.
-  const delta=Math.floor((rand()-.5)*8),shade=t1?199+delta:lower?166+delta:146+delta,tileSize=t1?128:lower?128:256;
+  const delta=Math.floor((rand()-.5)*8),shade=t1?199+delta:lower?150+delta:146+delta,tileSize=t1?128:256;
   for(let y=2;y<512;y+=tileSize)for(let x=2;x<512;x+=tileSize){
    const variation=Math.floor((rand()-.5)*(t1?5:lower?17:9)),r=THREE.MathUtils.clamp(shade+variation,0,255),g=THREE.MathUtils.clamp(shade+(t1?1:lower?2:7)+variation,0,255),b=THREE.MathUtils.clamp(shade+(t1?2:lower?0:-16)+variation,0,255);
    ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillRect(x,y,tileSize-2,tileSize-2);
@@ -105,18 +105,18 @@ function terminalFloor(profile:'T1'|'T2',zone:'main'|'lower'='main'){
   }
   const wash=ctx.createLinearGradient(0,0,512,512);wash.addColorStop(0,'rgba(255,255,255,.18)');wash.addColorStop(.46,'rgba(255,255,255,.035)');wash.addColorStop(1,'rgba(31,39,37,.055)');ctx.fillStyle=wash;ctx.fillRect(2,2,508,508);
   // Low-contrast cloudy mineral variation breaks the repeated colour-block look.
-  for(let i=0;i<64;i++){const x=rand()*512,y=rand()*512,r=9+rand()*28,light=rand()>.48,g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,t1?(light?'rgba(248,249,245,.10)':'rgba(74,82,82,.055)'):lower?(light?'rgba(242,244,239,.13)':'rgba(53,61,58,.08)'):(light?'rgba(205,214,197,.10)':'rgba(35,51,45,.12)'));g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}
-  for(let i=0;i<10500;i++){const v=Math.floor(105+rand()*125),alpha=lower?.035+rand()*.075:.022+rand()*.048;ctx.fillStyle=`rgba(${v},${v+((i%3)-1)*2},${Math.max(0,v+(t1?1:lower?0:-5))},${alpha})`;const size=.6+rand()*1.8;ctx.fillRect(rand()*512,rand()*512,size,size);}
+  for(let i=0;i<(lower?88:64);i++){const x=rand()*512,y=rand()*512,r=9+rand()*28,light=rand()>.48,g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,t1?(light?'rgba(248,249,245,.10)':'rgba(74,82,82,.055)'):lower?(light?'rgba(241,242,238,.16)':'rgba(48,55,53,.12)'):(light?'rgba(205,214,197,.10)':'rgba(35,51,45,.12)'));g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}
+  const grainCount=lower?22000:10500;for(let i=0;i<grainCount;i++){const dark=lower&&rand()<.42,v=Math.floor(lower?(dark?52+rand()*62:178+rand()*68):105+rand()*125),alpha=lower?.08+rand()*.15:.022+rand()*.048;ctx.fillStyle=`rgba(${v},${v+((i%3)-1)*2},${Math.max(0,v+(t1?1:lower?0:-5))},${alpha})`;const size=lower?1.1+rand()*2.9:.6+rand()*1.8;ctx.fillRect(rand()*512,rand()*512,size,size);}
   ctx.strokeStyle=t1?'rgba(55,65,66,.14)':lower?'rgba(48,58,56,.19)':'rgba(45,55,49,.27)';ctx.lineWidth=t1?.9:lower?.9:1.1;ctx.beginPath();for(let p=0;p<=512;p+=tileSize){ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);}ctx.stroke();
   ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(4,6);ctx.lineTo(508,6);ctx.moveTo(6,4);ctx.lineTo(6,508);ctx.stroke();
   ctx.globalAlpha=.13;ctx.fillStyle=t1?'#626c6c':'#414d47';for(let y=18;y<512;y+=23)for(let x=20+(Math.floor(y/23)%2)*13;x<512;x+=37)ctx.fillRect(x,y,1.2,1.2);ctx.globalAlpha=1;
  });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;
  // Keep the stone readable under daylight. Strong self-emission had washed out
  // the grain, grout and T2's characteristic muted green-grey floor tone.
- const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':lower?'#f1f2ef':'#e7ecdf',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:lower?.007:.006,roughness:profile==='T1'?.13:lower?.12:.075,metalness:.025,clearcoat:profile==='T1'?.82:lower?.88:.92,clearcoatRoughness:profile==='T1'?.11:lower?.09:.055,emissive:profile==='T1'?'#77766f':lower?'#7c807a':'#8d8967',emissiveIntensity:profile==='T1'?.12:lower?.12:.24});
+ const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':lower?'#e2e4e1':'#e7ecdf',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:lower?.012:.006,roughness:profile==='T1'?.13:lower?.12:.075,metalness:.025,clearcoat:profile==='T1'?.82:lower?.84:.92,clearcoatRoughness:profile==='T1'?.11:lower?.095:.055,emissive:profile==='T1'?'#77766f':lower?'#7c807a':'#8d8967',emissiveIntensity:profile==='T1'?.12:lower?.08:.24});
  // Outdoor sky reflections look like windows on an indoor floor. Keep a low,
  // soft return so the polished stone reads without reflecting airport clouds.
- mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:lower?1.18:1.7;mat.userData.reflectionMap=interiorReflection(reflectionProfile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;mat.userData.terminalFloorZone=lower?'lower':'main';finishCache.set(key,mat);return mat;
+ mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:lower?1.32:1.7;mat.userData.reflectionMap=interiorReflection(reflectionProfile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;mat.userData.terminalFloorZone=lower?'lower':'main';finishCache.set(key,mat);return mat;
 }
 function terminalCeiling(profile:'T1'|'T2'){
  const key=`${profile}-ceiling`,cached=finishCache.get(key);if(cached)return cached;
@@ -226,15 +226,32 @@ function addDecks(parent:THREE.Object3D,b:TerminalBounds,levels:number[],finish:
   batch(parent,ceilingStrip,strips);
  }
 }
-const t2ArrivalCeilingMember=material('#cdd1cd',.58,.12);
+const t2ArrivalCeilingMember=new THREE.MeshStandardMaterial({color:'#e5e6df',roughness:.68,metalness:.06,emissive:'#92948e',emissiveIntensity:.14});
+const t2ArrivalCeilingPanel=(()=>{
+ const map=canvasTexture(512,512,ctx=>{
+  ctx.fillStyle='#eff0eb';ctx.fillRect(0,0,512,512);
+  for(let y=0;y<512;y+=128)for(let x=0;x<512;x+=128){ctx.fillStyle=((x+y)/128)%2===0?'#f2f3ee':'#e8eae5';ctx.fillRect(x+2,y+2,124,124);}
+  ctx.strokeStyle='rgba(83,91,88,.18)';ctx.lineWidth=2;for(let p=0;p<=512;p+=128){ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,512);ctx.moveTo(0,p);ctx.lineTo(512,p);ctx.stroke();}
+ });map.wrapS=map.wrapT=THREE.RepeatWrapping;map.anisotropy=8;
+ const lamps=canvasTexture(512,512,ctx=>{ctx.fillStyle='#000';ctx.fillRect(0,0,512,512);for(const y of [64,320])for(const x of [64,320]){ctx.fillStyle='#bdb9aa';ctx.fillRect(x-19,y-8,38,16);ctx.fillStyle='#fff3d8';ctx.fillRect(x-15,y-5,30,10);}});lamps.wrapS=lamps.wrapT=THREE.RepeatWrapping;lamps.anisotropy=8;
+ const mat=new THREE.MeshStandardMaterial({color:'#fff',map,roughness:.9,metalness:.015,emissive:'#fff1d1',emissiveMap:lamps,emissiveIntensity:.28});mat.userData.worldUV=1/4.8;return mat;
+})();
 /** The 1F arrivals photograph shows a pale diagonal ceiling grid below the 2F deck. */
 function terminal2ArrivalCeilingGrid(parent:THREE.Object3D,b:TerminalBounds,ceilingY:number){
- const pitch=4.8,left=b.x-(b.width-3)/2+pitch/2,right=b.x+(b.width-3)/2-pitch/2,near=b.z-(b.depth-4)/2+pitch/2,far=b.z+(b.depth-4)/2-pitch/2,y=ceilingY-.055,members:Item[]=[];
+ const pitch=4.8,left=b.x-(b.width-3)/2+pitch/2,right=Math.min(b.x+b.width*.32,b.x+(b.width-3)/2-pitch/2),near=b.z-(b.depth-4)/2+pitch/2,far=b.z+(b.depth-4)/2-pitch/2,y=ceilingY-.055,members:Item[]=[];
  for(let x=left;x<=right;x+=pitch)for(let z=near;z<=far;z+=pitch){
   const span=pitch*Math.SQRT2;
   members.push({x,y,z,sx:span,sy:.075,sz:.075,ry:-Math.PI/4},{x,y,z,sx:span,sy:.075,sz:.075,ry:Math.PI/4});
  }
  batch(parent,t2ArrivalCeilingMember,members);
+}
+/** The arrivals photo shows a lower, square-panel ceiling along one long edge. */
+function terminal2ArrivalDropCeiling(parent:THREE.Object3D,b:TerminalBounds,ceilingY:number){
+ const width=b.width*.18,depth=b.depth*.84,x=b.x+b.width*.41,z=b.z,y=ceilingY-.49;
+ const panel=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),t2ArrivalCeilingPanel);panel.rotation.x=-Math.PI/2;panel.position.set(x,y,z);panel.castShadow=false;panel.receiveShadow=false;parent.add(panel);
+ // A slim transition trim makes the step between the exposed lattice and the
+ // suspended side ceiling legible from the public arrival-hall sightline.
+ box(parent,.14,.16,depth,x-width/2,y+.07,z,material('#c4c8c3',.68,.12));
 }
 /** Refined atrium edge hardware over the simple continuous glass guard already
  * used by the floor cutout: shoes, regular mullions and a continuous cap rail. */
@@ -279,6 +296,11 @@ function addT1RakedSupports(parent:THREE.Object3D,b:TerminalBounds,mat:THREE.Mat
 }
 function addStructure(parent:THREE.Object3D,b:TerminalBounds,mat:THREE.Material,profile?:'T1'|'T2'){
  if(profile==='T1'){addT1RakedSupports(parent,b,mat);return;}
+ if(profile==='T2'){
+  const height=Math.max(5,b.height-1.4),geometry=new THREE.CylinderGeometry(.5,.5,1,28,1,false),cols:Item[]=[];
+  for(const side of [-1,1])for(let z=b.z-b.depth*.4;z<=b.z+b.depth*.4;z+=27.5)cols.push({x:b.x+side*b.width*.29,y:height/2+.38,z,sx:1.7,sy:height,sz:1.7});
+  instances(parent,geometry,mat,cols);return;
+ }
  const cols:Item[]=[],height=Math.max(5,b.height-1.4);
  if(profile){
   const size=profile==='T2'?1.15:1;
@@ -1840,7 +1862,7 @@ function terminal2WanLaiArt(parent:THREE.Object3D,b:TerminalBounds,y:number,z:nu
  for(const edge of [-1,1])box(parent,width,.12,.12,wallX+.24,y+height/2+edge*(height/2-.08),z,rail,Math.PI/2);
 }
 function terminal2(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials){
- const levels=[.36,6.25,12.35,18.55,23.45],atrium={fromLevel:3,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats),lowerFloor=terminalFloor('T2','lower');addDecks(parent,b,levels,mats.concrete,.16,atrium,finishes,undefined,new Map([[0,lowerFloor],[1,lowerFloor]]));terminal2ArrivalCeilingGrid(parent,b,levels[1]-.17-.17-.012);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2');verticalCirculation(parent,b,levels,'T2');
+ const levels=[.36,6.25,12.35,18.55,23.45],atrium={fromLevel:3,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats),lowerFloor=terminalFloor('T2','lower');addDecks(parent,b,levels,mats.concrete,.16,atrium,finishes,undefined,new Map([[0,lowerFloor],[1,lowerFloor]]));const arrivalCeilingY=levels[1]-.17-.17-.012;terminal2ArrivalCeilingGrid(parent,b,arrivalCeilingY);terminal2ArrivalDropCeiling(parent,b,arrivalCeilingY);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2');verticalCirculation(parent,b,levels,'T2');
  baggageClaim(parent,b,.58,b.z-30,6,'x',b.x,1);
  baggageClaim(parent,b,.58,b.z-55,2,'x',b.x-58,7);terminal2WanLaiArt(parent,b,.58,b.z-55);
  customsHall(parent,b,.58,b.z-23);arrivalLobby(parent,b,.58,b.z+24,.72,false);terminal2ArrivalServices(parent,b,.58);terminal2ArrivalArt(parent,b,.58);sign(parent,'MRT  機場捷運',b.x+b.width*.28,.58+4,b.z+70,11,'#6f9898');
