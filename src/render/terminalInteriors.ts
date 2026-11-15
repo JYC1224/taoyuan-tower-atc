@@ -1195,7 +1195,7 @@ function terminal2AtriumDining(parent:THREE.Object3D,b:TerminalBounds,y:number,a
 const t2FoodMenuCache=new Map<string,THREE.Material>();
 function t2FoodMenuMaterial(kind:typeof T2_FOURTH_FLOOR_SHOPS[number]['kind'],accent:string){
  const key=`${kind}|${accent}`,cached=t2FoodMenuCache.get(key);if(cached)return cached;
- const heading={noodles:'NOODLES',coffee:'COFFEE',seafood:'DINING',burger:'MOS BURGER',dining:'DINING',tofu:'DINING'}[kind];
+ const heading={noodles:'NOODLES',coffee:'COFFEE',tea:'TEA  ·  DRINKS',rice:'RICE  ·  MEALS',burger:'BURGERS',dining:'DINING',tofu:'TOFU  ·  VEGETABLES'}[kind];
  const texture=canvasTexture(512,320,ctx=>{
   ctx.fillStyle='#f2f0e9';ctx.fillRect(0,0,512,320);ctx.fillStyle='#17272a';ctx.fillRect(0,0,512,68);ctx.fillStyle=accent;ctx.fillRect(0,64,512,8);
   ctx.fillStyle='#fff';ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='bold 30px Arial,sans-serif';ctx.fillText(heading,24,34,460);
@@ -1207,7 +1207,7 @@ function t2FoodMenuMaterial(kind:typeof T2_FOURTH_FLOOR_SHOPS[number]['kind'],ac
  });
  const menu=new THREE.MeshBasicMaterial({map:texture,toneMapped:false,side:THREE.DoubleSide});t2FoodMenuCache.set(key,menu);return menu;
 }
-/** The official 4F map identifies these seven outlets; dimensions and fit-outs are interpreted. */
+/** Directory-listed 4F outlets; map coordinates, dimensions and fit-outs are interpreted. */
 function terminal2FourthFloorShop(parent:THREE.Object3D,b:TerminalBounds,y:number,shop:typeof T2_FOURTH_FLOOR_SHOPS[number]){
  const {depth,length,height}=shop,{x,z,frontX}=t2FourthFloorShopCenter(b.x,b.z,b.width,b.depth,shop.side,shop.zRatio,depth),rotation=-shop.side*Math.PI/2,floorY=y-.24;
  const trim=material(shop.accent,.46,.12),stone=material('#dedbd2',.78,.02),glass=new THREE.MeshPhysicalMaterial({color:'#d8e3df',roughness:.2,metalness:.045,transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide}),floorMat=material('#b9b8ac',.46,.025),equipment=material('#727b77',.45,.18),steelClad=material('#aeb6b2',.38,.56);
@@ -1238,6 +1238,20 @@ function terminal2FourthFloorShop(parent:THREE.Object3D,b:TerminalBounds,y:numbe
    const machineX=x+shop.side*1.45,machineZ=z+unit*Math.min(3.2,length*.17);
    box(parent,1.3,1.02,.92,machineX,floorY+1.72,machineZ,equipment,rotation);box(parent,.9,.28,.08,machineX+shop.side*.49,floorY+1.91,machineZ,screen,rotation);
    cylinder(parent,.11,.11,.2,machineX,floorY+2.35,machineZ+.37,material('#ece5d7',.68),12);
+  }
+ }else if(shop.kind==='tea'){
+  for(let unit=-1;unit<=1;unit++){
+   const unitX=x+shop.side*1.5,unitZ=z+unit*Math.min(3.15,length*.17);
+   box(parent,1.35,.9,.9,unitX,floorY+1.68,unitZ,equipment,rotation);
+   cylinder(parent,.34,.34,.62,unitX,floorY+2.43,unitZ,steelClad,16);
+   cylinder(parent,.18,.18,.08,unitX,floorY+2.78,unitZ,material(shop.accent,.55,.08),16);
+  }
+ }else if(shop.kind==='rice'){
+  for(let unit=-1;unit<=1;unit++){
+   const unitX=x+shop.side*1.55,unitZ=z+unit*Math.min(3.1,length*.17);
+   box(parent,1.48,.8,.92,unitX,floorY+1.64,unitZ,steelClad,rotation);
+   cylinder(parent,.28,.28,.42,unitX,floorY+2.24,unitZ,material('#e5e0d3',.48,.04),18);
+   box(parent,.85,.11,.64,unitX+shop.side*.49,floorY+2.22,unitZ,screen,rotation);
   }
  }else{
   for(const unit of [-1,1]){
@@ -1311,71 +1325,63 @@ function terminal2FourthFloorLounge(parent:THREE.Object3D,b:TerminalBounds,y:num
  box(parent,width*.62,.12,.48,x+side*3.2,deckY+2.52,z-depth*.36,accent);
  box(parent,width*.62,.72,.32,x+side*3.2,deckY+2.12,z-depth*.36,stone);
 }
-/** T2's south 4F public food court: pale hex tile, clustered tables and the
- * distinctive suspended honeycomb light canopy shown in recent visitor photos. */
+/** T2 4F dining area: polished stone, compact pedestal tables, stools and a
+ * restrained exposed roof-web rhythm based on the dated visitor photographs. */
 function terminal2FoodCourt(parent:THREE.Object3D,b:TerminalBounds,y:number){
  const zoneWidth=b.width*T2_FOURTH_FLOOR_LAYOUT.foodCourt.widthRatio,zoneDepth=b.depth*T2_FOURTH_FLOOR_LAYOUT.foodCourt.depthRatio,zoneX=b.x,zoneZ=b.z+b.depth*T2_FOURTH_FLOOR_LAYOUT.foodCourt.zRatio,deckY=y-.24;
- const hexFloor=canvasTexture(512,512,ctx=>{
-  ctx.fillStyle='#e2e2da';ctx.fillRect(0,0,512,512);
-  // Choose the lattice dimensions so the hex pattern meets cleanly at the
-  // canvas edges instead of exposing a repeating square seam across the hall.
-  const radius=11.38,stepX=radius*1.5,stepY=radius*Math.sqrt(3);
-  for(let row=-2;row<512/stepY+2;row++)for(let col=-2;col<512/stepX+2;col++){
-   const cx=col*stepX+(row%2)*stepX/2,cy=row*stepY,shade=(row+col)%4===0?'#f5f3ea':(row+col)%3===0?'#d6d8d1':'#e9e8e0';
-   ctx.beginPath();for(let corner=0;corner<6;corner++){const a=corner*Math.PI/3;const px=cx+radius*Math.cos(a),py=cy+radius*Math.sin(a);if(corner===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}ctx.closePath();ctx.fillStyle=shade;ctx.fill();ctx.strokeStyle='#b9beb8';ctx.lineWidth=2.2;ctx.stroke();
-  }
- });hexFloor.wrapS=hexFloor.wrapT=THREE.RepeatWrapping;hexFloor.anisotropy=8;
- const floorMat=new THREE.MeshPhysicalMaterial({color:'#faf9f2',map:hexFloor,roughness:.3,metalness:.015,clearcoat:.26,clearcoatRoughness:.24,emissive:'#66665c',emissiveIntensity:.2});floorMat.userData.worldUV=1/11.3;floorMat.userData.indoorReflection=1;floorMat.userData.reflectionIntensity=.34;floorMat.userData.reflectionMap=interiorReflection('T2');
+ // The terminal-wide T2 main-floor material provides the documented polished stone finish.
+ const floorMat=terminalFloor('T2');
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(zoneWidth,zoneDepth),floorMat);floor.rotation.x=-Math.PI/2;floor.position.set(zoneX,deckY+.022,zoneZ);floor.receiveShadow=true;floor.castShadow=false;parent.add(floor);
 
- const tables:Item[]=[],tableStems:Item[]=[],tableFeet:Item[]=[],seats:Item[]=[],backs:Item[]=[],legs:Item[]=[],seatPalette=['#e8b83e','#728e8e','#485c61','#d7d9d3'],cols=7,rows=4,tableSpacing=12.4,rowSpacing=14,startX=zoneX-(cols-1)*tableSpacing/2;
+ const cylinder=new THREE.CylinderGeometry(1,1,1,20,1,false),dummy=new THREE.Object3D(),tableTops:Item[]=[],tableStems:Item[]=[],tableBases:Item[]=[],stoolLegs:Item[]=[],stoolSeats=[[],[],[],[]] as Item[][],cols=7,rows=4,tableSpacing=12.4,rowSpacing=14,startX=zoneX-(cols-1)*tableSpacing/2;
  for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
   const x=startX+col*tableSpacing,z=zoneZ+(row-(rows-1)/2)*rowSpacing;
-  tables.push({x,y:deckY+.79,z,sx:1.9,sy:.12,sz:1.35,color:row%3===0?'#e3d5b7':'#f1eee3'});
-  tableStems.push({x,y:deckY+.42,z,sx:.12,sy:.66,sz:.12,color:'#7b8581'});tableFeet.push({x,y:deckY+.08,z,sx:.76,sy:.1,sz:.62,color:'#7b8581'});
-  for(const side of [-1,1])for(const lane of [-1,1]){
-   const sx=x+side*1.38,sz=z+lane*.39,seatY=deckY+.47;
-   seats.push({x:sx,y:seatY,z:sz,sx:.76,sy:.12,sz:.72,color:seatPalette[(row+col+lane+2)%seatPalette.length]});
-   backs.push({x:sx,y:seatY+.43,z:sz-lane*.29,sx:.76,sy:.78,sz:.13,color:seatPalette[(row+col+lane+2)%seatPalette.length]});
-   legs.push({x:sx,y:deckY+.2,z:sz,sx:.07,sy:.4,sz:.07,color:'#525b5b'});
+  tableTops.push({x,y:deckY+.8,z,sx:.68,sy:.075,sz:.68});
+  tableStems.push({x,y:deckY+.43,z,sx:.12,sy:.39,sz:.12});tableBases.push({x,y:deckY+.075,z,sx:.38,sy:.055,sz:.38});
+  // Four low, backless stools match the compact pedestal seating visible in
+  // the food-court reference, keeping the long public aisle visually open.
+  for(let seat=0;seat<4;seat++){
+   const angle=seat*Math.PI/2+Math.PI/4,sx=x+Math.cos(angle)*1.18,sz=z+Math.sin(angle)*1.18,seatY=deckY+.51,palette=(row+col+seat)%4;
+   stoolSeats[palette].push({x:sx,y:seatY,z:sz,sx:.3,sy:.055,sz:.3});
+   for(const legX of [-1,1])for(const legZ of [-1,1])stoolLegs.push({x:sx+legX*.18,y:deckY+.27,z:sz+legZ*.18,sx:.045,sy:.42,sz:.045});
   }
  }
- batch(parent,foodCourtIvory,tables);batch(parent,steel,tableStems);batch(parent,steel,tableFeet);batch(parent,foodCourtSeat,seats);batch(parent,foodCourtSeat,backs);batch(parent,steel,legs);
+ const addCylinders=(items:Item[],mat:THREE.Material)=>{
+  if(!items.length)return;const mesh=new THREE.InstancedMesh(cylinder,mat,items.length);
+  items.forEach((item,index)=>{dummy.position.set(item.x,item.y,item.z);dummy.scale.set(item.sx,item.sy,item.sz);dummy.updateMatrix();mesh.setMatrixAt(index,dummy.matrix);});
+  mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=true;parent.add(mesh);
+ };
+ addCylinders(tableTops,material('#d8d2c5',.42,.06));addCylinders(tableBases,steel);addCylinders(tableStems,steel);
+ const stoolMaterials=['#566b6e','#819b98','#d2ad57','#deddd5'].map(color=>material(color,.62,.035));
+ stoolSeats.forEach((items,index)=>addCylinders(items,stoolMaterials[index]));batch(parent,steel,stoolLegs);
 
- const whiteBeams:THREE.Matrix4[]=[],goldBeams:THREE.Matrix4[]=[],tealBeams:THREE.Matrix4[]=[],whitePanels:THREE.Matrix4[]=[],goldPanels:THREE.Matrix4[]=[],tealPanels:THREE.Matrix4[]=[],hangers:Item[]=[],beamGeom=new THREE.CylinderGeometry(.5,.5,1,7,1,false),dummy=new THREE.Object3D(),up=new THREE.Vector3(0,1,0),from=new THREE.Vector3(),to=new THREE.Vector3(),direction=new THREE.Vector3();
+ // The earlier colored hexagon canopy is not supported by the 4F reference
+ // photographs. Use restrained painted-steel trusses and rectangular fittings.
+ const roofChords:THREE.Matrix4[]=[],roofWeb:THREE.Matrix4[]=[],purlins:THREE.Matrix4[]=[],beamGeom=new THREE.CylinderGeometry(.5,.5,1,8,1,false),up=new THREE.Vector3(0,1,0),from=new THREE.Vector3(),to=new THREE.Vector3(),direction=new THREE.Vector3();
  const addBeam=(a:THREE.Vector3,c:THREE.Vector3,radius:number,target:THREE.Matrix4[])=>{from.copy(a);to.copy(c);direction.subVectors(to,from);dummy.position.copy(from).add(to).multiplyScalar(.5);dummy.quaternion.setFromUnitVectors(up,direction.clone().normalize());dummy.scale.set(radius*2,direction.length(),radius*2);dummy.updateMatrix();target.push(dummy.matrix.clone());};
- const colors=[whiteBeams,whiteBeams,goldBeams,whiteBeams,tealBeams,goldBeams],ceilingY=23.08,colsHex=6,rowsHex=3;
- for(let row=0;row<rowsHex;row++)for(let col=0;col<colsHex;col++){
-  const x=zoneX+(col-(colsHex-1)/2)*13.8+(row%2)*1.6,z=zoneZ+(row-(rowsHex-1)/2)*12.8,yRing=22.05+((row+col)%3)*.17,radius=2.55+((row*3+col)%3)*.3,beamSet=colors[(row*5+col*3)%colors.length],vertices:THREE.Vector3[]=[];
-  for(let corner=0;corner<6;corner++){const a=corner*Math.PI/3+Math.PI/6;vertices.push(new THREE.Vector3(x+Math.cos(a)*radius,yRing,z+Math.sin(a)*radius));}
-  for(let corner=0;corner<6;corner++)addBeam(vertices[corner],vertices[(corner+1)%6],.13,beamSet);
-  const ringColorIndex=beamSet===goldBeams?1:beamSet===tealBeams?2:0,cellOffsets:[number,number][]=[[0,0],[1.4,0],[-1.4,0],[.7,1.212],[-.7,1.212],[.7,-1.212],[-.7,-1.212]];
-  for(let cell=0;cell<cellOffsets.length;cell++){
-   const [dx,dz]=cellOffsets[cell],panelColor=cell===0?ringColorIndex:cell%2?1:0,panelSet=panelColor===1?goldPanels:panelColor===2?tealPanels:whitePanels;
-   dummy.position.set(x+dx,yRing-.18,z+dz);dummy.rotation.set(0,Math.PI/6,0);dummy.scale.set(.86,1,.86);dummy.updateMatrix();panelSet.push(dummy.matrix.clone());
+ const spanMin=zoneX-zoneWidth/2+2,spanMax=zoneX+zoneWidth/2-2,roofNear=zoneZ-zoneDepth/2+2,roofFar=zoneZ+zoneDepth/2-2,roofTop=22.98,roofBottom=22.25,panelCount=10;
+ for(let truss=0;truss<5;truss++){
+  const z=roofNear+(roofFar-roofNear)*truss/4,step=(spanMax-spanMin)/panelCount;
+  for(let panel=0;panel<panelCount;panel++){
+   const x0=spanMin+panel*step,x1=x0+step,top0=new THREE.Vector3(x0,roofTop,z),top1=new THREE.Vector3(x1,roofTop,z),low0=new THREE.Vector3(x0,roofBottom,z),low1=new THREE.Vector3(x1,roofBottom,z);
+   addBeam(top0,top1,.075,roofChords);addBeam(low0,low1,.07,roofChords);
+   addBeam(panel%2?low1:low0,panel%2?top0:top1,.042,roofWeb);
+   if(panel%2===0)addBeam(low0,top0,.034,roofWeb);
   }
-  for(const point of [0,3])hangers.push({x:vertices[point].x,y:(ceilingY+yRing)/2,z:vertices[point].z,sx:.035,sy:ceilingY-yRing,sz:.035});
  }
- const canopyMaterials=[
-  new THREE.MeshStandardMaterial({color:'#f2f0e7',emissive:'#8f8669',emissiveIntensity:.26,roughness:.4,metalness:.18}),
-  new THREE.MeshStandardMaterial({color:'#e8b541',emissive:'#8f6f1a',emissiveIntensity:.22,roughness:.4,metalness:.16}),
-  new THREE.MeshStandardMaterial({color:'#5e8f91',emissive:'#214c4e',emissiveIntensity:.2,roughness:.42,metalness:.16})
- ];
- for(const [index,mat] of canopyMaterials.entries()){const matrices=[whiteBeams,goldBeams,tealBeams][index],mesh=new THREE.InstancedMesh(beamGeom,mat,matrices.length);matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;parent.add(mesh);}
- const panelMaterials=[
-  new THREE.MeshStandardMaterial({color:'#f4f1e8',emissive:'#d6c99e',emissiveIntensity:.42,roughness:.56,metalness:.04}),
-  new THREE.MeshStandardMaterial({color:'#edc34a',emissive:'#c2952c',emissiveIntensity:.38,roughness:.5,metalness:.035}),
-  new THREE.MeshStandardMaterial({color:'#78a09e',emissive:'#4f8580',emissiveIntensity:.28,roughness:.58,metalness:.035})
- ];
- const panelGeometry=new THREE.CylinderGeometry(1,1,.08,6,1,false);
- for(const [index,mat] of panelMaterials.entries()){const matrices=[whitePanels,goldPanels,tealPanels][index],mesh=new THREE.InstancedMesh(panelGeometry,mat,matrices.length);matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;parent.add(mesh);}
- batch(parent,steel,hangers);
- const glow=new THREE.MeshBasicMaterial({color:'#fff4d5',toneMapped:false,side:THREE.DoubleSide}),warmHex=new THREE.MeshBasicMaterial({color:'#f6d36d',toneMapped:false,side:THREE.DoubleSide});
- for(let row=0;row<rowsHex;row++)for(let col=0;col<colsHex;col++)if((row+col)%2===0){const x=zoneX+(col-(colsHex-1)/2)*13.8+(row%2)*1.6,z=zoneZ+(row-(rowsHex-1)/2)*12.8+0.1,shape=new THREE.CircleGeometry(.62,6),lamp=new THREE.Mesh(shape,(row+col)%4===0?warmHex:glow);lamp.rotation.x=-Math.PI/2;lamp.position.set(x,21.96,z);lamp.castShadow=false;parent.add(lamp);}
- // Yellow service-front bands visually tie the food court kiosks to the canopy.
- const fasciaGold:Item[]=[],fasciaIvory:Item[]=[],fasciaZ=zoneZ+zoneDepth/2+2.7;
- for(let i=0;i<5;i++){const x=zoneX+(i-2)*zoneWidth/5.5,item={x,y:y+3.58,z:fasciaZ,sx:Math.min(15,zoneWidth/6),sy:.22,sz:.35};(i%2?fasciaGold:fasciaIvory).push(item);}
- batch(parent,foodCourtGold,fasciaGold);batch(parent,foodCourtIvory,fasciaIvory);
+ for(let panel=0;panel<=panelCount;panel++){
+  const x=spanMin+(spanMax-spanMin)*panel/panelCount;
+  addBeam(new THREE.Vector3(x,roofTop,roofNear),new THREE.Vector3(x,roofTop,roofFar),.035,purlins);
+ }
+ const addRoofInstances=(mat:THREE.Material,matrices:THREE.Matrix4[])=>{if(!matrices.length)return;const mesh=new THREE.InstancedMesh(beamGeom,mat,matrices.length);matrices.forEach((matrix,index)=>mesh.setMatrixAt(index,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;parent.add(mesh);};
+ addRoofInstances(material('#9ba7a5',.54,.28),roofChords);addRoofInstances(material('#a8b1ae',.56,.2),roofWeb);addRoofInstances(material('#899694',.58,.24),purlins);
+ const fixtures:Item[]=[],fixtureGlow:Item[]=[],cables:Item[]=[];
+ for(let row=0;row<3;row++)for(let col=0;col<6;col++){
+  const x=zoneX+(col-2.5)*15.6,z=zoneZ+(row-1)*15.5;
+  cables.push({x:x-2.1,y:22.57,z,sx:.035,sy:.58,sz:.035},{x:x+2.1,y:22.57,z,sx:.035,sy:.58,sz:.035});
+  fixtures.push({x,y:22.25,z,sx:5.4,sy:.12,sz:.36});fixtureGlow.push({x,y:22.18,z,sx:4.8,sy:.025,sz:.2});
+ }
+ batch(parent,steel,cables);batch(parent,material('#c8cbc4',.46,.22),fixtures);batch(parent,light,fixtureGlow);
 }
 function arrivalLobby(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number,boardScale=1,includePlanters=true){
  sign(parent,'ARRIVALS  入境大廳',b.x,y+5,z,13,'#6f9898');seating(parent,b,y,z+22,3,9);flightBoards(parent,b,y,z+45,boardScale);

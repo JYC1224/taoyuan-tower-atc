@@ -182,14 +182,29 @@ export const T2_FOURTH_FLOOR_LAYOUT={
  lounge:{centerOffsetRatio:.34,width:27,depth:22,height:3.8},
 } as const;
 
+/**
+ * Current T2 4F departure tenants from the official services directory.
+ * The interactive floor map still carries several superseded shop labels; keep
+ * its two frontage bands and verified surviving anchor coordinates, then fit
+ * directory-only tenants into the unlabelled units as approximate locations.
+ * Neither source publishes surveyed tenant boundaries or dimensions.
+ */
 export const T2_FOURTH_FLOOR_SHOPS=[
- {id:'t2-shop-shishen-noodles',name:'仕紳品麵',side:-1,zRatio:-.31,depth:9.5,length:18,height:3.55,accent:'#9b6449',kind:'noodles'},
- {id:'t2-shop-starbucks',name:'STARBUCKS  星巴克',side:-1,zRatio:-.08,depth:9.5,length:17,height:3.55,accent:'#176b50',kind:'coffee'},
- {id:'t2-shop-baiba-fish',name:'百八漁場 桃機店',side:-1,zRatio:.18,depth:10.8,length:20,height:3.7,accent:'#587b7b',kind:'seafood'},
- {id:'t2-shop-xiaonanmen',name:'小南門',side:1,zRatio:-.31,depth:9.5,length:18,height:3.55,accent:'#a44b42',kind:'dining'},
- {id:'t2-shop-mos-burger',name:'摩斯漢堡',side:1,zRatio:-.13,depth:9.5,length:17,height:3.55,accent:'#b78639',kind:'burger'},
- {id:'t2-shop-xingbo-coffee',name:'興波咖啡',side:1,zRatio:.10,depth:9.5,length:17,height:3.5,accent:'#65584b',kind:'coffee'},
- {id:'t2-shop-shangshan-doujia',name:'上善豆家',side:1,zRatio:.32,depth:9.5,length:18,height:3.6,accent:'#718064',kind:'tofu'},
+ {id:'t2-shop-hommee-kitchen',name:'hómee KITCHEN  好饗廚房',side:-1,zRatio:-.36,depth:9.2,length:14.2,height:3.5,accent:'#bd6a2b',kind:'dining'},
+ {id:'t2-shop-wing-cafe',name:'Wing Café',side:-1,zRatio:-.265,depth:9.2,length:13.4,height:3.5,accent:'#5f8583',kind:'coffee'},
+ {id:'t2-shop-lao-dong-noodles',name:'老董牛肉麵',side:-1,zRatio:-.17,depth:9.2,length:14.5,height:3.5,accent:'#975a48',kind:'noodles'},
+ {id:'t2-shop-starbucks',name:'STARBUCKS  星巴克',side:-1,zRatio:-.08,depth:9.5,length:16.2,height:3.55,accent:'#176b50',kind:'coffee'},
+ {id:'t2-shop-rui-chi-chicken-rice',name:'瑞記雞飯',side:-1,zRatio:.025,depth:9.2,length:13.4,height:3.5,accent:'#a68149',kind:'rice'},
+ {id:'t2-shop-mcdonalds',name:'McDonald’s  麥當勞',side:-1,zRatio:.13,depth:9.4,length:15.6,height:3.55,accent:'#bb4436',kind:'burger'},
+ {id:'t2-shop-lin-dong-fang',name:'林東芳牛肉麵',side:-1,zRatio:.235,depth:9.2,length:14.6,height:3.5,accent:'#866e53',kind:'noodles'},
+ {id:'t2-shop-chun-shui-tang',name:'春水堂',side:-1,zRatio:.34,depth:9.2,length:14.4,height:3.5,accent:'#72644c',kind:'tea'},
+ {id:'t2-shop-xiaonanmen',name:'小南門',side:1,zRatio:-.31,depth:9.5,length:15.4,height:3.55,accent:'#a44b42',kind:'dining'},
+ {id:'t2-shop-wan-fang-ice-room',name:'萬芳冰室',side:1,zRatio:-.22,depth:9.2,length:13.8,height:3.5,accent:'#9b7952',kind:'tea'},
+ {id:'t2-shop-mos-burger',name:'摩斯漢堡',side:1,zRatio:-.13,depth:9.5,length:14.8,height:3.55,accent:'#b78639',kind:'burger'},
+ {id:'t2-shop-hanlin-tea',name:'翰林茶棧',side:1,zRatio:-.035,depth:9.2,length:13.8,height:3.5,accent:'#72694b',kind:'tea'},
+ {id:'t2-shop-xingbo-coffee',name:'興波咖啡',side:1,zRatio:.10,depth:9.5,length:14.8,height:3.5,accent:'#65584b',kind:'coffee'},
+ {id:'t2-shop-shuang-yue',name:'雙月',side:1,zRatio:.215,depth:9.2,length:13.8,height:3.5,accent:'#6e8061',kind:'dining'},
+ {id:'t2-shop-shangshan-doujia',name:'上善豆家',side:1,zRatio:.32,depth:9.5,length:14.8,height:3.6,accent:'#718064',kind:'tofu'},
 ] as const;
 
 export const T2_FOURTH_FLOOR_LOUNGES=[
