@@ -2308,20 +2308,20 @@ function terminal1Basement(parent:THREE.Object3D,b:TerminalBounds,floorY:number)
  // corridor, with discrete crosswise luminaires rather than a black void.
  const ceilingMaterial=new THREE.MeshBasicMaterial({color:'#fff',map:ceilingTexture,toneMapped:false,side:THREE.DoubleSide});ceilingMaterial.userData.worldUV=1/4.8;
  const ceiling=new THREE.Mesh(new THREE.PlaneGeometry(b.width-3,b.depth-4),ceilingMaterial);ceiling.rotation.x=Math.PI/2;ceiling.position.set(b.x,ceilingY-.08,b.z);ceiling.castShadow=false;ceiling.receiveShadow=false;parent.add(ceiling);
- const wallWidth=b.width-3,wallDepth=b.depth-4,wallHeight=T1_FLOOR_LEVELS[1]-.19-floorY,wallY=floorY+wallHeight/2,edgeX=b.x+wallWidth/2,edgeZ=b.z+wallDepth/2,
+ const wallWidth=b.width-3,wallDepth=b.depth-4,wallHeight=T1_FLOOR_LEVELS[1]-.19-floorY,wallY=floorY+wallHeight/2,halfWallWidth=wallWidth/2,halfWallDepth=wallDepth/2,
   retainingWall=new THREE.MeshStandardMaterial({color:'#aeb3ad',roughness:.9,metalness:.015,side:THREE.DoubleSide}),
   retainingBase=new THREE.MeshStandardMaterial({color:'#7e8883',roughness:.84,metalness:.02,side:THREE.DoubleSide}),
   joint=new THREE.MeshStandardMaterial({color:'#929994',roughness:.92,metalness:.005,side:THREE.DoubleSide});
  // Retain the cut below grade. Without these boundary walls the low camera
  // sees the regional terrain edge behind the shop bays as an open horizon.
  for(const side of [-1,1]){
-  box(parent,wallWidth,wallHeight,.46,b.x,wallY,b.z+side*edgeZ,retainingWall);
-  box(parent,.46,wallHeight,wallDepth,b.x+side*edgeX,wallY,b.z,retainingWall);
-  box(parent,wallWidth,.28,.48,b.x,floorY+.14,b.z+side*edgeZ,retainingBase);
-  box(parent,.48,.28,wallDepth,b.x+side*edgeX,floorY+.14,b.z,retainingBase);
+  box(parent,wallWidth,wallHeight,.46,b.x,wallY,b.z+side*halfWallDepth,retainingWall);
+  box(parent,.46,wallHeight,wallDepth,b.x+side*halfWallWidth,wallY,b.z,retainingWall);
+  box(parent,wallWidth,.28,.48,b.x,floorY+.14,b.z+side*halfWallDepth,retainingBase);
+  box(parent,.48,.28,wallDepth,b.x+side*halfWallWidth,floorY+.14,b.z,retainingBase);
  }
- for(let x=b.x-wallWidth/2+10;x<b.x+wallWidth/2-8;x+=12)for(const side of [-1,1])box(parent,.025,wallHeight-.35,.018,x,wallY,b.z+side*(edgeZ-.235),joint);
- for(let z=b.z-wallDepth/2+10;z<b.z+wallDepth/2-8;z+=12)for(const side of [-1,1])box(parent,.018,wallHeight-.35,.025,b.x+side*(edgeX-.235),wallY,z,joint);
+ for(let x=b.x-halfWallWidth+10;x<b.x+halfWallWidth-8;x+=12)for(const side of [-1,1])box(parent,.025,wallHeight-.35,.018,x,wallY,b.z+side*(halfWallDepth-.235),joint);
+ for(let z=b.z-halfWallDepth+10;z<b.z+halfWallDepth-8;z+=12)for(const side of [-1,1])box(parent,.018,wallHeight-.35,.025,b.x+side*(halfWallWidth-.235),wallY,z,joint);
  const basementLights:Item[]=[];
  for(const xOffset of [-48,0,48])for(let z=b.z-108;z<=b.z+108;z+=36)basementLights.push({x:b.x+xOffset,y:ceilingY-.15,z,sx:5.2,sy:.055,sz:.72});
  batch(parent,ceilingStrip,basementLights);
