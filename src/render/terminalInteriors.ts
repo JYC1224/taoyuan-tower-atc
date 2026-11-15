@@ -585,7 +585,7 @@ function terminal1FourthFloor(parent:THREE.Object3D,b:TerminalBounds,level:numbe
 }
 
 /** A compact upper-level lounge sequence with glass screening, a staffed welcome desk and soft seating groups. */
-let terminalLoungeWoodMaterial:THREE.Material|undefined,terminalLoungeRugMaterial:THREE.Material|undefined;
+let terminalLoungeWoodMaterial:THREE.Material|undefined,terminalJadeWoodMaterial:THREE.MeshStandardMaterial|undefined,terminalJadeFloorMaterial:THREE.Material|undefined,terminalLoungeRugMaterial:THREE.Material|undefined;
 let terminalBlossomCarpetMaterial:THREE.Material|undefined,terminalLoungeMarbleMaterial:THREE.Material|undefined,terminalLoungeLightMarbleMaterial:THREE.Material|undefined,terminalLoungeCeilingMaterial:THREE.Material|undefined;
 function terminalLoungeWood(){
  if(terminalLoungeWoodMaterial)return terminalLoungeWoodMaterial;
@@ -601,24 +601,63 @@ function terminalLoungeWood(){
  });texture.wrapS=THREE.RepeatWrapping;texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(1.7,1);texture.anisotropy=8;
  terminalLoungeWoodMaterial=new THREE.MeshStandardMaterial({color:'#eee4d4',map:texture,roughness:.56,metalness:.025});return terminalLoungeWoodMaterial;
 }
+function terminalJadeWood(){
+ if(terminalJadeWoodMaterial)return terminalJadeWoodMaterial;
+ const rand=seeded(1140422),texture=canvasTexture(512,256,ctx=>{
+  ctx.fillStyle='#ac8354';ctx.fillRect(0,0,512,256);
+  for(let panel=0;panel<8;panel++){
+   const x=panel*64,base=164+Math.floor(rand()*25);
+   ctx.fillStyle=`rgb(${base},${Math.max(0,base-39)},${Math.max(0,base-78)})`;ctx.fillRect(x+1,0,62,256);
+   const wash=ctx.createLinearGradient(x,0,x+64,0);wash.addColorStop(0,'rgba(44,29,17,.16)');wash.addColorStop(.35,'rgba(255,226,176,.14)');wash.addColorStop(.76,'rgba(255,231,185,.055)');wash.addColorStop(1,'rgba(46,30,18,.13)');ctx.fillStyle=wash;ctx.fillRect(x+1,0,62,256);
+   for(let grain=0;grain<18;grain++){
+    const gx=x+4+rand()*54,offset=rand()*256,length=45+rand()*170;
+    ctx.strokeStyle=grain%5===0?'rgba(72,47,27,.22)':'rgba(255,230,186,.16)';ctx.lineWidth=grain%5===0?1.05:.55;
+    ctx.beginPath();ctx.moveTo(gx,offset);ctx.bezierCurveTo(gx-1+rand()*3,offset+length*.32,gx-1+rand()*3,offset+length*.68,gx-1+rand()*3,offset+length);ctx.stroke();
+   }
+  }
+  for(let x=0;x<=512;x+=64){ctx.fillStyle='rgba(58,42,29,.34)';ctx.fillRect(x,0,1.4,256);}
+ });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;
+ terminalJadeWoodMaterial=new THREE.MeshStandardMaterial({color:'#fff4df',map:texture,roughness:.52,metalness:.015});return terminalJadeWoodMaterial;
+}
+function terminalJadeFloor(){
+ if(terminalJadeFloorMaterial)return terminalJadeFloorMaterial;
+ const rand=seeded(1140423),texture=canvasTexture(512,512,ctx=>{
+  ctx.fillStyle='#494641';ctx.fillRect(0,0,512,512);
+  // The current operator gallery shows a subdued warm-grey timber-look floor
+  // in the dining aisle. Staggered plank joints and fine grain break up the
+  // former uniform grey carpet without borrowing or bundling the photograph.
+  for(let column=0;column<8;column++){
+   const x=column*64,offset=column%2?128:0;
+   for(let segment=-2;segment<4;segment++){
+    const y=offset+segment*256,seedIndex=((segment%2)+2)%2,shade=105+Math.floor(rand()*16)+(seedIndex?2:-2);
+    ctx.fillStyle=`rgb(${shade},${shade-2},${shade-7})`;ctx.fillRect(x+1,y+1,62,254);
+    const wash=ctx.createLinearGradient(x,y,x+64,y+256);wash.addColorStop(0,'rgba(233,222,204,.11)');wash.addColorStop(.45,'rgba(183,172,155,.025)');wash.addColorStop(1,'rgba(39,37,34,.12)');ctx.fillStyle=wash;ctx.fillRect(x+1,y+1,62,254);
+    for(let grain=0;grain<22;grain++){
+     const gx=x+4+rand()*54,gy=y+rand()*250,length=32+rand()*185;
+     ctx.strokeStyle=grain%6===0?'rgba(38,35,31,.19)':'rgba(236,222,199,.11)';ctx.lineWidth=grain%6===0?.9:.48;
+     ctx.beginPath();ctx.moveTo(gx,gy);ctx.bezierCurveTo(gx-1+rand()*3,gy+length*.28,gx-1+rand()*3,gy+length*.72,gx-1+rand()*3,gy+length);ctx.stroke();
+    }
+   }
+  }
+  for(let column=0;column<=8;column++){ctx.fillStyle='rgba(33,31,29,.72)';ctx.fillRect(column*64,0,1.4,512);}
+  for(let column=0;column<8;column++)for(let y=column%2?128:0;y<512;y+=256){ctx.fillStyle='rgba(35,33,30,.7)';ctx.fillRect(column*64,y,64,1.5);ctx.fillStyle='rgba(224,214,198,.16)';ctx.fillRect(column*64,y+1.5,64,.8);}
+  for(let i=0;i<3600;i++){const value=126+Math.floor(rand()*72);ctx.fillStyle=`rgba(${value},${value-3},${value-8},${.025+rand()*.045})`;ctx.fillRect(rand()*512,rand()*512,.45+rand()*1.3,.45+rand()*.8);}
+ });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(12,4);texture.anisotropy=8;
+ terminalJadeFloorMaterial=new THREE.MeshPhysicalMaterial({color:'#e9e3d8',map:texture,roughness:.62,metalness:.015,clearcoat:.12,clearcoatRoughness:.38});return terminalJadeFloorMaterial;
+}
 function terminalLoungeRug(){
  if(terminalLoungeRugMaterial)return terminalLoungeRugMaterial;
  const size=512,rand=seeded(1140418),texture=canvasTexture(size,size,ctx=>{
-  ctx.fillStyle='#aaa79f';ctx.fillRect(0,0,size,size);
-  // Use broad, low-contrast fibre variation so the carpet remains visible at
-  // normal first-person resolution instead of filtering into a flat grey.
-  for(let i=0;i<74;i++){
-   const x=rand()*size,y=rand()*size,r=18+rand()*52,light=rand()>.48;
-   const cloud=ctx.createRadialGradient(x,y,0,x,y,r);
-   cloud.addColorStop(0,light?'rgba(238,235,225,.19)':'rgba(49,52,49,.15)');cloud.addColorStop(.6,light?'rgba(238,235,225,.07)':'rgba(49,52,49,.055)');cloud.addColorStop(1,'rgba(0,0,0,0)');
-   ctx.fillStyle=cloud;ctx.fillRect(x-r,y-r,r*2,r*2);
+  ctx.fillStyle='#4b4540';ctx.fillRect(0,0,size,size);
+  // The Jade gallery separates its darker striped quiet-seat carpet from the
+  // dining aisle. Keep the woven bands restrained at normal walking distance.
+  for(let y=0;y<size;y+=42){
+   const warm=y%84===0;ctx.fillStyle=warm?'rgba(139,119,94,.34)':'rgba(30,32,32,.27)';ctx.fillRect(0,y,size,20);
+   ctx.fillStyle=warm?'rgba(214,193,158,.2)':'rgba(170,164,151,.16)';ctx.fillRect(0,y+20,size,2);
   }
-  // Fine crossed fibres stay subordinate to the larger carpet variation.
-  for(let y=0;y<size;y+=2){ctx.strokeStyle=y%4===0?'rgba(241,237,225,.09)':'rgba(49,49,45,.045)';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(size,y);ctx.stroke();}
-  for(let x=0;x<size;x+=3){ctx.strokeStyle=x%6===0?'rgba(238,232,220,.07)':'rgba(45,48,45,.035)';ctx.lineWidth=.45;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,size);ctx.stroke();}
-  for(let i=0;i<18000;i++){const value=120+Math.floor(rand()*72);ctx.fillStyle=`rgba(${value},${value-2},${value-6},${.018+rand()*.055})`;ctx.fillRect(rand()*size,rand()*size,.5+rand()*1.2,.5+rand()*.9);}
- });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(10,44);texture.anisotropy=8;
- terminalLoungeRugMaterial=new THREE.MeshStandardMaterial({color:'#f2efe6',map:texture,roughness:.98,metalness:0,emissive:'#57554e',emissiveIntensity:.22});return terminalLoungeRugMaterial;
+  for(let i=0;i<12000;i++){const value=86+Math.floor(rand()*88);ctx.fillStyle=`rgba(${value},${value-4},${value-9},${.025+rand()*.06})`;ctx.fillRect(rand()*size,rand()*size,.5+rand()*1.2,.5+rand()*.85);}
+ });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(2,1);texture.anisotropy=8;
+ terminalLoungeRugMaterial=new THREE.MeshStandardMaterial({color:'#f0e8d9',map:texture,roughness:.96,metalness:0});return terminalLoungeRugMaterial;
 }
 function terminalBlossomCarpet(){
  if(terminalBlossomCarpetMaterial)return terminalBlossomCarpetMaterial;
@@ -684,10 +723,11 @@ function terminal1Lounge(parent:THREE.Object3D,b:TerminalBounds,level:number){
  // The public map identifies two separate suites; the operator photos show
  // distinct fit-outs. Zone D is a booth-and-carpet lounge; Zone C is an open
  // dining/banquette room. Exact furniture counts remain approximate.
- const blossomRows=[-.3,-.1,.1],jadeRows=[-.27,-.09,.09,.27],groups=suiteCenters.flatMap((center,suite)=>(suite===0?blossomRows:jadeRows).map((offset,cluster)=>({z:center+suiteDepth*offset,suite,cluster})));
+ const blossomRows=[-.3,-.1,.1],jadeRows=[-.27,-.09,.09,.27],groups=suiteCenters.flatMap((center,suite)=>(suite===0?blossomRows:jadeRows).map((offset,cluster)=>({z:center+suiteDepth*offset,suite,cluster}))),jadeCenter=suiteCenters[1],jadeChairZ=jadeCenter+suiteDepth*.24;
  for(let suite=0;suite<suiteCenters.length;suite++){
-  const center=suiteCenters[suite],lounge=T1_FOURTH_FLOOR_LOUNGES[suite],rug=suite===0?terminalBlossomCarpet():terminalLoungeRug(),carpetField=new THREE.Mesh(new THREE.PlaneGeometry(right-left,suiteDepth-2.6),rug);
+  const center=suiteCenters[suite],lounge=T1_FOURTH_FLOOR_LOUNGES[suite],floor=suite===0?terminalBlossomCarpet():terminalJadeFloor(),carpetField=new THREE.Mesh(new THREE.PlaneGeometry(right-left,suiteDepth-2.6),floor);
   carpetField.rotation.x=-Math.PI/2;carpetField.position.set(suiteX,base+.038,center);carpetField.receiveShadow=true;carpetField.castShadow=false;parent.add(carpetField);
+  if(suite===1){const quietRug=new THREE.Mesh(new THREE.PlaneGeometry(7.6,5.2),terminalLoungeRug());quietRug.rotation.x=-Math.PI/2;quietRug.position.set(suiteX-2.45,base+.048,jadeChairZ);quietRug.receiveShadow=true;quietRug.castShadow=false;parent.add(quietRug);}
   // Operator photos show a low, flat ceiling with recessed points of light.
   // This tenant ceiling hides the exposed terminal trusses from inside the room.
   const ceilingY=base+3.16,ceiling=new THREE.Mesh(new THREE.PlaneGeometry(w-1,suiteDepth-1.2),terminalLoungeCeiling());ceiling.rotation.x=Math.PI/2;ceiling.position.set(suiteX,ceilingY,center);ceiling.castShadow=false;parent.add(ceiling);
@@ -766,18 +806,23 @@ function terminal1Lounge(parent:THREE.Object3D,b:TerminalBounds,level:number){
  const seats:Item[]=[],backs:Item[]=[],seatPads:Item[]=[],backPads:Item[]=[],arms:Item[]=[],cushions:Item[]=[],chairs:Item[]=[],chairBacks:Item[]=[],chairArms:Item[]=[],tables:Item[]=[],jadeTables:Item[]=[],legs:Item[]=[],chairLegs:Item[]=[],plinths:Item[]=[],planters:Item[]=[],ceilingSlats:Item[]=[],ceilingLights:Item[]=[],powerPlates:Item[]=[],boothBacks:Item[]=[],boothSideWings:Item[]=[],boothBrass:Item[]=[],socketDetails:Item[]=[];
  // The Zone C reference photos show one long upholstered wall bench with
  // individual cafe tables. It replaces the repeated sofa pods used in Zone D.
- const jadeCenter=suiteCenters[1],jadeBenchX=suiteX+w*.31,jadeBench=material('#176e69',.8,.015),jadeBenchBack=material('#236c67',.82,.01);
- // Zone C combines a side-wall dining banquette with separate lounge chairs;
- // the former cross-room bench made the entire suite read like one divider.
- for(let section=0;section<5;section++){
-  const z=jadeCenter+(section-2)*2.48;
-  box(parent,1.18,.74,2.26,jadeBenchX,base+.39,z,jadeBench);
-  box(parent,.22,1.02,2.26,jadeBenchX+.48,base+1.21,z,jadeBenchBack);
-  box(parent,1.22,.13,2.3,jadeBenchX,base+.81,z,jadeBenchBack);
+ const jadeBenchX=suiteX+w*.31,jadeBench=material('#176e69',.8,.015),jadeBenchBack=material('#236c67',.82,.01);
+ // Zone C combines a side-wall dining banquette with separate lounge chairs.
+ // Tight cushion seams keep the long upholstered run continuous in silhouette.
+ const jadeBenchSections=12,jadeBenchPitch=1.03,jadeBenchCushion=1.01;
+ box(parent,1.24,.14,jadeBenchSections*jadeBenchPitch-.02,jadeBenchX,base+.09,jadeCenter,material('#3e3a35',.62,.1));
+ for(let section=0;section<jadeBenchSections;section++){
+  const z=jadeCenter+(section-(jadeBenchSections-1)/2)*jadeBenchPitch;
+  box(parent,1.18,.74,jadeBenchCushion,jadeBenchX,base+.39,z,jadeBench);
+  box(parent,.22,1.02,jadeBenchCushion,jadeBenchX+.48,base+1.21,z,jadeBenchBack);
+  box(parent,1.22,.13,jadeBenchCushion+.02,jadeBenchX,base+.81,z,jadeBenchBack);
  }
- const jadeSlats:Item[]=[];
- for(let slat=0;slat<23;slat++)jadeSlats.push({x:jadeBenchX+.77,y:base+1.72,z:jadeCenter-6.15+slat*(12.3/22),sx:.055,sy:2.8,sz:.055,color:slat%5===0?'#ad8b5e':'#8b7657'});
- batch(parent,terminalLoungeWood(),jadeSlats);
+ const jadeSlats:Item[]=[],jadeSlatCount=36,jadeSlatSpan=12.3,jadeSlatWood=new THREE.MeshStandardMaterial({color:'#fff0d4',map:terminalJadeWood().map,roughness:.5,metalness:.015}),jadeScreenGlow=new THREE.MeshStandardMaterial({color:'#fff0ce',emissive:'#dda55b',emissiveIntensity:.42,roughness:.5});
+ for(let slat=0;slat<jadeSlatCount;slat++)jadeSlats.push({x:jadeBenchX+.77,y:base+1.72,z:jadeCenter-jadeSlatSpan/2+slat*jadeSlatSpan/(jadeSlatCount-1),sx:.055,sy:2.8,sz:.055,color:slat%4===0?'#f7dfb6':'#fff2d9'});
+ // Closely spaced, honey-oak fins and their warm concealed wash match the
+ // Zone C dining gallery photograph; the teal remains on the banquette only.
+ box(parent,.035,.06,jadeSlatSpan,jadeBenchX+.83,base+1.73,jadeCenter,jadeScreenGlow);
+ batch(parent,jadeSlatWood,jadeSlats);
  for(const {z,suite:suiteIndex,cluster} of groups){
   const lounge=T1_FOURTH_FLOOR_LOUNGES[suiteIndex],seatColor=cluster%2?lounge.pillow:lounge.seat;
   for(const side of [-1,1]){
@@ -838,7 +883,7 @@ function terminal1Lounge(parent:THREE.Object3D,b:TerminalBounds,level:number){
  }
  // The Jade gallery also shows a quieter pair of lounge chairs against a
  // timber feature wall, separate from the dining banquette and cafe tables.
- const jadeLoungeWallZ=jadeCenter+suiteDepth/2-.12,jadeChairZ=jadeCenter+suiteDepth*.24,jadeChairMat='#c7c1b7';
+ const jadeLoungeWallZ=jadeCenter+suiteDepth/2-.12,jadeChairMat='#c7c1b7';
  box(parent,w-.3,3.04,.18,suiteX,base+1.52,jadeLoungeWallZ,terminalLoungeWood());
  for(const i of [0,1]){
   const x=suiteX-4.1+i*3.25;
