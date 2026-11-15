@@ -3,7 +3,7 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives';
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
-import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_ARRIVAL_WELCOME_LAYOUT,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
@@ -1347,6 +1347,42 @@ function arrivalLobby(parent:THREE.Object3D,b:TerminalBounds,y:number,z:number,b
  // an unverified row of opaque planter boxes across the main approach.
  if(includePlanters){const planters:Item[]=[];for(let i=0;i<8;i++)planters.push({x:b.x+(i-3.5)*Math.min(16,b.width/9),y:y+.65,z:z+62,sx:2.4,sy:1.3,sz:2.4,color:'#657b63'});batch(parent,material('#77735d',.86),planters);}
 }
+let t2ArrivalWelcomeFace:THREE.Material|undefined;
+/** Official T2 visitor imagery shows a timber welcome wall with a mounted aircraft. */
+function terminal2ArrivalWelcomeWall(parent:THREE.Object3D,b:TerminalBounds,y:number){
+ const layout=T2_ARRIVAL_WELCOME_LAYOUT,x=b.x+layout.centerXOffset,z=b.z+layout.centerZOffset;
+ if(!t2ArrivalWelcomeFace){
+  const texture=canvasTexture(2048,512,ctx=>{
+   const wood=ctx.createLinearGradient(0,0,0,512);wood.addColorStop(0,'#7a5b3e');wood.addColorStop(.52,'#94704b');wood.addColorStop(1,'#63492f');ctx.fillStyle=wood;ctx.fillRect(0,0,2048,512);
+   for(let row=0;row<16;row++){
+    const yy=row*32;ctx.fillStyle=row%2?'rgba(39,31,23,.2)':'rgba(233,203,158,.075)';ctx.fillRect(0,yy,2048,2);
+    ctx.strokeStyle=row%2?'rgba(31,25,19,.17)':'rgba(240,213,173,.12)';ctx.lineWidth=1;
+    for(let grain=0;grain<9;grain++){const gy=yy+4+((row*13+grain*7)%25),start=(row*149+grain*227)%2048,length=180+((row+grain*5)%6)*120;ctx.beginPath();ctx.moveTo(start,gy);ctx.bezierCurveTo(start+length*.32,gy-2,start+length*.68,gy+2,start+length,gy);ctx.stroke();}
+   }
+   // A restrained airport-color mark and bilingual lettering follow the
+   // official visitor photograph; dimensions and exact typeface are unknown.
+   ctx.save();ctx.translate(184,257);ctx.fillStyle='#27a49b';ctx.fillRect(-17,-112,34,224);ctx.fillStyle='#ed8d35';ctx.fillRect(-112,-17,224,34);ctx.fillStyle='#6dbf61';ctx.fillRect(-67,-67,34,134);ctx.fillStyle='#e3c13d';ctx.fillRect(34,-67,34,134);ctx.restore();
+   ctx.shadowColor='rgba(18,17,14,.62)';ctx.shadowBlur=12;ctx.shadowOffsetX=2;ctx.shadowOffsetY=4;ctx.fillStyle='#f1e5c7';ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='bold 68px "Microsoft JhengHei",Arial,sans-serif';ctx.fillText('歡迎來到桃園國際機場',350,221,1050);ctx.font='bold 34px Arial,sans-serif';ctx.fillStyle='#e7dfc8';ctx.fillText('TAOYUAN INTERNATIONAL AIRPORT',356,303,960);ctx.shadowColor='transparent';
+   ctx.fillStyle='rgba(250,232,190,.56)';ctx.fillRect(350,348,908,3);
+  });
+  t2ArrivalWelcomeFace=new THREE.MeshStandardMaterial({map:texture,color:'#fff',roughness:.62,metalness:.025,side:THREE.DoubleSide});
+ }
+ const backing=material('#d1cec4',.72,.08),trim=material('#4d514c',.48,.36),plinth=material('#c2c0b8',.4,.28);
+ box(parent,layout.width,layout.height,layout.depth,x,y+layout.height/2,z,backing);
+ box(parent,layout.width+.5,.17,layout.depth+.18,x,y+.085,z,plinth);
+ box(parent,layout.width+.18,.12,layout.depth+.08,x,y+layout.height-.06,z,trim);
+ for(const side of [-1,1])box(parent,.12,layout.height,.1,x+side*(layout.width/2-.08),y+layout.height/2,z+layout.depth/2+.025,trim);
+ const face=new THREE.Mesh(new THREE.PlaneGeometry(layout.width-.3,layout.height-.3),t2ArrivalWelcomeFace);face.position.set(x,y+layout.height/2,z+layout.depth/2+.012);face.castShadow=false;parent.add(face);
+ // The photograph's airplane is a projecting white sculpture, modeled as a
+ // compact fuselage, swept wing, tail and twin engine pods rather than a decal.
+ const planeX=x+layout.width*.28,planeY=y+layout.height*.7,planeZ=z+layout.depth/2+.3,ivory=material('#f4f2e9',.32,.2),pearl=material('#d9e1de',.28,.36),teal=material('#63aeb0',.34,.22);
+ const fuselage=new THREE.Mesh(new THREE.SphereGeometry(1,28,18),ivory);fuselage.position.set(planeX,planeY,planeZ);fuselage.scale.set(3.35,.3,.36);fuselage.castShadow=true;parent.add(fuselage);
+ const wing=new THREE.Mesh(new THREE.BoxGeometry(2.3,.11,3.15),ivory);wing.position.set(planeX-.1,planeY-.035,planeZ);wing.rotation.y=.08;wing.castShadow=true;parent.add(wing);
+ const tailplane=new THREE.Mesh(new THREE.BoxGeometry(1.12,.09,1.38),pearl);tailplane.position.set(planeX-2.63,planeY+.03,planeZ);tailplane.castShadow=true;parent.add(tailplane);
+ const finShape=new THREE.Shape();finShape.moveTo(-3.16,-.08);finShape.lineTo(-2.72,.76);finShape.lineTo(-2.25,-.08);finShape.lineTo(-3.16,-.08);
+ const fin=new THREE.Mesh(new THREE.ShapeGeometry(finShape),pearl);fin.position.set(planeX,planeY,planeZ+.18);fin.castShadow=true;parent.add(fin);
+ for(const side of [-1,1]){const engine=new THREE.Mesh(new THREE.CylinderGeometry(.105,.14,.82,16),teal);engine.rotation.z=Math.PI/2;engine.position.set(planeX-.18,planeY-.32,planeZ+side*.78);engine.castShadow=true;parent.add(engine);}
+}
 /** T1 1F map-marked arrival desks, ATMs, AEDs and public meeting points. */
 function terminal1FirstFloorServices(parent:THREE.Object3D,b:TerminalBounds,y:number){
  const deskWall=material('#d1d5cf',.58,.055),deskBody=material('#aeb7b2',.48,.24),deskTop=material('#e8e9e2',.32,.08),dark=material('#23383c',.28,.18),glass=new THREE.MeshPhysicalMaterial({color:'#b6d2ce',roughness:.16,metalness:.04,transparent:true,opacity:.3,depthWrite:false,side:THREE.DoubleSide}),hardware=material('#7b8985',.42,.28);
@@ -2623,7 +2659,7 @@ function terminal2(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials
  const arrivalCeilingY=levels[3]-.17-.17-.012;terminal2ArrivalCeilingGrid(parent,b,arrivalCeilingY);terminal2ArrivalColumnHeads(parent,b,arrivalCeilingY);terminal2ArrivalDropCeiling(parent,b,arrivalCeilingY);terminal2ArrivalArtCeiling(parent,b,arrivalCeilingY);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2',levels[0]);verticalCirculation(parent,b,levels,'T2');terminal2Basement(parent,b,levels[0],levels[1]);
  baggageClaim(parent,b,.58,b.z-30,6,'x',b.x,1);
  baggageClaim(parent,b,.58,b.z-55,2,'x',b.x-58,7);terminal2WanLaiArt(parent,b,.58,b.z-55);
- customsHall(parent,b,.58,b.z-23);arrivalLobby(parent,b,.58,b.z+24,.72,false);terminal2ArrivalServices(parent,b,.58);terminal2ArrivalArt(parent,b,.58);sign(parent,'MRT  機場捷運',b.x+b.width*.28,.58+4,b.z+70,11,'#6f9898');
+ customsHall(parent,b,.58,b.z-23);arrivalLobby(parent,b,.58,b.z+24,.72,false);terminal2ArrivalWelcomeWall(parent,b,.58);terminal2ArrivalServices(parent,b,.58);terminal2ArrivalArt(parent,b,.58);sign(parent,'MRT  機場捷運',b.x+b.width*.28,.58+4,b.z+70,11,'#6f9898');
   terminal2TransferServices(parent,b,6.48);securityHall(parent,b,6.48,b.z+48,4,'#86b9b8','TRANSFER SECURITY  轉機安檢');
  checkInHall(parent,b,12.62,b.z+checkInLayout.centerZOffset,checkInLayout.bankCount,checkInLayout.numbersPerBank,1,'T2');
  terminal2DepartureImmigration(parent,b,12.62,b.z+5);

@@ -317,6 +317,19 @@ export function t2ThirdFloorRetailUnits(centerX:number,centerZ:number,terminalWi
  * all interior footprints below are model estimates; B1 is kept structural.
  */
 export const T2_FLOOR_LEVELS=[-10.7,-5.2,.36,6.25,12.35,18.55,23.45] as const;
+/**
+ * The airport visitor guide places its T2 1F arrival photo spot near the
+ * South Meeting Point and shows a timber welcome wall with a plane sculpture.
+ * No dimensioned position is published, so this is a visual-fit waypoint and
+ * feature footprint within the modeled south-side public hall.
+ */
+export const T2_ARRIVAL_WELCOME_LAYOUT={
+ centerXOffset:66,
+ centerZOffset:96,
+ width:18,
+ height:3.6,
+ depth:.62,
+} as const;
 export const T2_BASEMENT_LAYOUT={
  aisle:{xOffsetRatio:-.4,width:16,northZOffset:-132,southZOffset:132},
  shops:[
