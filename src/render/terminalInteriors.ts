@@ -275,6 +275,19 @@ function terminal2ArrivalCeilingGrid(parent:THREE.Object3D,b:TerminalBounds,ceil
  }
  batch(parent,t2ArrivalCeilingMember,members);
 }
+/** Round T2 arrival-hall columns meet the low 2F slab through a broad capital. */
+function terminal2ArrivalColumnHeads(parent:THREE.Object3D,b:TerminalBounds,ceilingY:number){
+ const capitals:Item[]=[],bearingSeats:Item[]=[];
+ for(const point of t2StructuralColumnCenters(b.x,b.z,b.width,b.depth)){
+  capitals.push({x:point.x,y:ceilingY-.07,z:point.z,sx:2.2,sy:.32,sz:2.2});
+  bearingSeats.push({x:point.x,y:ceilingY-.31,z:point.z,sx:1.9,sy:.16,sz:1.9});
+ }
+ // The photo shows a widened concrete head at each round support. Keep the
+ // shoe narrower and darker so the transfer into the diagonal ceiling grid is
+ // visible without changing the existing column spacing or shaft diameter.
+ batch(parent,material('#c0c4bf',.68,.12),capitals);
+ batch(parent,material('#717a77',.5,.34),bearingSeats);
+}
 /** The arrivals photo shows a lower, square-panel ceiling along one long edge. */
 function terminal2ArrivalDropCeiling(parent:THREE.Object3D,b:TerminalBounds,ceilingY:number){
  const width=b.width*.18,depth=b.depth*.84,x=b.x+b.width*.41,z=b.z,y=ceilingY-.49;
@@ -1436,28 +1449,50 @@ function templeFloorMaterial(){
 function templeCeilingMaterial(){
  if(templeCeilingCache.material)return templeCeilingCache.material;
  const texture=canvasTexture(2048,1024,ctx=>{
-  ctx.fillStyle='#343734';ctx.fillRect(0,0,2048,1024);
+  // The real avenue keeps a dark ceiling, but its panels and support grid remain
+  // legible around the bright suspended artwork. Avoid a featureless black void.
+  ctx.fillStyle='#41433f';ctx.fillRect(0,0,2048,1024);
   const panelW=64,panelH=64;
   for(let row=0;row<16;row++)for(let col=0;col<32;col++){
-   const x=col*panelW,y=row*panelH,shade=(row+col)%4===0?'#3b3e3a':(row+col)%4===1?'#30332f':'#353834';
+   const x=col*panelW,y=row*panelH,shade=(row+col)%4===0?'#50514b':(row+col)%4===1?'#3c3f3b':'#464843';
    ctx.fillStyle=shade;ctx.fillRect(x+2,y+2,panelW-4,panelH-4);
-   ctx.strokeStyle='rgba(133,137,127,.2)';ctx.lineWidth=2;ctx.strokeRect(x+2,y+2,panelW-4,panelH-4);
-   ctx.fillStyle='rgba(10,13,12,.34)';for(let py=12;py<panelH;py+=13)for(let px=12;px<panelW;px+=13)ctx.fillRect(x+px,y+py,1.4,1.4);
+   ctx.strokeStyle='rgba(185,184,169,.25)';ctx.lineWidth=2;ctx.strokeRect(x+2,y+2,panelW-4,panelH-4);
+   ctx.fillStyle='rgba(14,16,14,.34)';for(let py=12;py<panelH;py+=13)for(let px=12;px<panelW;px+=13)ctx.fillRect(x+px,y+py,1.4,1.4);
   }
-  ctx.strokeStyle='rgba(19,22,20,.75)';ctx.lineWidth=7;for(let x=0;x<=2048;x+=256){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,1024);ctx.stroke();}
+  ctx.strokeStyle='rgba(27,29,27,.8)';ctx.lineWidth=10;for(let x=0;x<=2048;x+=256){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,1024);ctx.stroke();}
   for(let y=0;y<=1024;y+=256){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(2048,y);ctx.stroke();}
+  ctx.strokeStyle='rgba(197,184,153,.22)';ctx.lineWidth=2;for(let x=4;x<=2048;x+=256){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,1024);ctx.stroke();}
  });texture.anisotropy=8;
- const mat=new THREE.MeshStandardMaterial({map:texture,color:'#d1d2c9',emissive:'#131512',emissiveIntensity:.32,roughness:.91,metalness:.02,side:THREE.DoubleSide});
+ const mat=new THREE.MeshStandardMaterial({map:texture,color:'#e9e5da',emissive:'#373832',emissiveIntensity:.48,roughness:.91,metalness:.02,side:THREE.DoubleSide});
  templeCeilingCache.material=mat;return mat;
 }
 function templeCeilingFeature(parent:THREE.Object3D,x:number,y:number,z:number,diameter:number){
- const radius=diameter/2,base=material('#d9cfb9',.82,.035),edge=material('#b38f5d',.58,.22),shadow=material('#3a3834',.72,.16),parts:Item[]=[];
- const disc=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.2,64),base);disc.position.set(x,y,z);disc.castShadow=true;disc.receiveShadow=true;parent.add(disc);
- const inner=new THREE.Mesh(new THREE.CylinderGeometry(radius*.61,radius*.61,.08,48),shadow);inner.position.set(x,y-.13,z);parent.add(inner);
- for(const r of [radius*.38,radius*.68,radius*.94]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.12,8,64),edge);ring.rotation.x=Math.PI/2;ring.position.set(x,y-.16,z);ring.castShadow=true;parent.add(ring);}
- for(let i=0;i<32;i++){const angle=i*Math.PI/16,offset=radius*.78;parts.push({x:x+Math.cos(angle)*offset,y:y-.18,z:z+Math.sin(angle)*offset,sx:radius*.22,sy:.065,sz:.16,ry:angle,color:i%4===0?'#9f5b42':'#c0aa79'});}
- batch(parent,base,parts);
- const lightBand=material('#fff0cd',.34,.08),lowerRing=new THREE.Mesh(new THREE.TorusGeometry(radius*.48,.18,8,64),lightBand);lowerRing.rotation.x=Math.PI/2;lowerRing.position.set(x,y-.24,z);lowerRing.material=new THREE.MeshStandardMaterial({color:'#fff0dc',emissive:'#ffe5a8',emissiveIntensity:.34,roughness:.46});parent.add(lowerRing);
+ const radius=diameter/2,base=material('#e2d7bd',.82,.035),edge=material('#b7a17a',.58,.2),shadow=material('#282a28',.72,.12),parts:Item[]=[],slots:Item[]=[],supports:Item[]=[],apertures:Item[]=[];
+ // A dropped, broad canopy reads as a suspended architectural element from the
+ // floor instead of a thin flat ring. Its warm underside and radial cut-outs
+ // follow the official visitor photograph.
+ const disc=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,.28,96),base);disc.position.set(x,y,z);disc.castShadow=true;disc.receiveShadow=true;parent.add(disc);
+ const inner=new THREE.Mesh(new THREE.CylinderGeometry(radius*.58,radius*.58,.08,64),shadow);inner.position.set(x,y-.19,z);parent.add(inner);
+ for(const r of [radius*.40,radius*.69,radius*.96]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,r*.013,8,96),edge);ring.rotation.x=Math.PI/2;ring.position.set(x,y-.17,z);ring.castShadow=true;parent.add(ring);}
+ // Fine radial ribs and dark inset slots give the soffit its perforated rim.
+ for(let i=0;i<48;i++){
+  const angle=i*Math.PI/24,radial=radius*.5,slotRadius=radius*.84;
+  parts.push({x:x+Math.cos(angle)*radial,y:y-.17,z:z+Math.sin(angle)*radial,sx:radius*.82,sy:.035,sz:.075,ry:-angle});
+  slots.push({x:x+Math.cos(angle)*slotRadius,y:y-.174,z:z+Math.sin(angle)*slotRadius,sx:radius*.07,sy:.022,sz:.12,ry:-angle});
+ }
+ for(let i=0;i<12;i++){
+  const angle=i*Math.PI/6,offset=radius*.89;
+  supports.push({x:x+Math.cos(angle)*offset,y:y+.22,z:z+Math.sin(angle)*offset,sx:.075,sy:.42,sz:.075});
+ }
+ batch(parent,edge,parts);batch(parent,shadow,slots);
+ const supportMaterial=material('#56534a',.58,.32);batch(parent,supportMaterial,supports);
+ for(let i=0;i<32;i++){
+  const angle=i*Math.PI/16,offset=radius*.52;
+  apertures.push({x:x+Math.cos(angle)*offset,y:y-.174,z:z+Math.sin(angle)*offset,sx:1,sy:1,sz:1});
+ }
+ instances(parent,new THREE.CylinderGeometry(.11,.11,.025,12),shadow,apertures);
+ const lightBand=new THREE.MeshStandardMaterial({color:'#fff1d5',emissive:'#f4d69c',emissiveIntensity:.72,roughness:.46});
+ const lowerRing=new THREE.Mesh(new THREE.TorusGeometry(radius*.47,.22,10,96),lightBand);lowerRing.rotation.x=Math.PI/2;lowerRing.position.set(x,y-.245,z);parent.add(lowerRing);
 }
 function addT2TempleFacade(parent:THREE.Object3D,x:number,y:number,z:number,span:number,height:number,side:-1|1,variant:number){
  const wallDepth=.72,insideFacing=side<0?0:Math.PI,frontZ=z-side*(wallDepth/2+.016),bayWidth=span/5,
@@ -1499,7 +1534,7 @@ function addT2TempleAvenue(parent:THREE.Object3D,b:TerminalBounds,y:number){
   tracks.push({x,y:y+5.525,z,sx:ceilingWidth*.14,sy:.045,sz:.24,color:'#f2e4c3'});
  }
  batch(parent,light,tracks);
- templeCeilingFeature(parent,b.x,y+5.42,centerZ,layout.ceilingFeatureDiameter);
+ templeCeilingFeature(parent,b.x,y+5.12,centerZ,layout.ceilingFeatureDiameter);
 }
 function statueEllipsoid(parent:THREE.Object3D,geometry:THREE.BufferGeometry,mat:THREE.Material,x:number,y:number,z:number,sx:number,sy:number,sz:number){
  const mesh=new THREE.Mesh(geometry,mat);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
@@ -2585,7 +2620,7 @@ function terminal2WanLaiArt(parent:THREE.Object3D,b:TerminalBounds,y:number,z:nu
 function terminal2(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials){
  const levels=[...T2_FLOOR_LEVELS],atrium={fromLevel:5,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats),lowerFloor=terminalFloor('T2','lower'),checkInLayout=T2_THIRD_FLOOR_LAYOUT.checkIn;
  addDecks(parent,b,levels,mats.concrete,.16,atrium,finishes,undefined,new Map([[0,lowerFloor],[1,mats.concrete],[2,lowerFloor],[3,lowerFloor]]));
- const arrivalCeilingY=levels[3]-.17-.17-.012;terminal2ArrivalCeilingGrid(parent,b,arrivalCeilingY);terminal2ArrivalDropCeiling(parent,b,arrivalCeilingY);terminal2ArrivalArtCeiling(parent,b,arrivalCeilingY);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2',levels[0]);verticalCirculation(parent,b,levels,'T2');terminal2Basement(parent,b,levels[0],levels[1]);
+ const arrivalCeilingY=levels[3]-.17-.17-.012;terminal2ArrivalCeilingGrid(parent,b,arrivalCeilingY);terminal2ArrivalColumnHeads(parent,b,arrivalCeilingY);terminal2ArrivalDropCeiling(parent,b,arrivalCeilingY);terminal2ArrivalArtCeiling(parent,b,arrivalCeilingY);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2',levels[0]);verticalCirculation(parent,b,levels,'T2');terminal2Basement(parent,b,levels[0],levels[1]);
  baggageClaim(parent,b,.58,b.z-30,6,'x',b.x,1);
  baggageClaim(parent,b,.58,b.z-55,2,'x',b.x-58,7);terminal2WanLaiArt(parent,b,.58,b.z-55);
  customsHall(parent,b,.58,b.z-23);arrivalLobby(parent,b,.58,b.z+24,.72,false);terminal2ArrivalServices(parent,b,.58);terminal2ArrivalArt(parent,b,.58);sign(parent,'MRT  機場捷運',b.x+b.width*.28,.58+4,b.z+70,11,'#6f9898');

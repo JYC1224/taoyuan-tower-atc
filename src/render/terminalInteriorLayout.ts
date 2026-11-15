@@ -239,7 +239,7 @@ export const T2_TEMPLE_AVENUE_LAYOUT={
  facadeSpanRatio:.5,
  facadeOffsetRatio:.32,
  facadeHeight:5.8,
- ceilingFeatureDiameter:17,
+ ceilingFeatureDiameter:20,
 } as const;
 
 /** T2's official 3F map names five separate airside retail/service frontages. */

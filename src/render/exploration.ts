@@ -200,11 +200,13 @@ const t2B2AisleX=t2BasementAisleX(t2.x,t2.width),t2B2WestEdge=t2.x-(t2.width-3)/
  t2B2RestroomFeature=expanded(t2B2RestroomCenter.x,t2B2RestroomCenter.z,T2_BASEMENT_LAYOUT.restroom.depth,T2_BASEMENT_LAYOUT.restroom.width,.5),
  t2B2RestroomBounds=inset(t2B2RestroomCenter.x-13,t2B2RestroomCenter.z,42,34,1),
  t2B2Obstacles=[...t2B2Columns,...t2B2ShopFeatures,...t2B2Lifts,...t2B2Escalators,t2B2Atm,...t2B2Aeds];
-const t2Shop=T2_FOURTH_FLOOR_SHOPS.find(shop=>shop.id==='t2-shop-starbucks')!,t2ShopCenter=t2FourthFloorShopCenter(t2.x,t2.z,t2.width,t2.depth,t2Shop.side,t2Shop.zRatio,t2Shop.depth);
+const t2Shop=T2_FOURTH_FLOOR_SHOPS.find(shop=>shop.id==='t2-shop-starbucks')!,t2ShopCenter=t2FourthFloorShopCenter(t2.x,t2.z,t2.width,t2.depth,t2Shop.side,t2Shop.zRatio,t2Shop.depth),t2ShopFrontAisleOffset=2.65;
 const t2FourthFloorShopViewSpots=T2_FOURTH_FLOOR_SHOPS.map(shop=>{
  const center=t2FourthFloorShopCenter(t2.x,t2.z,t2.width,t2.depth,shop.side,shop.zRatio,shop.depth);
  return spot(shop.id,`Terminal 2 ${shop.name} · 4F`,`第二航廈${shop.name} · 4F`,18.55,
-  {x:center.frontX-shop.side*12,y:20.25,z:center.z+Math.min(7,shop.length*.32)},
+  // The map places each shop beside the lounge frontage; keep the camera in
+  // the narrow public aisle instead of 12 m inward inside lounge seating.
+  {x:center.frontX-shop.side*t2ShopFrontAisleOffset,y:20.25,z:center.z+Math.min(7,shop.length*.32)},
   {x:center.frontX+shop.side*.3,y:19.8,z:center.z},inside(t2),t2FourthFloorObstacles);
 });
 const t2B2ShopSpotIds:ExploreSpotId[]=['t2-b2-mi-alone','t2-b2-le-pai-dui','t2-b2-fuhang','t2-b2-royal-heritage','t2-b2-songhe','t2-b2-xiaonanmen'];
@@ -340,7 +342,7 @@ export const exploreSpots:ExploreSpot[]=[
   {x:t2.x+t2.width*T2_THIRD_FLOOR_LAYOUT.retail.frontOffsetRatio-24,y:14.05,z:t2.z+T2_THIRD_FLOOR_LAYOUT.retail.centerZOffset},
   {x:t2.x+t2.width*T2_THIRD_FLOOR_LAYOUT.retail.frontOffsetRatio,y:13.75,z:t2.z+T2_THIRD_FLOOR_LAYOUT.retail.centerZOffset},inside(t2),[...t2Columns,...t2DepartureFeatures]),
  spot('t2-food','Terminal 2 dining hall · 4F','第二航廈餐飲與候機區 · 4F',18.55,{x:t2.x-29,y:20.25,z:t2FourthFloorFoodZ-14},{x:t2.x-5,y:19.4,z:t2FourthFloorFoodZ+7},inside(t2),t2FourthFloorObstacles),
- spot('t2-shops','Terminal 2 4F mapped restaurants','第二航廈 4F 商店與餐飲 · 4F',18.55,{x:t2ShopCenter.frontX-t2Shop.side*13.5,y:20.25,z:t2ShopCenter.z+10},{x:t2ShopCenter.frontX+t2Shop.side*.3,y:19.8,z:t2ShopCenter.z},inside(t2),t2FourthFloorObstacles),
+ spot('t2-shops','Terminal 2 4F mapped restaurants','第二航廈 4F 商店與餐飲 · 4F',18.55,{x:t2ShopCenter.frontX-t2Shop.side*t2ShopFrontAisleOffset,y:20.25,z:t2ShopCenter.z+6},{x:t2ShopCenter.frontX+t2Shop.side*.3,y:19.8,z:t2ShopCenter.z},inside(t2),t2FourthFloorObstacles),
  ...t2FourthFloorShopViewSpots,
  spot('t2-4f-amenities','Terminal 2 restrooms, showers & AED · 4F','第二航廈廁所、淋浴室與 AED · 4F',18.55,{x:t2.x+65,y:20.25,z:t2.z-120},{x:t2.x+82,y:19.8,z:t2.z-135},inside(t2),[...t2Columns,...t2FourthFloorServiceFeatures]),
  ...t2LoungeViewSpots,
