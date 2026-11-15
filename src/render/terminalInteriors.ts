@@ -599,7 +599,7 @@ function terminal1FourthFloor(parent:THREE.Object3D,b:TerminalBounds,level:numbe
 
 /** A compact upper-level lounge sequence with glass screening, a staffed welcome desk and soft seating groups. */
 let terminalLoungeWoodMaterial:THREE.Material|undefined,terminalJadeWoodMaterial:THREE.MeshStandardMaterial|undefined,terminalJadeFloorMaterial:THREE.Material|undefined,terminalLoungeRugMaterial:THREE.Material|undefined;
-let terminalLoungeFabricMap:THREE.Texture|undefined,terminalJadeCeilingPanel:THREE.Material|undefined,terminalJadeCeilingSlat:THREE.MeshStandardMaterial|undefined,terminalJadeRusticWall:THREE.Material|undefined;
+let terminalLoungeFabricMap:THREE.Texture|undefined,terminalJadeRusticWall:THREE.Material|undefined;
 let terminalBlossomCarpetMaterial:THREE.Material|undefined,terminalLoungeMarbleMaterial:THREE.Material|undefined,terminalLoungeLightMarbleMaterial:THREE.Material|undefined,terminalLoungeCeilingMaterial:THREE.Material|undefined;
 function terminalLoungeWood(){
  if(terminalLoungeWoodMaterial)return terminalLoungeWoodMaterial;
@@ -643,35 +643,31 @@ function terminalLoungeFabric(){
   for(let i=0;i<8500;i++){const v=rand()>.5?255:61;ctx.fillStyle=`rgba(${v},${v},${v},${.035+rand()*.09})`;ctx.fillRect(rand()*512,rand()*512,.55+rand()*1.2,.55+rand()*1.2);}
  });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;terminalLoungeFabricMap=texture;return texture;
 }
-function terminalJadeCeiling(){
- if(terminalJadeCeilingPanel)return terminalJadeCeilingPanel;
- terminalJadeCeilingPanel=new THREE.MeshStandardMaterial({color:'#302820',roughness:.86,metalness:.015,emissive:'#21190f',emissiveIntensity:.08,side:THREE.DoubleSide});return terminalJadeCeilingPanel;
-}
-function terminalJadeCeilingSlats(){
- if(terminalJadeCeilingSlat)return terminalJadeCeilingSlat;
- const wood=terminalJadeWood(),map=wood.map?.clone();if(map){map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.set(1,1);map.needsUpdate=true;}
- terminalJadeCeilingSlat=new THREE.MeshStandardMaterial({color:'#75634e',map,bumpMap:map,bumpScale:.012,roughness:.74,metalness:.01});return terminalJadeCeilingSlat;
-}
 function terminalJadeTimberWall(){
  if(terminalJadeRusticWall)return terminalJadeRusticWall;
  const rand=seeded(1140425),texture=canvasTexture(512,512,ctx=>{
-  ctx.fillStyle='#715b43';ctx.fillRect(0,0,512,512);
-  const boards=32,boardWidth=512/boards;
-  for(let board=0;board<boards;board++){
-   const x=board*boardWidth,tone=82+Math.floor(rand()*33),shade=`rgb(${tone},${Math.max(0,tone-18)},${Math.max(0,tone-34)})`;
-   ctx.fillStyle=shade;ctx.fillRect(x+1,0,boardWidth-2,512);
-   const grain=ctx.createLinearGradient(x,0,x+boardWidth,0);grain.addColorStop(0,'rgba(30,23,17,.25)');grain.addColorStop(.36,'rgba(242,205,153,.1)');grain.addColorStop(.72,'rgba(255,226,178,.055)');grain.addColorStop(1,'rgba(29,22,16,.24)');ctx.fillStyle=grain;ctx.fillRect(x+1,0,boardWidth-2,512);
-   for(let line=0;line<13;line++){
-    const gx=x+2+rand()*(boardWidth-4),start=rand()*512,length=55+rand()*260;
-    ctx.strokeStyle=line%4===0?'rgba(35,26,18,.3)':'rgba(235,202,158,.14)';ctx.lineWidth=line%4===0?1:.55;
-    ctx.beginPath();ctx.moveTo(gx,start);ctx.bezierCurveTo(gx+(rand()-.5)*3,start+length*.32,gx+(rand()-.5)*4,start+length*.68,gx+(rand()-.5)*3,start+length);ctx.stroke();
+  ctx.fillStyle='#554638';ctx.fillRect(0,0,512,512);
+  // The current operator photo shows a deeply textured, irregular reclaimed-wood
+  // backdrop behind the quiet seats rather than evenly milled narrow boards.
+  let x=0,board=0;
+  while(x<512){
+   const width=Math.min(512-x,18+Math.floor(rand()*19)),tone=92+Math.floor(rand()*35),left=x,right=x+width;
+   const path=new Path2D();path.moveTo(left+rand()*2,0);
+   for(let y=0;y<=512;y+=24)path.lineTo(left+(rand()-.5)*5,y);
+   for(let y=512;y>=0;y-=24)path.lineTo(right+(rand()-.5)*6,y);
+   path.closePath();ctx.fillStyle=`rgb(${tone},${Math.max(0,tone-21)},${Math.max(0,tone-39)})`;ctx.fill(path);
+   const wash=ctx.createLinearGradient(left,0,right,0);wash.addColorStop(0,'rgba(20,16,13,.42)');wash.addColorStop(.18,'rgba(211,176,130,.12)');wash.addColorStop(.57,'rgba(237,208,170,.17)');wash.addColorStop(.84,'rgba(34,26,20,.08)');wash.addColorStop(1,'rgba(15,12,10,.46)');ctx.fillStyle=wash;ctx.fill(path);
+   for(let ridge=0;ridge<34;ridge++){
+    const gx=left+2+rand()*Math.max(2,width-4),start=rand()*512,length=28+rand()*245,wobble=1+rand()*4;
+    ctx.strokeStyle=ridge%5===0?'rgba(23,17,13,.47)':'rgba(236,203,163,.17)';ctx.lineWidth=ridge%5===0?1.5:.65;
+    ctx.beginPath();ctx.moveTo(gx,start);ctx.bezierCurveTo(gx-wobble,start+length*.28,gx+wobble*.7,start+length*.67,gx-wobble*.35,start+length);ctx.stroke();
    }
-   if(board%5===2){const kx=x+boardWidth*.52,ky=110+rand()*300;ctx.strokeStyle='rgba(35,27,20,.36)';ctx.lineWidth=1.1;ctx.beginPath();ctx.ellipse(kx,ky,1.4,6+rand()*7,.04,0,Math.PI*2);ctx.stroke();}
+   if(board%3===1){const knotX=left+width*.5,knotY=70+rand()*360;ctx.strokeStyle='rgba(25,18,14,.5)';ctx.lineWidth=1.4;ctx.beginPath();ctx.ellipse(knotX,knotY,1.8,8+rand()*11,.05,0,Math.PI*2);ctx.stroke();}
+   x+=width;board++;
   }
-  ctx.fillStyle='rgba(35,27,20,.65)';for(let x=0;x<=512;x+=boardWidth)ctx.fillRect(x,0,1.2,512);
-  for(let i=0;i<11000;i++){const v=rand()>.54?235:36;ctx.fillStyle=`rgba(${v},${v},${v},${.025+rand()*.075})`;ctx.fillRect(rand()*512,rand()*512,.5+rand()*1.4,.6+rand()*1.8);}
+  for(let i=0;i<18000;i++){const v=rand()>.52?235:31;ctx.fillStyle=`rgba(${v},${v},${v},${.035+rand()*.12})`;ctx.fillRect(rand()*512,rand()*512,.55+rand()*2.4,.6+rand()*2.8);}
  });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;
- terminalJadeRusticWall=new THREE.MeshStandardMaterial({color:'#fff4e3',map:texture,bumpMap:texture,bumpScale:.035,roughness:.88,metalness:.005});return terminalJadeRusticWall;
+ terminalJadeRusticWall=new THREE.MeshStandardMaterial({color:'#fff4e3',map:texture,bumpMap:texture,bumpScale:.065,roughness:.94,metalness:.005});return terminalJadeRusticWall;
 }
 function terminalJadeFloor(){
  if(terminalJadeFloorMaterial)return terminalJadeFloorMaterial;
@@ -784,20 +780,14 @@ function terminal1Lounge(parent:THREE.Object3D,b:TerminalBounds,level:number){
   if(suite===1){const quietRug=new THREE.Mesh(new THREE.PlaneGeometry(7.6,5.2),terminalLoungeRug());quietRug.rotation.x=-Math.PI/2;quietRug.position.set(suiteX-2.45,base+.048,jadeChairZ);quietRug.receiveShadow=true;quietRug.castShadow=false;parent.add(quietRug);}
   // Operator photos show a low, flat ceiling with recessed points of light.
   // This tenant ceiling hides the exposed terminal trusses from inside the room.
-  const ceilingY=base+3.16,ceiling=new THREE.Mesh(new THREE.PlaneGeometry(w-1,suiteDepth-1.2),suite===1?terminalJadeCeiling():terminalLoungeCeiling());ceiling.rotation.x=Math.PI/2;ceiling.position.set(suiteX,ceilingY,center);ceiling.castShadow=false;parent.add(ceiling);
-  if(suite===1){
-   const slats:Item[]=[],linearLights:Item[]=[],lightOffsets=[-.31,-.11,.11,.31].map(offset=>suiteX+w*offset);
-   let slat=0;for(let x=suiteX-w/2+.22;x<=suiteX+w/2-.22;x+=.16){if(lightOffsets.some(lightX=>Math.abs(x-lightX)<.105))continue;slats.push({x,y:ceilingY-.012,z:center,sx:.046,sy:.052,sz:suiteDepth-1.35,color:slat++%6===0?'#a98b64':'#8d7254'});}
-   for(const x of lightOffsets)linearLights.push({x,y:ceilingY+.006,z:center,sx:.09,sy:.025,sz:suiteDepth-1.45});
-   batch(parent,terminalJadeCeilingSlats(),slats);batch(parent,ceilingStrip,linearLights);
-  }
-  const downlight=new THREE.MeshStandardMaterial({color:'#fff6df',emissive:'#ffe5ad',emissiveIntensity:.9,roughness:.46}),downlightGeo=new THREE.CylinderGeometry(.105,.105,.035,20);
-  if(suite===0)for(const xOffset of [-.32,-.11,.11,.32])for(const zOffset of [-.32,-.16,0,.16,.32]){const lamp=new THREE.Mesh(downlightGeo,downlight);lamp.position.set(suiteX+w*xOffset,ceilingY-.02,center+suiteDepth*zOffset);lamp.castShadow=false;parent.add(lamp);}
+  const ceilingY=base+3.16,ceiling=new THREE.Mesh(new THREE.PlaneGeometry(w-1,suiteDepth-1.2),terminalLoungeCeiling());ceiling.rotation.x=Math.PI/2;ceiling.position.set(suiteX,ceilingY,center);ceiling.castShadow=false;parent.add(ceiling);
+  const downlight=new THREE.MeshStandardMaterial({color:'#fff8e8',emissive:'#ffe9bd',emissiveIntensity:.62,roughness:.46}),downlightGeo=new THREE.CylinderGeometry(.065,.065,.025,20);
+  for(const xOffset of [-.32,-.11,.11,.32])for(const zOffset of [-.32,-.16,0,.16,.32]){const lamp=new THREE.Mesh(downlightGeo,downlight);lamp.position.set(suiteX+w*xOffset,ceilingY-.02,center+suiteDepth*zOffset);lamp.castShadow=false;parent.add(lamp);}
   // The roof above the 4F suites occludes daylight in free roam. Add a small
   // set of warm, non-shadow-casting ceiling fills so the photographed wood,
   // fabric and carpet palette remains legible inside the enclosed rooms.
   for(const xSide of [-1,1])for(const zSide of [-1,1]){
-   const fill=new THREE.PointLight('#fff0d8',suite===1?4.3:8,suite===1?11:13,2);fill.position.set(suiteX+xSide*4.3,ceilingY-.32,center+zSide*4.2);fill.castShadow=false;parent.add(fill);
+   const fill=new THREE.PointLight('#fff0d8',suite===1?5.8:8,suite===1?14:13,2);fill.position.set(suiteX+xSide*4.3,ceilingY-.32,center+zSide*4.2);fill.castShadow=false;parent.add(fill);
   }
   // A short warm timber fascia marks the entry threshold; Zone C's operator
   // frontage uses a distinctive stone sign wall in the published photographs.
@@ -863,7 +853,7 @@ function terminal1Lounge(parent:THREE.Object3D,b:TerminalBounds,level:number){
   sign(parent,`${lounge.nameEn.toUpperCase()}  RECEPTION`,deskX-.82,base+2.73,deskZ,Math.min(4.4,deskLength*.68),lounge.accent,Math.PI/2,.64);
  }
  for(const slats of featureSlatBatches)batch(parent,terminalLoungeWood(),slats);
- const seats:Item[]=[],backs:Item[]=[],seatPads:Item[]=[],backPads:Item[]=[],arms:Item[]=[],cushions:Item[]=[],chairs:Item[]=[],chairBacks:Item[]=[],chairArms:Item[]=[],tables:Item[]=[],jadeTables:Item[]=[],legs:Item[]=[],chairLegs:Item[]=[],plinths:Item[]=[],planters:Item[]=[],ceilingSlats:Item[]=[],ceilingLights:Item[]=[],powerPlates:Item[]=[],boothBacks:Item[]=[],boothSideWings:Item[]=[],boothBrass:Item[]=[],socketDetails:Item[]=[];
+ const seats:Item[]=[],backs:Item[]=[],seatPads:Item[]=[],backPads:Item[]=[],arms:Item[]=[],cushions:Item[]=[],chairs:Item[]=[],chairBacks:Item[]=[],chairArms:Item[]=[],tables:Item[]=[],jadeTables:Item[]=[],jadeTableLegs:Item[]=[],legs:Item[]=[],chairLegs:Item[]=[],plinths:Item[]=[],planters:Item[]=[],ceilingSlats:Item[]=[],ceilingLights:Item[]=[],powerPlates:Item[]=[],boothBacks:Item[]=[],boothSideWings:Item[]=[],boothBrass:Item[]=[],socketDetails:Item[]=[];
  // The Zone C reference photos show one long upholstered wall bench with
  // individual cafe tables. It replaces the repeated sofa pods used in Zone D.
  const jadeBenchX=suiteX+w*.31,jadeBench=material('#176e69',.8,.015),jadeBenchBack=material('#236c67',.82,.01);
@@ -889,13 +879,13 @@ function terminal1Lounge(parent:THREE.Object3D,b:TerminalBounds,level:number){
    if(suiteIndex===1){
     if(side<0)continue;
     const x=suiteX+w*.105,chairX=x-1.1;
-    jadeTables.push({x,y:base+.76,z,sx:1.22,sy:.11,sz:1.12,color:'#bcb2a1'});
-    plinths.push({x,y:base+.38,z,sx:.14,sy:.72,sz:.14,color:'#7f7569'});
+    jadeTables.push({x,y:base+.76,z,sx:1.04,sy:.1,sz:1.58,color:'#d7d1c6'});
+    for(const tableX of [-.43,.43])for(const tableZ of [-.68,.68])jadeTableLegs.push({x:x+tableX,y:base+.36,z:z+tableZ,sx:.065,sy:.7,sz:.065,color:'#292d2d'});
     for(const chairSide of [-1,1]){
      const chairZ=z+chairSide*.58;
-     chairs.push({x:chairX,y:base+.43,z:chairZ,sx:.8,sy:.26,sz:.72,color:'#a5aaa2'});
-     chairBacks.push({x:chairX-.31,y:base+.96,z:chairZ,sx:.18,sy:.9,sz:.68,color:'#a5aaa2'});
-     for(const armSide of [-1,1])chairArms.push({x:chairX-.04,y:base+.72,z:chairZ+armSide*.34,sx:.65,sy:.38,sz:.11,color:'#858d87'});
+     chairs.push({x:chairX,y:base+.43,z:chairZ,sx:.8,sy:.26,sz:.72,color:'#c0b8ad'});
+     chairBacks.push({x:chairX-.31,y:base+.96,z:chairZ,sx:.18,sy:.9,sz:.68,color:'#c0b8ad'});
+     for(const armSide of [-1,1])chairArms.push({x:chairX-.04,y:base+.72,z:chairZ+armSide*.34,sx:.65,sy:.38,sz:.11,color:'#a69d92'});
      for(const foot of [-1,1])chairLegs.push({x:chairX+foot*.27,y:base+.2,z:chairZ+foot*.23,sx:.065,sy:.38,sz:.065});
     }
     continue;
@@ -991,7 +981,7 @@ function terminal1Lounge(parent:THREE.Object3D,b:TerminalBounds,level:number){
   sign(parent,'FOOD & BEVERAGE  餐飲',buffetX-side*.92,base+3.22,buffetZ,Math.min(8,suiteDepth*.38),lounge.accent,side*Math.PI/2,.72);
   if(suite===0)planters.push({x:suiteX-side*(w*.39),y:base+.46,z:center+suiteDepth*.2,sx:1.7,sy:.72,sz:2.8,color:'#9e8c84'});
  }
- batchRounded(parent,softSeat,seats,true);batchRounded(parent,softSeat,backs);batchRounded(parent,softSeat,seatPads,true);batchRounded(parent,softSeat,backPads);batchRounded(parent,softSeatLight,arms);batchRounded(parent,softPillow,cushions);batchRounded(parent,softSeatLight,chairs,true);batchRounded(parent,softSeatLight,chairBacks);batchRounded(parent,softSeatLight,chairArms);batch(parent,steel,legs);batch(parent,steel,chairLegs);batch(parent,screen,powerPlates);batch(parent,material('#d7b56f',.38,.35),socketDetails);batchRounded(parent,softSeat,boothBacks);batchRounded(parent,softSeat,boothSideWings);batch(parent,material('#a99067',.42,.46),boothBrass);batchRounded(parent,counterTop,tables,true);batchRounded(parent,material('#bbb3a6',.28,.08),jadeTables,true);batchRounded(parent,steel,plinths);batch(parent,material('#858b7d',.86),planters);
+ batchRounded(parent,softSeat,seats,true);batchRounded(parent,softSeat,backs);batchRounded(parent,softSeat,seatPads,true);batchRounded(parent,softSeat,backPads);batchRounded(parent,softSeatLight,arms);batchRounded(parent,softPillow,cushions);batchRounded(parent,softSeatLight,chairs,true);batchRounded(parent,softSeatLight,chairBacks);batchRounded(parent,softSeatLight,chairArms);batch(parent,steel,legs);batch(parent,steel,chairLegs);batch(parent,screen,powerPlates);batch(parent,material('#d7b56f',.38,.35),socketDetails);batchRounded(parent,softSeat,boothBacks);batchRounded(parent,softSeat,boothSideWings);batch(parent,material('#a99067',.42,.46),boothBrass);batchRounded(parent,counterTop,tables,true);batchRounded(parent,material('#fffdf5',.3,.035),jadeTables,true);batch(parent,material('#292d2d',.42,.48),jadeTableLegs);batchRounded(parent,steel,plinths);batch(parent,material('#858b7d',.86),planters);
  // The 2026 lounge pages list lounge seating/bays and charging; small lamps add
  // local reading light without changing the terminal roof lighting.
  const lampStemGeo=new THREE.CylinderGeometry(.035,.055,.38,10),lampShadeGeo=new THREE.CylinderGeometry(.16,.12,.26,16),lampStemMat=material('#8a7357',.42,.34),lampShadeMat=new THREE.MeshStandardMaterial({color:'#f0e3c8',emissive:'#c68d42',emissiveIntensity:.28,roughness:.58});
