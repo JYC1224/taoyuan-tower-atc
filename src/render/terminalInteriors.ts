@@ -122,6 +122,32 @@ function terminalFloor(profile:'T1'|'T2',zone:'main'|'lower'='main'){
  // soft return so the polished stone reads without reflecting airport clouds.
  mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:lower?1.32:1.35;mat.userData.reflectionMap=interiorReflection(reflectionProfile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;mat.userData.terminalFloorZone=lower?'lower':'main';finishCache.set(key,mat);return mat;
 }
+function terminal2FoodCourtFloor(){
+ const key='T2-foodcourt-floor',cached=finishCache.get(key);if(cached)return cached;
+ const rand=seeded(21814),texture=canvasTexture(512,512,ctx=>{
+  ctx.fillStyle='#a99a88';ctx.fillRect(0,0,512,512);
+  // The dated dining-hall photograph shows a warmer, tighter-jointed floor
+  // than the grey-green stone in the main terminal halls. Use staggered
+  // rectangular porcelain modules as a local finish estimate.
+  for(let row=0;row<8;row++){
+   const y=row*64,offset=row%2?64:0;
+   for(let col=-1;col<5;col++){
+    const x=col*128+offset,variation=Math.round((rand()-.5)*12),r=169+variation,g=153+variation,b=134+variation;
+    ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillRect(x+1,y+1,126,62);
+    const wash=ctx.createLinearGradient(x,y,x+128,y+64);wash.addColorStop(0,'rgba(255,255,255,.12)');wash.addColorStop(.62,'rgba(255,250,239,.02)');wash.addColorStop(1,'rgba(44,37,30,.07)');ctx.fillStyle=wash;ctx.fillRect(x+2,y+2,124,60);
+    ctx.strokeStyle='rgba(69,59,48,.17)';ctx.lineWidth=1;ctx.strokeRect(x+1.5,y+1.5,125,61);
+    ctx.strokeStyle='rgba(255,248,233,.2)';ctx.beginPath();ctx.moveTo(x+4,y+3);ctx.lineTo(x+124,y+3);ctx.stroke();
+   }
+  }
+  for(let i=0;i<7000;i++){
+   const x=rand()*512,y=rand()*512,light=rand()>.48,alpha=.018+rand()*.035;
+   ctx.fillStyle=light?`rgba(255,247,232,${alpha})`:`rgba(53,44,36,${alpha})`;
+   ctx.fillRect(x,y,.7+rand()*1.4,.7+rand()*1.4);
+  }
+ });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;
+ const mat=new THREE.MeshPhysicalMaterial({color:'#f4ede2',map:texture,bumpMap:texture,bumpScale:.0035,roughness:.22,metalness:.025,clearcoat:.66,clearcoatRoughness:.19,emissive:'#55483b',emissiveIntensity:.045});
+ mat.userData.worldUV=1/5.6;mat.userData.reflectionIntensity=.82;mat.userData.reflectionMap=interiorReflection('T2');mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile='T2';mat.userData.terminalFloorZone='foodcourt';finishCache.set(key,mat);return mat;
+}
 function terminalCeiling(profile:'T1'|'T2'){
  const key=`${profile}-ceiling`,cached=finishCache.get(key);if(cached)return cached;
  const texture=canvasTexture(512,512,ctx=>{
@@ -1329,21 +1355,20 @@ function terminal2FourthFloorLounge(parent:THREE.Object3D,b:TerminalBounds,y:num
  * restrained exposed roof-web rhythm based on the dated visitor photographs. */
 function terminal2FoodCourt(parent:THREE.Object3D,b:TerminalBounds,y:number){
  const zoneWidth=b.width*T2_FOURTH_FLOOR_LAYOUT.foodCourt.widthRatio,zoneDepth=b.depth*T2_FOURTH_FLOOR_LAYOUT.foodCourt.depthRatio,zoneX=b.x,zoneZ=b.z+b.depth*T2_FOURTH_FLOOR_LAYOUT.foodCourt.zRatio,deckY=y-.24;
- // The terminal-wide T2 main-floor material provides the documented polished stone finish.
- const floorMat=terminalFloor('T2');
+ // Keep the dining frontage warmer than the terminal-wide grey-green stone.
+ const floorMat=terminal2FoodCourtFloor();
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(zoneWidth,zoneDepth),floorMat);floor.rotation.x=-Math.PI/2;floor.position.set(zoneX,deckY+.022,zoneZ);floor.receiveShadow=true;floor.castShadow=false;parent.add(floor);
 
- const cylinder=new THREE.CylinderGeometry(1,1,1,20,1,false),dummy=new THREE.Object3D(),tableTops:Item[]=[],tableStems:Item[]=[],tableBases:Item[]=[],stoolLegs:Item[]=[],stoolSeats=[[],[],[],[]] as Item[][],cols=7,rows=4,tableSpacing=12.4,rowSpacing=14,startX=zoneX-(cols-1)*tableSpacing/2;
+ const cylinder=new THREE.CylinderGeometry(1,1,1,20,1,false),dummy=new THREE.Object3D(),tableTops:Item[]=[],tableStems:Item[]=[],tableBases:Item[]=[],stoolStems:Item[]=[],stoolBases:Item[]=[],stoolSeats=[[],[],[],[]] as Item[][],cols=10,rows=7,tableSpacing=8.8,rowSpacing=8.8,startX=zoneX-(cols-1)*tableSpacing/2;
  for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
-  const x=startX+col*tableSpacing,z=zoneZ+(row-(rows-1)/2)*rowSpacing;
+  const x=startX+col*tableSpacing,z=zoneZ+(row-(rows-1)/2)*rowSpacing,palette=(row+col)%4;
   tableTops.push({x,y:deckY+.8,z,sx:.68,sy:.075,sz:.68});
   tableStems.push({x,y:deckY+.43,z,sx:.12,sy:.39,sz:.12});tableBases.push({x,y:deckY+.075,z,sx:.38,sy:.055,sz:.38});
-  // Four low, backless stools match the compact pedestal seating visible in
-  // the food-court reference, keeping the long public aisle visually open.
+  // Four compact round pedestal stools match the dated dining-hall photo.
   for(let seat=0;seat<4;seat++){
-   const angle=seat*Math.PI/2+Math.PI/4,sx=x+Math.cos(angle)*1.18,sz=z+Math.sin(angle)*1.18,seatY=deckY+.51,palette=(row+col+seat)%4;
+   const angle=seat*Math.PI/2+Math.PI/4,sx=x+Math.cos(angle)*1.18,sz=z+Math.sin(angle)*1.18,seatY=deckY+.51;
    stoolSeats[palette].push({x:sx,y:seatY,z:sz,sx:.3,sy:.055,sz:.3});
-   for(const legX of [-1,1])for(const legZ of [-1,1])stoolLegs.push({x:sx+legX*.18,y:deckY+.27,z:sz+legZ*.18,sx:.045,sy:.42,sz:.045});
+   stoolStems.push({x:sx,y:deckY+.28,z:sz,sx:.075,sy:.4,sz:.075});stoolBases.push({x:sx,y:deckY+.065,z:sz,sx:.24,sy:.035,sz:.24});
   }
  }
  const addCylinders=(items:Item[],mat:THREE.Material)=>{
@@ -1352,8 +1377,8 @@ function terminal2FoodCourt(parent:THREE.Object3D,b:TerminalBounds,y:number){
   mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=true;parent.add(mesh);
  };
  addCylinders(tableTops,material('#d8d2c5',.42,.06));addCylinders(tableBases,steel);addCylinders(tableStems,steel);
- const stoolMaterials=['#566b6e','#819b98','#d2ad57','#deddd5'].map(color=>material(color,.62,.035));
- stoolSeats.forEach((items,index)=>addCylinders(items,stoolMaterials[index]));batch(parent,steel,stoolLegs);
+ const stoolMaterials=['#875d4e','#a64f43','#d5cbbb','#b8a07e'].map(color=>material(color,.58,.045)),stoolMetal=material('#89918f',.34,.58);
+ stoolSeats.forEach((items,index)=>addCylinders(items,stoolMaterials[index]));addCylinders(stoolStems,stoolMetal);addCylinders(stoolBases,stoolMetal);
 
  // The earlier colored hexagon canopy is not supported by the 4F reference
  // photographs. Use restrained painted-steel trusses and rectangular fittings.
