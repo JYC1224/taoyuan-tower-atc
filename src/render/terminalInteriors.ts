@@ -23,7 +23,7 @@ function interiorReflection(profile:'T1'|'T2'|'T2-LOW'){
  // Keep the card's authored 256-unit layout while giving T2's dense lattice a
  // finer reflection sample. T1 remains at its existing texture resolution.
  if(!t1)for(const ctx of contexts)ctx.scale(2,2);
- const ceiling=contexts[2],background=t1?'#e5e7e2':low?'#b7bcb8':'#303938',frame=t1?'rgba(111,119,115,.24)':low?'rgba(53,67,65,.42)':'rgba(13,21,21,.72)';
+ const ceiling=contexts[2],background=t1?'#e5e7e2':low?'#b7bcb8':'#515c58',frame=t1?'rgba(111,119,115,.24)':low?'rgba(53,67,65,.42)':'rgba(13,21,21,.58)';
  ceiling.fillStyle=background;ceiling.fillRect(0,0,256,256);
  if(t1){
   for(let y=0;y<256;y+=56){ceiling.fillStyle=y%112?'#eef0eb':'#f4f4ef';ceiling.fillRect(0,y,256,52);}
@@ -46,7 +46,7 @@ function interiorReflection(profile:'T1'|'T2'|'T2-LOW'){
   ceiling.strokeStyle=frame;ceiling.lineWidth=5;for(let p=0;p<=256;p+=48){ceiling.beginPath();ceiling.moveTo(p,0);ceiling.lineTo(p,256);ceiling.moveTo(0,p);ceiling.lineTo(256,p);ceiling.stroke();}
   // Alternating diagonals reproduce the triangulated roof web seen from below
   // and keep the floor reflection from reading as a simple square grid.
-  ceiling.strokeStyle='rgba(132,146,137,.46)';ceiling.lineWidth=2.1;
+  ceiling.strokeStyle='rgba(132,146,137,.36)';ceiling.lineWidth=2.1;
   for(let row=0;row<6;row++)for(let col=0;col<6;col++){
    const x=col*48,y=row*48;ceiling.beginPath();
    if((row+col)%2===0){ceiling.moveTo(x,y);ceiling.lineTo(x+48,y+48);}else{ceiling.moveTo(x+48,y);ceiling.lineTo(x,y+48);}
@@ -57,7 +57,7 @@ function interiorReflection(profile:'T1'|'T2'|'T2-LOW'){
  for(const index of [0,1,4,5]){
   const ctx=contexts[index],gradient=ctx.createLinearGradient(0,0,0,256);
   gradient.addColorStop(0,t1?'#cfd5d2':low?'#d2d5d1':'#434b49');gradient.addColorStop(.48,t1?'#aeb6b3':low?'#b7bcb8':'#313b39');gradient.addColorStop(1,t1?'#929a98':low?'#9fa6a2':'#222b2b');ctx.fillStyle=gradient;ctx.fillRect(0,0,256,256);
-  ctx.strokeStyle=t1?'rgba(83,96,94,.3)':low?'rgba(52,66,64,.34)':'rgba(13,22,22,.55)';ctx.lineWidth=t1?3:low?2:2.5;for(let x=24;x<256;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,256);ctx.stroke();}
+  ctx.strokeStyle=t1?'rgba(83,96,94,.3)':low?'rgba(52,66,64,.34)':'rgba(13,22,22,.4)';ctx.lineWidth=t1?3:low?2:2.5;for(let x=24;x<256;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,256);ctx.stroke();}
   if(t1){
    // The pale T1 hall returns long roof lights as soft bands across its stone.
    ctx.fillStyle='rgba(255,241,211,.58)';ctx.fillRect(0,112,256,4);ctx.fillRect(0,177,256,3);
@@ -70,9 +70,9 @@ function interiorReflection(profile:'T1'|'T2'|'T2-LOW'){
   }else{
    // Near-horizon directions dominate a walker's floor reflection, so return
    // the same triangulated frame on the cubemap's side faces as overhead.
-   ctx.strokeStyle='rgba(13,22,22,.48)';ctx.lineWidth=2.2;
+   ctx.strokeStyle='rgba(13,22,22,.38)';ctx.lineWidth=2.2;
    for(let y=24;y<256;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(256,y);ctx.stroke();}
-   ctx.strokeStyle='rgba(132,146,137,.42)';ctx.lineWidth=1.7;
+   ctx.strokeStyle='rgba(132,146,137,.34)';ctx.lineWidth=1.7;
    for(let row=0;row<6;row++)for(let col=0;col<6;col++){
     const x=col*48,y=row*48;ctx.beginPath();
     if((row+col)%2===0){ctx.moveTo(x,y);ctx.lineTo(x+48,y+48);}else{ctx.moveTo(x+48,y);ctx.lineTo(x,y+48);}
@@ -97,12 +97,13 @@ function interiorReflection(profile:'T1'|'T2'|'T2-LOW'){
 function terminalFloor(profile:'T1'|'T2',zone:'main'|'lower'='main'){
  const lower=profile==='T2'&&zone==='lower',reflectionProfile=lower?'T2-LOW':profile,key=`${profile}-${zone}-floor`,cached=finishCache.get(key);if(cached)return cached;
  const rand=seeded(profile==='T1'?11807:lower?21806:21807),texture=canvasTexture(512,512,ctx=>{
-  const t1=profile==='T1',base=t1?'#c5c9c7':lower?'#a7aaa8':'#999b8d';ctx.fillStyle=base;ctx.fillRect(0,0,512,512);
+  const t1=profile==='T1',base=t1?'#c5c9c7':lower?'#a7aaa8':'#a7a89e';ctx.fillStyle=base;ctx.fillRect(0,0,512,512);
   // Large, quiet stone modules with real-scale joints. T1 is pale cool terrazzo;
-  // T2 is the darker, slightly green-grey polished stone visible in hall photos.
-  const delta=Math.floor((rand()-.5)*8),shade=t1?199+delta:lower?150+delta:146+delta,tileSize=t1?128:256;
+  // T2 is polished grey-green stone, tuned to keep the roof reflection distinct
+  // without letting the static cubemap overpower the daylight floor color.
+  const delta=Math.floor((rand()-.5)*8),shade=t1?199+delta:lower?150+delta:158+delta,tileSize=t1?128:256;
   for(let y=2;y<512;y+=tileSize)for(let x=2;x<512;x+=tileSize){
-   const variation=Math.floor((rand()-.5)*(t1?5:lower?17:9)),r=THREE.MathUtils.clamp(shade+variation,0,255),g=THREE.MathUtils.clamp(shade+(t1?1:lower?2:7)+variation,0,255),b=THREE.MathUtils.clamp(shade+(t1?2:lower?0:-16)+variation,0,255);
+   const variation=Math.floor((rand()-.5)*(t1?5:lower?17:9)),r=THREE.MathUtils.clamp(shade+variation,0,255),g=THREE.MathUtils.clamp(shade+(t1?1:lower?2:7)+variation,0,255),b=THREE.MathUtils.clamp(shade+(t1?2:lower?0:-10)+variation,0,255);
    ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.fillRect(x,y,tileSize-2,tileSize-2);
    const tileWash=ctx.createLinearGradient(x,y,x+tileSize,y+tileSize);tileWash.addColorStop(0,'rgba(255,255,255,.1)');tileWash.addColorStop(.55,'rgba(255,255,255,.015)');tileWash.addColorStop(1,'rgba(25,32,31,.035)');ctx.fillStyle=tileWash;ctx.fillRect(x+1,y+1,tileSize-4,tileSize-4);
   }
@@ -116,10 +117,10 @@ function terminalFloor(profile:'T1'|'T2',zone:'main'|'lower'='main'){
  });texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=8;
  // Keep the stone readable under daylight. Strong self-emission had washed out
  // the grain, grout and T2's characteristic muted green-grey floor tone.
- const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':lower?'#e2e4e1':'#e7ecdf',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:lower?.012:.006,roughness:profile==='T1'?.13:lower?.12:.075,metalness:.025,clearcoat:profile==='T1'?.82:lower?.84:.92,clearcoatRoughness:profile==='T1'?.11:lower?.095:.055,emissive:profile==='T1'?'#77766f':lower?'#7c807a':'#8d8967',emissiveIntensity:profile==='T1'?.12:lower?.08:.24});
+ const mat=new THREE.MeshPhysicalMaterial({color:profile==='T1'?'#fafaf6':lower?'#e2e4e1':'#eeede4',map:texture,bumpMap:texture,bumpScale:profile==='T1'?.006:lower?.012:.006,roughness:profile==='T1'?.13:lower?.12:.105,metalness:.025,clearcoat:profile==='T1'?.82:lower?.84:.84,clearcoatRoughness:profile==='T1'?.11:lower?.095:.085,emissive:profile==='T1'?'#77766f':lower?'#7c807a':'#8d8967',emissiveIntensity:profile==='T1'?.12:lower?.08:.2});
  // Outdoor sky reflections look like windows on an indoor floor. Keep a low,
  // soft return so the polished stone reads without reflecting airport clouds.
- mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:lower?1.32:1.7;mat.userData.reflectionMap=interiorReflection(reflectionProfile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;mat.userData.terminalFloorZone=lower?'lower':'main';finishCache.set(key,mat);return mat;
+ mat.userData.worldUV=1/3.2;mat.userData.reflectionIntensity=profile==='T1'?1.02:lower?1.32:1.35;mat.userData.reflectionMap=interiorReflection(reflectionProfile);mat.userData.indoorReflection=1;mat.userData.terminalFloorProfile=profile;mat.userData.terminalFloorZone=lower?'lower':'main';finishCache.set(key,mat);return mat;
 }
 function terminalCeiling(profile:'T1'|'T2'){
  const key=`${profile}-ceiling`,cached=finishCache.get(key);if(cached)return cached;
