@@ -3,7 +3,7 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives';
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
-import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_ARRIVAL_WELCOME_LAYOUT,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_ARRIVAL_WELCOME_LAYOUT,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FORMOSAN_CODE_LAYOUT,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
@@ -2653,11 +2653,72 @@ function terminal2WanLaiArt(parent:THREE.Object3D,b:TerminalBounds,y:number,z:nu
  const rail=material('#d4d7cf',.3,.66);for(const side of [-1,1])box(parent,.12,height+.1,.12,wallX+.24,y+height/2,z+side*(width/2-.08),rail);
  for(const edge of [-1,1])box(parent,width,.12,.12,wallX+.24,y+height/2+edge*(height/2-.08),z,rail,Math.PI/2);
 }
+let t2FormosanCodeFace:THREE.Material|undefined;
+/** Procedural interpretation of Tu Wei-Zheng's documented T2 baggage-hall relief. */
+function terminal2FormosanCodeArt(parent:THREE.Object3D,b:TerminalBounds,y:number){
+ const layout=T2_FORMOSAN_CODE_LAYOUT,width=layout.width,height=layout.height,wallX=b.x-b.width/2+3.2,z=b.z+layout.centerZOffset,
+  panelBottom=y+layout.bottomOffset,panelY=panelBottom+height/2,faceX=wallX+.28;
+ if(!t2FormosanCodeFace){
+  const texture=canvasTexture(2048,512,ctx=>{
+   const wall=ctx.createLinearGradient(0,0,0,512);wall.addColorStop(0,'#33312a');wall.addColorStop(.28,'#111716');wall.addColorStop(.72,'#24241f');wall.addColorStop(1,'#090f10');ctx.fillStyle=wall;ctx.fillRect(0,0,2048,512);
+   for(let panel=0;panel<16;panel++){const x=panel*128;ctx.fillStyle=panel%2?'rgba(210,180,113,.025)':'rgba(255,243,202,.035)';ctx.fillRect(x,0,2,512);}
+   const gilt=ctx.createLinearGradient(0,0,0,512);gilt.addColorStop(0,'#f1d286');gilt.addColorStop(.25,'#bd8a39');gilt.addColorStop(.52,'#e9c56d');gilt.addColorStop(.78,'#8f612b');gilt.addColorStop(1,'#dfbd69');
+   ctx.strokeStyle='rgba(20,17,12,.9)';ctx.lineWidth=22;ctx.strokeRect(28,25,1992,462);ctx.strokeStyle=gilt;ctx.lineWidth=8;ctx.strokeRect(34,31,1980,450);ctx.lineWidth=2;ctx.strokeRect(47,44,1954,424);
+   const drawCloud=(cx:number,cy:number,scale:number,flip=1)=>{
+    ctx.save();ctx.translate(cx,cy);ctx.scale(scale*flip,scale);ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowColor='rgba(255,221,143,.38)';ctx.shadowBlur=7;
+    ctx.beginPath();ctx.moveTo(-90,24);ctx.bezierCurveTo(-115,5,-96,-23,-69,-19);ctx.bezierCurveTo(-58,-60,-7,-58,2,-24);ctx.bezierCurveTo(37,-49,75,-25,68,4);ctx.bezierCurveTo(105,-4,123,25,97,43);ctx.bezierCurveTo(67,61,44,31,19,40);ctx.bezierCurveTo(-10,52,-37,42,-55,32);ctx.bezierCurveTo(-73,48,-91,43,-90,24);ctx.closePath();
+    ctx.fillStyle='rgba(161,111,43,.25)';ctx.fill();ctx.strokeStyle=gilt;ctx.lineWidth=7;ctx.stroke();ctx.shadowBlur=0;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-57,17);ctx.bezierCurveTo(-30,-2,-16,26,9,10);ctx.bezierCurveTo(31,-7,47,17,70,8);ctx.stroke();ctx.restore();
+   };
+   // A continuous carved scroll band ties the smaller relief plaques together.
+   ctx.fillStyle='rgba(138,91,33,.42)';ctx.fillRect(72,324,1904,91);ctx.strokeStyle=gilt;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(72,324);ctx.lineTo(1976,324);ctx.moveTo(72,415);ctx.lineTo(1976,415);ctx.stroke();
+   for(let i=0;i<13;i++)drawCloud(125+i*150,369,.45,i%2===0?1:-1);
+   const plaqueCenters=[230,515,1533,1818];
+   for(let i=0;i<plaqueCenters.length;i++){
+    const cx=plaqueCenters[i],cy=213;ctx.strokeStyle=gilt;ctx.lineWidth=5;ctx.strokeRect(cx-105,105,210,166);ctx.lineWidth=2;ctx.strokeRect(cx-94,116,188,144);
+    ctx.save();ctx.translate(cx,cy);ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=gilt;ctx.lineWidth=9;
+    if(i%2===0){ctx.beginPath();ctx.moveTo(-68,45);ctx.lineTo(-45,-8);ctx.lineTo(-20,26);ctx.lineTo(7,-42);ctx.lineTo(32,12);ctx.lineTo(59,-17);ctx.lineTo(73,45);ctx.closePath();ctx.stroke();ctx.beginPath();ctx.moveTo(-73,50);ctx.quadraticCurveTo(0,33,73,50);ctx.stroke();}
+    else{ctx.beginPath();ctx.moveTo(-62,33);ctx.bezierCurveTo(-73,-2,-43,-41,-3,-35);ctx.bezierCurveTo(32,-31,42,-4,65,-15);ctx.bezierCurveTo(70,24,44,47,7,39);ctx.bezierCurveTo(-10,36,-16,18,-35,20);ctx.bezierCurveTo(-51,22,-49,42,-62,33);ctx.stroke();ctx.beginPath();ctx.moveTo(-19,-12);ctx.bezierCurveTo(-5,-1,10,1,26,-9);ctx.stroke();}
+    ctx.restore();
+   }
+   // The photographed focal point is a large round gilded emblem with dense radial carving.
+   const cx=1024,cy=199;ctx.save();ctx.translate(cx,cy);ctx.shadowColor='rgba(245,202,113,.55)';ctx.shadowBlur=15;
+   for(let ray=0;ray<32;ray++){ctx.save();ctx.rotate(ray*Math.PI/16);ctx.beginPath();ctx.moveTo(-8,-124);ctx.quadraticCurveTo(0,-188,8,-124);ctx.closePath();ctx.fillStyle=ray%2?'#a87931':'#e6c36e';ctx.fill();ctx.restore();}
+   ctx.beginPath();ctx.arc(0,0,132,0,Math.PI*2);ctx.fillStyle='#3f3321';ctx.fill();ctx.strokeStyle=gilt;ctx.lineWidth=16;ctx.stroke();ctx.beginPath();ctx.arc(0,0,108,0,Math.PI*2);ctx.strokeStyle='#c49a4c';ctx.lineWidth=6;ctx.stroke();
+   ctx.fillStyle='#ddb95e';ctx.beginPath();ctx.arc(0,0,87,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#72502b';ctx.lineWidth=5;ctx.stroke();
+   // Restrained relief-like face lines echo the central sun emblem visible in the airport photo.
+   ctx.strokeStyle='#47341f';ctx.lineWidth=9;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-45,-18);ctx.quadraticCurveTo(-26,-34,-10,-18);ctx.moveTo(10,-18);ctx.quadraticCurveTo(29,-34,46,-18);ctx.moveTo(-36,20);ctx.quadraticCurveTo(0,2,36,20);ctx.moveTo(-45,36);ctx.quadraticCurveTo(0,72,45,36);ctx.stroke();ctx.restore();
+   drawCloud(406,177,.72);drawCloud(1642,177,.72,-1);drawCloud(621,255,.56,-1);drawCloud(1427,255,.56);
+   ctx.fillStyle='rgba(238,199,111,.5)';for(let i=0;i<48;i++){const px=86+i*40,py=75+(i%3)*3;ctx.beginPath();ctx.arc(px,py,2.4,0,Math.PI*2);ctx.fill();}
+   ctx.fillStyle='rgba(255,230,172,.08)';ctx.fillRect(48,50,1952,8);ctx.fillStyle='rgba(7,9,8,.55)';ctx.fillRect(48,438,1952,20);
+  });
+  texture.anisotropy=8;
+  t2FormosanCodeFace=new THREE.MeshPhysicalMaterial({map:texture,bumpMap:texture,bumpScale:.12,color:'#fff6df',roughness:.43,metalness:.34,clearcoat:.34,clearcoatRoughness:.25,emissive:'#302010',emissiveIntensity:.08,side:THREE.DoubleSide});
+ }
+ const surround=material('#292a25',.42,.24),inset=material('#111716',.34,.24),bronze=material('#9f7536',.34,.68),gold=material('#d0a54e',.29,.72),lamp=material('#39372e',.38,.5),glow=new THREE.MeshStandardMaterial({color:'#f4d59a',emissive:'#f4c46c',emissiveIntensity:.72,roughness:.24});
+ box(parent,width+1.05,height+.76,layout.depth,wallX,panelY,z,surround,Math.PI/2);
+ box(parent,width+.22,height+.16,.1,wallX+.17,panelY,z,inset,Math.PI/2);
+ const relief=new THREE.Mesh(new THREE.PlaneGeometry(width,height),t2FormosanCodeFace);relief.position.set(faceX,panelY,z);relief.rotation.y=Math.PI/2;relief.castShadow=false;relief.receiveShadow=true;parent.add(relief);
+ for(const side of [-1,1])box(parent,.08,height+.11,.07,faceX+.08,panelY,z+side*(width/2-.03),bronze);
+ for(const edge of [-1,1])box(parent,.08,.075,width+.08,faceX+.08,panelY+edge*(height/2-.025),z,bronze);
+ const ring=(radius:number,tube:number)=>{const mesh=new THREE.Mesh(new THREE.TorusGeometry(radius,tube,10,72),gold);mesh.position.set(faceX+.13,panelY,z);mesh.rotation.y=Math.PI/2;mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);};
+ ring(1.02,.065);ring(.82,.03);
+ const axis=new THREE.Vector3(0,1,0);for(let spoke=0;spoke<16;spoke++){
+  const angle=spoke*Math.PI/8,startY=panelY+Math.cos(angle)*.84,startZ=z+Math.sin(angle)*.84,endY=panelY+Math.cos(angle)*.98,endZ=z+Math.sin(angle)*.98,
+   start=new THREE.Vector3(faceX+.12,startY,startZ),end=new THREE.Vector3(faceX+.12,endY,endZ),delta=end.clone().sub(start),mesh=new THREE.Mesh(new THREE.CylinderGeometry(.015,.024,delta.length(),8),bronze);
+  mesh.position.copy(start).add(end).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(axis,delta.normalize());mesh.castShadow=true;parent.add(mesh);
+ }
+ for(let i=0;i<5;i++){
+  const lightZ=z+(i-2)*width/5.3;
+  box(parent,.42,.12,.58,faceX-.02,panelY+height/2+.2,lightZ,lamp);
+  box(parent,.2,.045,.28,faceX+.045,panelY+height/2+.12,lightZ,glow);
+ }
+}
 function terminal2(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials){
  const levels=[...T2_FLOOR_LEVELS],atrium={fromLevel:5,x:b.x,z:b.z-42,width:110,depth:140},finishes=deckFinishes('T2',mats),lowerFloor=terminalFloor('T2','lower'),checkInLayout=T2_THIRD_FLOOR_LAYOUT.checkIn;
  addDecks(parent,b,levels,mats.concrete,.16,atrium,finishes,undefined,new Map([[0,lowerFloor],[1,mats.concrete],[2,lowerFloor],[3,lowerFloor]]));
  const arrivalCeilingY=levels[3]-.17-.17-.012;terminal2ArrivalCeilingGrid(parent,b,arrivalCeilingY);terminal2ArrivalColumnHeads(parent,b,arrivalCeilingY);terminal2ArrivalDropCeiling(parent,b,arrivalCeilingY);terminal2ArrivalArtCeiling(parent,b,arrivalCeilingY);terminalAtriumEdgeDetail(parent,atrium,levels,'T2');addStructure(parent,b,finishes.structure,'T2',levels[0]);verticalCirculation(parent,b,levels,'T2');terminal2Basement(parent,b,levels[0],levels[1]);
  baggageClaim(parent,b,.58,b.z-30,6,'x',b.x,1);
+ terminal2FormosanCodeArt(parent,b,.58);
  baggageClaim(parent,b,.58,b.z-55,2,'x',b.x-58,7);terminal2WanLaiArt(parent,b,.58,b.z-55);
  customsHall(parent,b,.58,b.z-23);arrivalLobby(parent,b,.58,b.z+24,.72,false);terminal2ArrivalWelcomeWall(parent,b,.58);terminal2ArrivalServices(parent,b,.58);terminal2ArrivalArt(parent,b,.58);sign(parent,'MRT  機場捷運',b.x+b.width*.28,.58+4,b.z+70,11,'#6f9898');
   terminal2TransferServices(parent,b,6.48);securityHall(parent,b,6.48,b.z+48,4,'#86b9b8','TRANSFER SECURITY  轉機安檢');

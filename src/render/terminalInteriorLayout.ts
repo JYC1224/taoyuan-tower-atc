@@ -330,6 +330,19 @@ export const T2_ARRIVAL_WELCOME_LAYOUT={
  height:3.6,
  depth:.62,
 } as const;
+/**
+ * The airport's official art guide places Formosan Code Uncovered at the T2
+ * baggage carousels and shows a broad, gold relief on a dark wall. The guide
+ * does not map its exact wall or publish dimensions; this footprint is a
+ * visual fit beside the central carousel row.
+ */
+export const T2_FORMOSAN_CODE_LAYOUT={
+ centerZOffset:-30,
+ width:15.2,
+ height:3.15,
+ depth:.42,
+ bottomOffset:.52,
+} as const;
 export const T2_BASEMENT_LAYOUT={
  aisle:{xOffsetRatio:-.4,width:16,northZOffset:-132,southZOffset:132},
  shops:[
