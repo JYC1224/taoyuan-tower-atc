@@ -345,6 +345,11 @@ export const T2_FORMOSAN_CODE_LAYOUT={
 } as const;
 export const T2_BASEMENT_LAYOUT={
  aisle:{xOffsetRatio:-.4,width:16,northZOffset:-132,southZOffset:132},
+ dining:{
+  sides:[-1,1] as const,zStartOffset:38,zSpacing:8.3,rowCount:11,centerOffset:4.25,
+  footprint:{width:3.8,depth:4.6},
+  ceiling:{width:38,zStartOffset:32,zEndOffset:128,slatSpacing:.48},
+ },
  shops:[
   {id:'mi-alone',name:'米A LONE 個人燒肉',side:-1 as const,zOffset:48,length:15,depth:10,accent:'#8f523a',kind:'grill' as const},
   {id:'le-pai-dui',name:'樂排隊＋全藥燉排骨',side:-1 as const,zOffset:73,length:17,depth:10,accent:'#a24b3e',kind:'soup' as const},
@@ -367,6 +372,12 @@ export function t2BasementAisleX(centerX:number,terminalWidth:number){
 export function t2BasementShopCenter(centerX:number,centerZ:number,terminalWidth:number,shop:typeof T2_BASEMENT_LAYOUT.shops[number]){
  const aisleX=t2BasementAisleX(centerX,terminalWidth),frontX=aisleX+shop.side*T2_BASEMENT_LAYOUT.aisle.width/2;
  return {x:frontX+shop.side*shop.depth/2,z:centerZ+shop.zOffset,frontX};
+}
+
+export function t2BasementDiningCenters(centerX:number,centerZ:number,terminalWidth:number){
+ const aisleX=t2BasementAisleX(centerX,terminalWidth),layout=T2_BASEMENT_LAYOUT.dining,centers:{x:number;z:number;side:-1|1}[]=[];
+ for(const side of layout.sides)for(let row=0;row<layout.rowCount;row++)centers.push({x:aisleX+side*layout.centerOffset,z:centerZ+layout.zStartOffset+row*layout.zSpacing,side});
+ return centers;
 }
 
 export function t2StructuralColumnCenters(centerX:number,centerZ:number,width:number,depth:number){

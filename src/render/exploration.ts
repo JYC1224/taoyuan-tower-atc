@@ -1,5 +1,5 @@
 import {gates,runways,terminals} from '../data/airport';
-import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_ARRIVAL_WELCOME_LAYOUT,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FORMOSAN_CODE_LAYOUT,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_ARRIVAL_WELCOME_LAYOUT,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FORMOSAN_CODE_LAYOUT,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementDiningCenters,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type ExploreSpotId=
@@ -202,7 +202,8 @@ const t2B2AisleX=t2BasementAisleX(t2.x,t2.width),t2B2WestEdge=t2.x-(t2.width-3)/
  t2B2RestroomCenter={x:t2.x+T2_BASEMENT_LAYOUT.restroom.dx,z:t2.z+T2_BASEMENT_LAYOUT.restroom.dz},
  t2B2RestroomFeature=expanded(t2B2RestroomCenter.x,t2B2RestroomCenter.z,T2_BASEMENT_LAYOUT.restroom.depth,T2_BASEMENT_LAYOUT.restroom.width,.5),
  t2B2RestroomBounds=inset(t2B2RestroomCenter.x-13,t2B2RestroomCenter.z,42,34,1),
- t2B2Obstacles=[...t2B2Columns,...t2B2ShopFeatures,...t2B2Lifts,...t2B2Escalators,t2B2Atm,...t2B2Aeds];
+ t2B2DiningFeatures=t2BasementDiningCenters(t2.x,t2.z,t2.width).map(center=>expanded(center.x,center.z,T2_BASEMENT_LAYOUT.dining.footprint.width,T2_BASEMENT_LAYOUT.dining.footprint.depth,.45)),
+ t2B2Obstacles=[...t2B2Columns,...t2B2ShopFeatures,...t2B2DiningFeatures,...t2B2Lifts,...t2B2Escalators,t2B2Atm,...t2B2Aeds];
 const t2Shop=T2_FOURTH_FLOOR_SHOPS.find(shop=>shop.id==='t2-shop-starbucks')!,t2ShopCenter=t2FourthFloorShopCenter(t2.x,t2.z,t2.width,t2.depth,t2Shop.side,t2Shop.zRatio,t2Shop.depth),t2ShopFrontAisleOffset=2.65;
 const t2FourthFloorShopViewSpots=T2_FOURTH_FLOOR_SHOPS.map(shop=>{
  const center=t2FourthFloorShopCenter(t2.x,t2.z,t2.width,t2.depth,shop.side,shop.zRatio,shop.depth);

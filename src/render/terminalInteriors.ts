@@ -3,7 +3,7 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,cylinder,instances,material,seeded} from './primitives';
 import type {TerminalBounds,TerminalMaterials} from './terminalArchitecture';
 import {decorateT1ArrivalArt,decorateT3North,decorateTerminal2} from './terminalInteriorFidelity';
-import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_ARRIVAL_WELCOME_LAYOUT,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FORMOSAN_CODE_LAYOUT,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
+import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_ARRIVAL_WELCOME_LAYOUT,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FORMOSAN_CODE_LAYOUT,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementDiningCenters,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
 export type TerminalInteriorProfile='T1'|'T2'|'T3'|'T3-S'|'T3-N';
@@ -2485,13 +2485,54 @@ function terminal2Basement(parent:THREE.Object3D,b:TerminalBounds,floorY:number,
  for(const point of T2_BASEMENT_LAYOUT.aeds){const x=b.x+point.dx,z=b.z+point.dz;box(parent,.3,1.02,.85,x,floorY+.51,z,cabinet);box(parent,.1,.72,.58,x+.2,floorY+.51,z,aedGreen);box(parent,.035,.4,.28,x+.27,floorY+.53,z,aedGlass);sign(parent,'AED',x+.24,floorY+1.34,z,1.25,'#168773',Math.PI/2,.48);}
  // A continuous, low-contrast tactile guide with three raised longitudinal
  // ribs reads as accessible wayfinding rather than a dashed traffic line.
+ const dining=T2_BASEMENT_LAYOUT.dining;
  const tactile=material('#a89a78',.86,.005),tactileLength=T2_BASEMENT_LAYOUT.aisle.southZOffset-T2_BASEMENT_LAYOUT.aisle.northZOffset-16;
  box(parent,.54,.018,tactileLength,aisleX,floorY+.035,b.z,material('#c3b89d',.88,.005));
  for(const side of [-1,0,1])box(parent,.045,.024,tactileLength,aisleX+side*.13,floorY+.054,b.z,tactile);
  // Basement linear fixtures are repeated as a single instanced batch to keep
- // object count small while making the public route readable below grade.
- const b2Lights:Item[]=[];for(let z=b.z-110;z<=b.z+110;z+=22)b2Lights.push({x:aisleX,y:ceilingBottom-.18,z,sx:5.4,sy:.055,sz:.42});
+ // object count small. Leave the dining canopy clear for its inset light panels.
+ const diningZoneNear=b.z+dining.ceiling.zStartOffset,diningZoneFar=b.z+dining.ceiling.zEndOffset,b2Lights:Item[]=[];
+ for(let z=b.z-110;z<=b.z+110;z+=22)if(z<diningZoneNear||z>diningZoneFar)b2Lights.push({x:aisleX,y:ceilingBottom-.18,z,sx:5.4,sy:.055,sz:.42});
  batch(parent,ceilingStrip,b2Lights);
+ // The 2019 airport food-court photographs show a dark linear ceiling and open
+ // shared seating. Keep that treatment inside the mapped dining frontage only.
+ const ceilingWidth=Math.min(dining.ceiling.width,fullWidth-24),ceilingDepth=dining.ceiling.zEndOffset-dining.ceiling.zStartOffset,
+  ceilingCenterZ=b.z+(dining.ceiling.zStartOffset+dining.ceiling.zEndOffset)/2,
+  ceilingPanelMaterial=new THREE.MeshStandardMaterial({color:'#303637',roughness:.92,metalness:.035,side:THREE.DoubleSide}),
+  ceilingPanel=new THREE.Mesh(new THREE.PlaneGeometry(ceilingWidth,ceilingDepth),ceilingPanelMaterial),slatItems:Item[]=[],diningLightFrames:Item[]=[],diningLightItems:Item[]=[];
+ ceilingPanel.rotation.x=Math.PI/2;ceilingPanel.position.set(aisleX,ceilingBottom-.045,ceilingCenterZ);ceilingPanel.castShadow=false;ceilingPanel.receiveShadow=false;parent.add(ceilingPanel);
+ const slatStartX=aisleX-ceilingWidth/2+dining.ceiling.slatSpacing/2,slatMaterial=material('#655d50',.74,.12);
+ for(let x=slatStartX;x<=aisleX+ceilingWidth/2-dining.ceiling.slatSpacing/2;x+=dining.ceiling.slatSpacing){
+  slatItems.push({x,y:ceilingBottom-.12,z:ceilingCenterZ,sx:.095,sy:.065,sz:ceilingDepth-1,color:Math.round((x-slatStartX)/dining.ceiling.slatSpacing)%5===0?'#7a705d':'#5a554c'});
+ }
+ batch(parent,slatMaterial,slatItems);
+ // Recessed rectangular fixtures repeat in three rows between the fin field,
+ // matching the launch photo's discrete light panels instead of long bright bars.
+ const diningFrameMaterial=material('#252b2b',.68,.22);
+ for(const xOffset of [-11,0,11])for(let z=b.z+dining.ceiling.zStartOffset+10;z<=b.z+dining.ceiling.zEndOffset-8;z+=13.5){
+  const x=aisleX+xOffset;diningLightFrames.push({x,y:ceilingBottom-.205,z,sx:2.72,sy:.085,sz:.86});
+  diningLightItems.push({x,y:ceilingBottom-.257,z,sx:2.42,sy:.03,sz:.58,color:'#e8dec8'});
+ }
+ batch(parent,diningFrameMaterial,diningLightFrames);
+ batch(parent,ceilingStrip,diningLightItems);
+ const diningCenters=t2BasementDiningCenters(b.x,b.z,b.width),diningTableTops:Item[]=[],diningTableEdges:Item[]=[],diningTableLegs:Item[]=[],diningBenchSeats:Item[]=[],diningBenchBacks:Item[]=[],diningChairSeats:Item[]=[],diningChairBacks:Item[]=[],diningChairLegs:Item[]=[],diningMetal=material('#626a68',.48,.46),diningOak=material('#b79c76',.56,.035),diningIvory=material('#e5e0d2',.72,.015),diningTeal=material('#536d66',.76,.015);
+ for(const {x,z,side} of diningCenters){
+  diningTableTops.push({x,y:floorY+.78,z,sx:1.02,sy:.105,sz:2.5,color:'#c8b18a'});
+  diningTableEdges.push({x,y:floorY+.713,z,sx:1.08,sy:.045,sz:2.56});
+  for(const dx of [-.37,.37])for(const dz of [-.98,.98])diningTableLegs.push({x:x+dx,y:floorY+.37,z:z+dz,sx:.075,sy:.68,sz:.075});
+  const benchX=x+side*1.39;
+  diningBenchSeats.push({x:benchX,y:floorY+.48,z,sx:.68,sy:.15,sz:2.36});
+  diningBenchBacks.push({x:benchX+side*.29,y:floorY+1.03,z,sx:.14,sy:.92,sz:2.36});
+  for(const dz of [-.82,.82])diningTableLegs.push({x:benchX,y:floorY+.23,z:z+dz,sx:.11,sy:.4,sz:.11});
+  for(const dz of [-.72,0,.72]){
+   const chairX=x-side*1.02;
+   diningChairSeats.push({x:chairX,y:floorY+.49,z:z+dz,sx:.55,sy:.13,sz:.53,color:'#dedbcf'});
+   diningChairBacks.push({x:chairX-side*.27,y:floorY+.88,z:z+dz,sx:.12,sy:.73,sz:.53,color:'#d3d0c3'});
+   for(const dx of [-.2,.2])for(const chairDz of [-.18,.18])diningChairLegs.push({x:chairX+dx,y:floorY+.24,z:z+dz+chairDz,sx:.045,sy:.43,sz:.045});
+  }
+ }
+ batch(parent,diningOak,diningTableTops);batch(parent,diningMetal,diningTableEdges);batch(parent,diningMetal,diningTableLegs);
+ batch(parent,diningTeal,diningBenchSeats);batch(parent,diningTeal,diningBenchBacks);batch(parent,diningIvory,diningChairSeats);batch(parent,diningIvory,diningChairBacks);batch(parent,diningMetal,diningChairLegs);
  sign(parent,'AIRPORT MRT  機場捷運',aisleX,floorY+4.28,b.z-111,14,'#368c85',0,.88);
  sign(parent,'DINING  餐飲服務',aisleX,floorY+4.28,b.z+34,14,'#ab7447',0,.88);
  for(const shop of T2_BASEMENT_LAYOUT.shops)terminal2BasementShop(parent,b,floorY,shop);
