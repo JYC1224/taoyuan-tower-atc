@@ -6,6 +6,7 @@ import {surfaceImages} from './realismAssets';
 import {buildTerminalInterior,type TerminalInteriorProfile} from './terminalInteriors';
 import {decorateGateConcourse} from './terminalInteriorFidelity';
 import {T2_FLOOR_LEVELS,T2_OBSERVATION_DECK_LAYOUT} from './terminalInteriorLayout';
+import {t1RoofHeight} from './terminalPublicHallLayout';
 
 export interface TerminalBounds {x:number;z:number;width:number;depth:number;height:number}
 export interface TerminalMaterials {glass:THREE.Material;cladding:THREE.MeshStandardMaterial;concrete:THREE.Material;metal:THREE.Material;roof?:THREE.Material;floor?:THREE.Material;ceiling?:THREE.Material;deck?:THREE.Material;structure?:THREE.Material}
@@ -101,6 +102,25 @@ export function terminalInterior(parent:THREE.Object3D,b:TerminalBounds,concrete
 
 /** Glass-and-cladding shell used for the terminal halls without changing their surveyed footprints. */
 export function buildTerminalAtrium(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials,gateList:Gate[]=[],gateSide:-1|1=1,profile?:TerminalInteriorProfile){
+ if(profile==='T1'){
+  // A rectangular glass box protruded above the dropped T1 eaves. Trim the
+  // end glazing to the same section used by the roof and upper hall piers.
+  for(const side of [-1,1]){
+   const positions:number[]=[],indices:number[]=[],segments=64;
+   for(let i=0;i<=segments;i++){
+    const x=(i/segments-.5)*b.width,top=t1RoofHeight(x,b.width,b.height)-.4;
+    positions.push(b.x+x,0,b.z+side*b.depth/2,b.x+x,top,b.z+side*b.depth/2);
+    if(i<segments){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}
+   }
+   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
+   const glass=new THREE.Mesh(geometry,mats.glass);glass.castShadow=false;parent.add(glass);
+   const edgeHeight=t1RoofHeight(b.width/2,b.width,b.height)-.4;
+   box(parent,.12,edgeHeight,b.depth,b.x+side*b.width/2,edgeHeight/2,b.z,mats.glass);
+   box(parent,b.width,1.25,.22,b.x,.625,b.z+side*b.depth/2,mats.cladding);
+   box(parent,.22,1.25,b.depth,b.x+side*b.width/2,.625,b.z,mats.cladding);
+  }
+  terminalInterior(parent,b,mats.concrete,gateList,gateSide,profile,mats);return;
+ }
  // A curtain wall is four vertical faces. A transparent box also creates a
  // tinted glass ceiling and floor, which darkens the public halls unnaturally.
  for(const side of [-1,1]){

@@ -1,4 +1,5 @@
 import {gates,runways,terminals} from '../data/airport';
+import {T1_PUBLIC_HALL,t1ArrivalHallBounds,t1ArrivalPartitionPanels,t1ArrivalSeats,t1CheckInBanks,t1SupportStations,t1UpperServiceSupports} from './terminalPublicHallLayout';
 import {T1_BASEMENT_LAYOUT,T1_DEPARTURE_LANDMARK_LAYOUT,T1_FLOOR_LEVELS,T1_FIRST_FLOOR_SERVICES,T1_SECOND_FLOOR_LAYOUT,T1_THIRD_FLOOR_STORES,T1_THIRD_FLOOR_SERVICES,T1_FOURTH_FLOOR_LAYOUT,T1_FOURTH_FLOOR_LOUNGES,T2_ARRIVAL_WELCOME_LAYOUT,T2_BASEMENT_LAYOUT,T2_FLOOR_LEVELS,T2_FORMOSAN_CODE_LAYOUT,T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,T2_FOURTH_FLOOR_SHOPS,T2_FOURTH_FLOOR_SERVICES,T2_OBSERVATION_DECK_LAYOUT,T2_TEMPLE_AVENUE_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t1BasementShopCenter,t1FirstFloorServiceCenter,t1SecondFloorShopCenter,t1SecondFloorVoids,t1FourthFloorSuiteCenterX,t1FourthFloorSuiteCenters,t2BasementAisleX,t2BasementDiningCenters,t2BasementShopCenter,t2FourthFloorLoungeCenter,t2FourthFloorLoungeSeatCenters,t2FourthFloorShopCenter,t2StructuralColumnCenters,t2ThirdFloorCheckInBanks,t2ThirdFloorRetailUnits} from './terminalInteriorLayout';
 import {T1_THIRD_FLOOR_CHECKIN_ZONES} from './terminalInteriorLayout';
 
@@ -18,8 +19,26 @@ const north=runways.find(r=>r.id==='north')!,b5=gates.find(g=>g.id==='B5')!;
 const inset=(x:number,z:number,width:number,depth:number,margin=1):Rect=>({left:x-width/2+margin,right:x+width/2-margin,near:z-depth/2+margin,far:z+depth/2-margin});
 const expanded=(x:number,z:number,width:number,depth:number,margin=.65):Rect=>({left:x-width/2-margin,right:x+width/2+margin,near:z-depth/2-margin,far:z+depth/2+margin});
 function inside(t:{x:number;z:number;width:number;depth:number},margin=2):Rect{return inset(t.x,t.z,t.width,t.depth,margin);}
-function spot(id:ExploreSpotId,en:string,zh:string,floor:number,position:Position,target:Position,bounds:Rect,obstacles:Rect[]=[]):ExploreSpot{return {id,en,zh,floor,position,target,bounds,obstacles};}
-const t1CheckInStartZ=t1.z-42,t1CheckInSpacing=t1.depth*.60/5;
+function clearViewpoint(position:Position,target:Position,bounds:Rect,obstacles:Rect[]):Position{
+ const clear=(x:number,z:number)=>x>bounds.left&&x<bounds.right&&z>bounds.near&&z<bounds.far&&!obstacles.some(r=>x>r.left&&x<r.right&&z>r.near&&z<r.far);
+ if(clear(position.x,position.z))return position;
+ // Prefer stepping back from a newly moved fixture. Retain the view target;
+ // never discard a collision box merely to make a preset camera fit.
+ const length=Math.hypot(position.x-target.x,position.z-target.z)||1,backX=(position.x-target.x)/length,backZ=(position.z-target.z)/length;
+ const directions=[[backX,backZ],[-backZ,backX],[backZ,-backX],[-backX,-backZ],[1,0],[-1,0],[0,1],[0,-1],[.707,.707],[-.707,.707],[.707,-.707],[-.707,-.707]];
+ for(let distance=.75;distance<=18;distance+=.75)for(const [dx,dz]of directions){
+  const x=position.x+dx*distance,z=position.z+dz*distance;
+  if(clear(x,z))return {...position,x,z};
+ }
+ return position;
+}
+function spot(id:ExploreSpotId,en:string,zh:string,floor:number,position:Position,target:Position,bounds:Rect,obstacles:Rect[]=[]):ExploreSpot{
+ // The upper central deck ends before the low outer roof wings.
+ const upperT1=id.startsWith('t1-')&&floor===T1_FLOOR_LEVELS[3],publicBounds=upperT1?inside({...t1,width:t1.width*T1_PUBLIC_HALL.thirdFloorWidthRatio}):bounds;
+ const physicalObstacles=upperT1?[...obstacles,...t1UpperServiceSupports(t1.x,t1.z,t1.width,t1.depth).map(p=>expanded(p.x,p.z,.46,.46,.25))]:obstacles;
+ return {id,en,zh,floor,position:clearViewpoint({...position,y:floor+1.7},target,publicBounds,physicalObstacles),target,bounds:publicBounds,obstacles:physicalObstacles};
+}
+const t1Banks=t1CheckInBanks(t1.x,t1.z,t1.width,t1.depth),t1ArrivalBounds={...t1,...t1ArrivalHallBounds(t1.x,t1.z,t1.width,t1.depth)};
 const t1LandmarkCenterX=t1.x+T1_DEPARTURE_LANDMARK_LAYOUT.xOffset,
  t1LandmarkCenterZ=t1.z+T1_DEPARTURE_LANDMARK_LAYOUT.checkInCenterOffset+t1.depth*T1_DEPARTURE_LANDMARK_LAYOUT.checkInSpanRatio*(T1_DEPARTURE_LANDMARK_LAYOUT.islandIndex/(T1_DEPARTURE_LANDMARK_LAYOUT.islandCount-1)-.5),
  t1DepartureLandmarkFeature=expanded(t1LandmarkCenterX,t1LandmarkCenterZ,T1_DEPARTURE_LANDMARK_LAYOUT.width,T1_DEPARTURE_LANDMARK_LAYOUT.depth,.7);
@@ -29,13 +48,10 @@ function columnsFor(t:{x:number;z:number;width:number;depth:number},profile?:'T1
  const columns:Rect[]=[],spacingX=t.width>300?30:26,spacingZ=t.depth>180?34:22;
  if(profile){
   if(profile==='T1'){
-   const first=t.z-t.depth*.43,last=t.z+t.depth*.43,step=24;
-   for(const side of [-1,1])for(let z=first;z<=last;z+=step)columns.push(expanded(t.x+side*t.width*.405,z,2.8,2.4));
+   for(const side of [-1,1])for(const z of t1SupportStations(t.z,t.depth))columns.push(expanded(t.x+side*t.width*T1_PUBLIC_HALL.supportBaseXRatio,z,2.5,2.2));
    return columns;
   }
-  const xOffsets=profile==='T2'?[-.44,.44]:[-.38,-.13,.13,.38],zOffsets=profile==='T2'?[-.42,-.28,.12,.42]:[-.42,-.25,.08,.32],size=profile==='T2'?1.15:1;
-  for(const xOffset of xOffsets)for(const zOffset of zOffsets)columns.push(expanded(t.x+xOffset*t.width,t.z+zOffset*t.depth,size,size));
-  return columns;
+  return t2StructuralColumnCenters(t.x,t.z,t.width,t.depth).map(p=>expanded(p.x,p.z,1.7,1.7));
  }
  for(let x=t.x-t.width/2+spacingX/2;x<=t.x+t.width/2-spacingX/2;x+=spacingX)
   for(let z=t.z-t.depth/2+spacingZ/2;z<=t.z+t.depth/2-spacingZ/2;z+=spacingZ){
@@ -52,15 +68,18 @@ function concourseColumns(x:number,z:number,width:number,depth:number){
  return columns;
 }
 const t1Columns=columnsFor(t1,'T1'),t2Columns=columnsFor(t2,'T2'),t1Checkin:Rect[]=[];
-// Match the transverse islands shown in the current 1F model: long X axis,
-// six centres along Z. Keep walker collision at the rendered furniture.
-for(let i=0;i<6;i++)t1Checkin.push(expanded(t1.x,t1CheckInStartZ+(i-2.5)*t1CheckInSpacing,40,13));
-const t1Baggage:Rect[]=[];for(let i=0;i<6;i++){const spacing=Math.min(23.2,t1.width/(6+.9)),x=t1.x-(5*spacing)/2+i*spacing,zOffset=[-1.1,.65,-.25,.3,-.65,.8][i];t1Baggage.push(expanded(x,t1.z+57+zOffset,18.5,9.5));}
-const t1FirstFloorServiceDesks=T1_FIRST_FLOOR_SERVICES.desks.map(service=>{const center=t1FirstFloorServiceCenter(t1.x,t1.z,t1.width,t1.depth,service.side,service.zRatio);return expanded(center.x,center.z,4.4,service.length,.65);}),
- t1FirstFloorAtms=T1_FIRST_FLOOR_SERVICES.atms.map(point=>expanded(t1.x+point.side*t1.width*.43,t1.z+t1.depth*point.zRatio,1.3,1.4)),
- t1FirstFloorAeds=T1_FIRST_FLOOR_SERVICES.aeds.map(point=>expanded(t1.x+point.side*t1.width*.4,t1.z+t1.depth*point.zRatio,1.2,1.2)),
- t1FirstFloorMeetingPoints=T1_FIRST_FLOOR_SERVICES.meetingPoints.map(point=>expanded(t1.x+point.side*t1.width*.2,t1.z+t1.depth*point.zRatio,2.8,1.6)),
+// The first-floor plan separates departures (+X) from arrivals (-X).
+for(const bank of t1Banks)t1Checkin.push(expanded(bank.x,bank.z,T1_PUBLIC_HALL.checkInLength,6.7));
+const t1ArrivalPartitions=t1ArrivalPartitionPanels(t1.x,t1.z,t1.width,t1.depth).map(p=>expanded(p.x,p.z,p.width,p.depth,.3));
+const t1Baggage:Rect[]=[];for(let i=0;i<6;i++){const spacing=Math.min(32.5,t1.depth/(6+2.8)),zOffset=[-1.1,.65,-.25,.3,-.65,.8][i];t1Baggage.push(expanded(t1.x+t1.width*T1_PUBLIC_HALL.baggageXRatio,t1.z+(i-2.5)*spacing+zOffset,18.5,9.5));}
+const t1FirstFloorServiceDesks=T1_FIRST_FLOOR_SERVICES.desks.map(service=>{const center=t1FirstFloorServiceCenter(t1ArrivalBounds.x,t1ArrivalBounds.z,t1ArrivalBounds.width,t1ArrivalBounds.depth,service.side,service.zRatio);return expanded(center.x,center.z,4.4,service.length,.65);}),
+ t1FirstFloorAtms=T1_FIRST_FLOOR_SERVICES.atms.map(point=>expanded(t1ArrivalBounds.x+point.side*t1ArrivalBounds.width*.43,t1ArrivalBounds.z+t1ArrivalBounds.depth*point.zRatio,1.3,1.4)),
+ t1FirstFloorAeds=T1_FIRST_FLOOR_SERVICES.aeds.map(point=>expanded(t1ArrivalBounds.x+point.side*t1ArrivalBounds.width*.4,t1ArrivalBounds.z+t1ArrivalBounds.depth*point.zRatio,1.2,1.2)),
+ t1FirstFloorMeetingPoints=T1_FIRST_FLOOR_SERVICES.meetingPoints.map(point=>expanded(t1ArrivalBounds.x+point.side*t1ArrivalBounds.width*.2,t1ArrivalBounds.z+t1ArrivalBounds.depth*point.zRatio,2.8,1.6)),
  t1FirstFloorServiceFeatures=[...t1FirstFloorServiceDesks,...t1FirstFloorAtms,...t1FirstFloorAeds,...t1FirstFloorMeetingPoints];
+const t1PublicFirstFloorObstacles=[...t1Columns,...t1Checkin,...t1Baggage,...t1FirstFloorServiceFeatures,...t1ArrivalPartitions,t1DepartureLandmarkFeature,
+ ...t1ArrivalSeats(t1.x,t1.z,t1.width,t1.depth).map(p=>expanded(p.x,p.z,1.3,11.5,.35)),
+ ...[-1,1].map(side=>expanded(t1ArrivalBounds.x+side*t1ArrivalBounds.width*.6*.36,t1.z-28,5.76,.7,.35))];
 const t1B1ShopFeatures=T1_BASEMENT_LAYOUT.shops.map(shop=>{const center=t1BasementShopCenter(t1.x,t1.z,shop);return expanded(center.x,center.z,shop.depth,shop.length,.5);}),
  t1B1Bus=expanded(t1.x+T1_BASEMENT_LAYOUT.bus.dx,t1.z+T1_BASEMENT_LAYOUT.bus.dz,8,T1_BASEMENT_LAYOUT.bus.length,.6),
  t1B1Atms=T1_BASEMENT_LAYOUT.atms.map(point=>expanded(t1.x+point.dx,t1.z+point.dz,1.6,1.6)),
@@ -104,6 +123,8 @@ const t1SecondFloorServiceFeatures:Rect[]=[
  expanded(t1.x-28,t1SecondFloorRoomZ,13,8),expanded(t1.x,t1SecondFloorRoomZ,13,8),expanded(t1.x+29,t1SecondFloorRoomZ,15,9),
  ...t1SecondFloorAeds,...t1SecondFloorEscalators
 ];
+
+
 const t1SecondFloorFeatures=[...t1SecondFloorShopFeatures,...t1SecondFloorServiceFeatures];
 const t1ThirdFloorShopFeatures=T1_THIRD_FLOOR_STORES.map(store=>expanded(t1.x+store.dx,t1.z+store.dz,store.width,store.depth,.5));
 const t1ThirdFloorCheckInFeatures=T1_THIRD_FLOOR_CHECKIN_ZONES.map(zone=>expanded(t1.x+zone.dx,t1.z+zone.dz,zone.length,zone.depth,1));
@@ -302,9 +323,9 @@ export const exploreSpots:ExploreSpot[]=[
  ...t1B1ShopViewSpots,
  spot('t1-b1-restroom','Terminal 1 B1 public restroom','第一航廈 B1 公共廁所',T1_FLOOR_LEVELS[0],{x:t1B1RestroomCenter.x+T1_BASEMENT_LAYOUT.restroom.depth/2+6,y:T1_FLOOR_LEVELS[0]+1.7,z:t1B1RestroomCenter.z},{x:t1B1RestroomCenter.x+T1_BASEMENT_LAYOUT.restroom.depth/2-.4,y:T1_FLOOR_LEVELS[0]+1.88,z:t1B1RestroomCenter.z},inside(t1),[...t1Columns,t1B1RestroomFeature]),
  spot('t1-b1-nursing','Terminal 1 B1 nursing room','第一航廈 B1 哺乳室',T1_FLOOR_LEVELS[0],{x:t1B1NursingCenter.x-T1_BASEMENT_LAYOUT.nursing.depth/2-6,y:T1_FLOOR_LEVELS[0]+1.7,z:t1B1NursingCenter.z},{x:t1B1NursingCenter.x-T1_BASEMENT_LAYOUT.nursing.depth/2+.4,y:T1_FLOOR_LEVELS[0]+1.88,z:t1B1NursingCenter.z},inside(t1),[...t1Columns,t1B1NursingFeature]),
- spot('t1-arrivals','Terminal 1 arrivals · 1F','第一航廈入境大廳 · 1F',T1_FLOOR_LEVELS[1],{x:t1.x-35,y:T1_FLOOR_LEVELS[1]+1.7,z:t1.z+70},{x:t1.x-25,y:T1_FLOOR_LEVELS[1]+2.14,z:t1.z+56},inside(t1),[...t1Columns,...t1Checkin,...t1Baggage,...t1FirstFloorServiceFeatures]),
- spot('t1-arrival-services','Terminal 1 arrival services · 1F','第一航廈旅客服務、銀行與 ATM · 1F',T1_FLOOR_LEVELS[1],{x:t1.x-49,y:T1_FLOOR_LEVELS[1]+1.7,z:t1.z+85},{x:t1.x-64,y:T1_FLOOR_LEVELS[1]+2.19,z:t1.z+85},inside(t1),[...t1Columns,...t1Baggage,...t1FirstFloorServiceFeatures]),
- spot('t1-checkin','Terminal 1 check-in · 1F','第一航廈報到大廳 · 1F',T1_FLOOR_LEVELS[1],{x:t1LandmarkCenterX-23,y:T1_FLOOR_LEVELS[1]+1.7,z:t1LandmarkCenterZ+18},{x:t1LandmarkCenterX,y:T1_FLOOR_LEVELS[1]+4.8,z:t1LandmarkCenterZ},inside(t1),[...t1Columns,...t1Checkin,t1DepartureLandmarkFeature]),
+ spot('t1-arrivals','Terminal 1 arrivals · 1F','第一航廈入境大廳 · 1F',T1_FLOOR_LEVELS[1],{x:t1ArrivalBounds.x,y:T1_FLOOR_LEVELS[1]+1.7,z:t1.z-80},{x:t1ArrivalBounds.x,y:T1_FLOOR_LEVELS[1]+1.85,z:t1.z+30},inside(t1),t1PublicFirstFloorObstacles),
+ spot('t1-arrival-services','Terminal 1 arrival services · 1F','第一航廈旅客服務、銀行與 ATM · 1F',T1_FLOOR_LEVELS[1],{x:t1ArrivalBounds.x,y:T1_FLOOR_LEVELS[1]+1.7,z:t1.z+46},{x:t1ArrivalBounds.x-12,y:T1_FLOOR_LEVELS[1]+2.19,z:t1.z+46},inside(t1),t1PublicFirstFloorObstacles),
+ spot('t1-checkin','Terminal 1 check-in · 1F','第一航廈報到大廳 · 1F',T1_FLOOR_LEVELS[1],{x:t1.x+54,y:T1_FLOOR_LEVELS[1]+1.7,z:t1.z+76},{x:t1.x+29,y:T1_FLOOR_LEVELS[1]+3.1,z:t1.z+56},inside(t1),t1PublicFirstFloorObstacles),
  spot('t1-upper-gallery','Terminal 1 public retail gallery · 2F','第一航廈二樓中庭與商店通行廊 · 2F',T1_FLOOR_LEVELS[2],{x:t1.x+t1.width*T1_SECOND_FLOOR_LAYOUT.atrium.spineCenterXOffsetRatio,y:T1_FLOOR_LEVELS[2]+2.05,z:t1.z-42},{x:t1.x+t1.width*T1_SECOND_FLOOR_LAYOUT.atrium.spineCenterXOffsetRatio,y:T1_FLOOR_LEVELS[2]+2.3,z:t1.z+35},inside(t1),[...t1Columns,...t1UpperAtrium,...t1SecondFloorFeatures]),
  ...t1SecondFloorShopSpots,
  spot('t1-2f-public-services','Terminal 1 public services · ATM / FX / bank · 2F','第一航廈公共服務 · ATM／換匯／銀行 · 2F',T1_FLOOR_LEVELS[2],{x:t1.x,y:T1_FLOOR_LEVELS[2]+2.05,z:t1.z-t1.depth*.37},{x:t1.x,y:T1_FLOOR_LEVELS[2]+2.3,z:t1SecondFloorServiceZ+3.4},inside(t1),[...t1Columns,...t1UpperAtrium,...t1SecondFloorFeatures]),
@@ -363,6 +384,15 @@ export const exploreSpots:ExploreSpot[]=[
  spot('t3-gates','Terminal 3 north concourse · D11–D18','第三航廈北登機廊廳 · D11–D18',.36,{x:t3n.x-57,y:2.06,z:t3n.z+15},{x:t3n.x-57,y:2.6,z:t3n.z-24},inside(t3n),[...columnsFor(t3n),...northShops]),
  {id:'tower',en:'Control tower cab',zh:'塔臺管制室',floor:0,position:{x:0,y:0,z:0},target:{x:0,y:0,z:0}}
 ];
+
+/** Put passenger spaces ahead of the optional individual shop inspection views. */
+export const primaryExploreSpotIds:readonly ExploreSpotId[]=[
+ 't1-checkin','t1-arrivals','t1-upper-gallery','t1-departures','t1-immigration','t1-transfer-security','t1-a-gates','t1-b-gates',
+ 't2-departures','t2-atrium','t2-passport','t2-security','t2-baggage','t2-arrivals','t2-transfer','t2-c-gates','t2-d-gates',
+ 't2-b2-corridor','t1-b1-west-bus','t2-forecourt','t2-north-deck','t2-south-deck','t3-gates','tower','runway','apron'
+];
+export const primaryExploreSpots=primaryExploreSpotIds.map(id=>exploreSpots.find(s=>s.id===id)!);
+export const detailExploreSpots=exploreSpots.filter(s=>!primaryExploreSpotIds.includes(s.id));
 
 export function exploreSpot(id:ExploreSpotId):ExploreSpot{return exploreSpots.find(spot=>spot.id===id)??exploreSpots[0];}
 

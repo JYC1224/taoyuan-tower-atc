@@ -21,15 +21,18 @@ import {createCoastalWater,isSea} from './coastline';
 import {terrainSurfaceHeight} from './terrain';
 import {addRegionalVegetation} from './vegetation';
 import {terminalCurtainGlass,terminalCladdingMaterial,buildTerminalAtrium,buildGateConcourse,type TerminalBounds} from './terminalArchitecture';
+import {HALL_REFLECTION_LAYER} from './terminalPublicHallLayout';
 
 export interface Environment {group:THREE.Group;graph:THREE.Group;screenTexture:THREE.CanvasTexture;screens:THREE.Mesh[];bridges:BridgeVisual[];vehicles:{group:THREE.Group;phase:number;speed:number;lane:number}[];windsocks:THREE.Group[];lights:THREE.MeshBasicMaterial[];distantLights:THREE.PointsMaterial;water:ReturnType<typeof createCoastalWater>;airfieldLightMaterial:THREE.ShaderMaterial;apronLensMaterial:THREE.MeshStandardMaterial;dockLightMaterial:THREE.MeshStandardMaterial;beacons:{bulb:THREE.MeshBasicMaterial;glow:THREE.PointsMaterial};windowMaterial:THREE.MeshStandardMaterial;ceilingMaterial:THREE.MeshStandardMaterial;pavementMaterials:THREE.MeshStandardMaterial[];updateScreens:(sim:SimulationAPI)=>void;updateVegetation:(time:number,windDirection:number,windSpeed:number,wetness:number)=>void}
 const concrete=surfaceMaterial('concrete','#c3c6c6'),asphalt=surfaceMaterial('asphalt','#525b63'),runwayAsphalt=surfaceMaterial('runway','#a9b5bb'),taxiPave=surfaceMaterial('concrete','#b3b8b9'),taxiAsphalt=surfaceMaterial('asphalt','#687176'),taxiMixed=surfaceMaterial('concrete','#aeb4b6'),white=material('#e1e5e5',.72),metal=material('#a4b1b8',.42,.45),glass=material('#718b9e',.48,.12),curtainGlass=terminalCurtainGlass(),cladding=terminalCladdingMaterial(),roof=material('#c5cccf',.65,.25),yellow=material('#e0b544',.78);
 glass.envMapIntensity=1.25;glass.map=facadeTexture();glass.roughnessMap=facadeRoughness();glass.emissiveMap=facadeTexture(true);glass.emissive.set('#f5f3e9');glass.emissiveIntensity=0;glass.userData.facade=true;
 
 function consolidate(group:THREE.Group) {
- group.updateMatrixWorld(true);const batches=new Map<THREE.Material,THREE.BufferGeometry[]>(),remove:THREE.Object3D[]=[];
- group.traverse(o=>{if(o instanceof THREE.Mesh&&!(o instanceof THREE.InstancedMesh)&&!Array.isArray(o.material)&&!(o.material instanceof THREE.MeshBasicMaterial)&&o.geometry.index&&!o.material.transparent){const geo=o.geometry.clone().applyMatrix4(o.matrixWorld);if(o.material.userData.worldUV)applyWorldUV(geo,o.material.userData.worldUV);if(o.material.userData.facade)applyFacadeUV(geo);let list=batches.get(o.material);if(!list){list=[];batches.set(o.material,list);}list.push(geo);remove.push(o);}});
- for(const o of remove){(o as THREE.Mesh).geometry.dispose();o.removeFromParent();}for(const[mat,geometries]of batches){const merged=mergeGeometries(geometries);if(merged){const mesh=new THREE.Mesh(merged,mat);mesh.receiveShadow=true;mesh.castShadow=!mat.userData.noShadow&&mat!==concrete&&mat!==asphalt&&mat!==taxiPave;group.add(mesh);}for(const geo of geometries)geo.dispose();}
+ group.updateMatrixWorld(true);const batches=new Map<THREE.Material,Map<number,THREE.BufferGeometry[]>>(),remove:THREE.Object3D[]=[];
+ group.traverse(o=>{if(o instanceof THREE.Mesh&&!(o instanceof THREE.InstancedMesh)&&!Array.isArray(o.material)&&!(o.material instanceof THREE.MeshBasicMaterial)&&o.geometry.index&&!o.material.transparent){const geo=o.geometry.clone().applyMatrix4(o.matrixWorld);if(o.material.userData.worldUV)applyWorldUV(geo,o.material.userData.worldUV);if(o.material.userData.facade)applyFacadeUV(geo);let byLayer=batches.get(o.material);if(!byLayer){byLayer=new Map();batches.set(o.material,byLayer);}let list=byLayer.get(o.layers.mask);if(!list){list=[];byLayer.set(o.layers.mask,list);}list.push(geo);remove.push(o);}});
+ // Preserve visibility layers while batching: an indoor reflection probe must
+ // not redraw the entire airport/region because materials happen to be shared.
+ for(const o of remove){(o as THREE.Mesh).geometry.dispose();o.removeFromParent();}for(const[mat,byLayer]of batches)for(const[layerMask,geometries]of byLayer){const merged=mergeGeometries(geometries);if(merged){const mesh=new THREE.Mesh(merged,mat);mesh.layers.mask=layerMask;mesh.receiveShadow=true;mesh.castShadow=!mat.userData.noShadow&&mat!==concrete&&mat!==asphalt&&mat!==taxiPave;group.add(mesh);}for(const geo of geometries)geo.dispose();}
 }
 
 export function createEnvironment():Environment {
@@ -117,7 +120,9 @@ export function createEnvironment():Environment {
  landsideDetail(staticGroup);
  for(const t of terminals){const apronPadTop=t.id==='T1' ? .005 : .165;box(staticGroup,t.width+145,.09,t.depth+100,t.x,apronPadTop-.045,t.z,concrete);if(t.id==='T3'||t.id==='T3-S'){completedTerminal3(staticGroup,t,curtainGlass,cladding,concrete);continue;}
   const bounds:TerminalBounds={x:t.x,z:t.z,width:t.width,depth:t.depth,height:t.height},terminalGates=t.id==='T3-N'?gates.filter(g=>g.terminal==='T3 North'):[],profile=t.id==='T1'||t.id==='T2'||t.id==='T3-N'?t.id:undefined;
-  buildTerminalAtrium(staticGroup,bounds,{glass:curtainGlass,cladding,concrete,metal},terminalGates,terminalGates.some(g=>g.z<t.z)?-1:1,profile);terminalRoof(staticGroup,t);
+  const terminalRoot=new THREE.Group();staticGroup.add(terminalRoot);
+  buildTerminalAtrium(terminalRoot,bounds,{glass:curtainGlass,cladding,concrete,metal},terminalGates,terminalGates.some(g=>g.z<t.z)?-1:1,profile);terminalRoof(terminalRoot,t);
+  if(t.id==='T1'||t.id==='T2')terminalRoot.traverse(o=>o.layers.enable(HALL_REFLECTION_LAYER[t.id as 'T1'|'T2']));
 
  }
  const gateRows:{bounds:TerminalBounds;ids:RegExp;gateSide:-1|1;terminal:'T1'|'T2'}[]=[

@@ -7,11 +7,11 @@
  */
 export const T1_FIRST_FLOOR_SERVICES={
  desks:[
-  {id:'baggage-service',side:-1,zRatio:.22,length:14,stations:2,label:'BAGGAGE SERVICE  行李服務',accent:'#65847c',kind:'baggage'},
-  {id:'bank-taiwan',side:-1,zRatio:.31,length:16,stations:3,label:'BANK OF TAIWAN  臺灣銀行',accent:'#8f7946',kind:'bank'},
-  {id:'megabank',side:-1,zRatio:.39,length:14,stations:2,label:'MEGA BANK  兆豐銀行',accent:'#587b74',kind:'bank'},
-  {id:'tourist-service',side:1,zRatio:.27,length:14,stations:2,label:'TOURIST SERVICE  旅客服務',accent:'#31877f',kind:'information'},
-  {id:'mobile-service',side:1,zRatio:.37,length:12,stations:2,label:'MOBILE SERVICE  電信服務',accent:'#517e89',kind:'telecom'},
+  {id:'baggage-service',side:-1,zRatio:-.34,length:14,stations:2,label:'BAGGAGE SERVICE  行李服務',accent:'#65847c',kind:'baggage'},
+  {id:'bank-taiwan',side:-1,zRatio:-.14,length:16,stations:3,label:'BANK OF TAIWAN  臺灣銀行',accent:'#8f7946',kind:'bank'},
+  {id:'megabank',side:-1,zRatio:.18,length:14,stations:2,label:'MEGA BANK  兆豐銀行',accent:'#587b74',kind:'bank'},
+  {id:'tourist-service',side:1,zRatio:-.05,length:14,stations:2,label:'TOURIST SERVICE  旅客服務',accent:'#31877f',kind:'information'},
+  {id:'mobile-service',side:1,zRatio:.28,length:12,stations:2,label:'MOBILE SERVICE  電信服務',accent:'#517e89',kind:'telecom'},
  ],
  atms:[{id:'west-atm',side:-1,zRatio:.45},{id:'east-atm',side:1,zRatio:.45}],
  aeds:[{id:'west-aed',side:-1,zRatio:.18},{id:'east-aed',side:1,zRatio:.34}],
@@ -30,21 +30,23 @@ export function t1FirstFloorServiceCenter(centerX:number,centerZ:number,width:nu
  */
 // Keep T1 1F aligned with the airport reference grade; with a shallow B1, the
 // basement ceiling must sit below the terrain mesh instead of coplanar with it.
-export const T1_FLOOR_LEVELS=[-5.51,0,5.44,10.94,16.34] as const;
+// The 4F service spine is a compact upper floor under the central roof saddle,
+// not another full 5.4 m storey. Heights remain section-informed estimates.
+export const T1_FLOOR_LEVELS=[-5.51,0,5.44,10.94,14.64] as const;
 /**
- * The official visitor photograph near T1 counter 10 shows the hall's tall
- * airport-name landmark. Its precise surveyed position and dimensions are
+ * The official visitor photograph near T1 counter 10 shows a tall, narrow,
+ * shallow airport-name marker. Its surveyed position and dimensions are
  * unpublished; keep the authored panel tied to the modeled counter-10 island.
  */
 export const T1_DEPARTURE_LANDMARK_LAYOUT={
- checkInCenterOffset:-42,
- checkInSpanRatio:.6,
+ checkInCenterOffset:0,
+ checkInSpanRatio:.69,
  islandIndex:4,
  islandCount:6,
- xOffset:-27,
- width:9.2,
- depth:2.1,
- height:9.2,
+ xOffset:61,
+ width:3.25,
+ depth:.45,
+ height:4.8,
 } as const;
 export const T1_BASEMENT_LAYOUT={
  shops:[
@@ -110,14 +112,14 @@ export function t1SecondFloorShopCenter(centerX:number,centerZ:number,width:numb
 
 /** T1 3F public-map tenants; storefront dimensions/coordinates are estimates. */
 export const T1_THIRD_FLOOR_STORES=[
- {id:'starbucks',dx:-64,dz:-95,width:17,depth:12,label:'STARBUCKS  星巴克',accent:'#176b50',kind:'food',profile:'tea'},
+ {id:'starbucks',dx:-49,dz:-95,width:17,depth:12,label:'STARBUCKS  星巴克',accent:'#176b50',kind:'food',profile:'tea'},
  {id:'oli',dx:-12,dz:-9,width:17,depth:12,label:'OLI DESIGN  設計師商店',accent:'#637c75',kind:'retail',profile:'design'},
  {id:'taiwan-goods',dx:-12,dz:8,width:17,depth:8,label:'TAIWAN SPECIALTY GOODS  台灣特色商品館',accent:'#a17b4f',kind:'retail',profile:'taiwan-goods'},
  {id:'hanlin',dx:-8,dz:25,width:17,depth:12,label:'HANLIN TEA  翰林茶館',accent:'#8b4836',kind:'food',profile:'tea'},
  {id:'kuo-yuan-ye',dx:22,dz:-78,width:18,depth:12,label:'KUO YUAN YE  郭元益',accent:'#a17a45',kind:'food',profile:'bakery'},
- {id:'mos',dx:-60,dz:82,width:17,depth:12,label:'MOS BURGER  摩斯漢堡',accent:'#ad4538',kind:'food',profile:'burger'},
+ {id:'mos',dx:-49,dz:82,width:17,depth:12,label:'MOS BURGER  摩斯漢堡',accent:'#ad4538',kind:'food',profile:'burger'},
  {id:'vigor',dx:-8,dz:90,width:18,depth:12,label:'VIGOR BAKERY  維格餅家',accent:'#a17a45',kind:'food',profile:'bakery'},
- {id:'indigenous-crafts',dx:-70,dz:106,width:20,depth:12,label:'TAIWAN INDIGENOUS CRAFT  原住民精藝品展售館',accent:'#8d754c',kind:'retail',profile:'craft'},
+ {id:'indigenous-crafts',dx:-49,dz:106,width:20,depth:12,label:'TAIWAN INDIGENOUS CRAFT  原住民精藝品展售館',accent:'#8d754c',kind:'retail',profile:'craft'},
 ] as const;
 
 /** Counter 15 and counter 21 are explicitly marked on the airport's T1 3F map.
@@ -175,7 +177,7 @@ export function t1FourthFloorSuiteCenterX(centerX:number,terminalWidth:number){
  * footprint; the airport map is schematic and does not publish dimensions.
  */
 export const T2_FOURTH_FLOOR_LAYOUT={
- atrium:{xOffset:0,zOffset:-42,width:110,depth:140},
+ atrium:{xOffset:0,zOffset:-52,width:110,depth:172},
  foodCourt:{xOffset:0,zRatio:.29,widthRatio:.52,depthRatio:.24},
  shop:{frontOffsetRatio:.43,depth:8.4,length:13.2,height:3.65},
  // Keep lounge suites in the side galleries outside the open atrium edge.

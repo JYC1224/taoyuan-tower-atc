@@ -4,6 +4,7 @@ import {box,cylinder,material,pavement,instances,canvasTexture,seeded} from './p
 import {isSea} from './coastline';
 import {roofMaterial} from './roofMaterial';
 import {T2_FLOOR_LEVELS,T2_OBSERVATION_DECK_LAYOUT} from './terminalInteriorLayout';
+import {t1RoofHeight} from './terminalPublicHallLayout';
 
 const pearl=material('#d3d8d8',.62,.18),silver=material('#aab7bf',.4,.58),dark=material('#566b78',.38,.25);
 const roofPearl=roofMaterial('#d6d8d3',.62,.14),roofSilver=roofMaterial('#615c52',.68,.14);
@@ -134,15 +135,10 @@ function terminal2CurbsideCanopy(parent:THREE.Group,t:Terminal){
 export function terminalRoof(parent:THREE.Group,t:Terminal){
  if(t.id==='T1'){
   // The renovated T1 roof is a pair of raised catenary wings with a lower
-  // central saddle and dropped outer eaves. The high points align with the
-  // inward-raked piers shown in the architect's published section.
+  // central saddle and dropped outer eaves. Both skin and piers share the
+  // section profile, rather than two independent Gaussian approximations.
   const w=t.width+24,d=t.depth+14,segments=48,p:number[]=[],uv:number[]=[],indices:number[]=[];
-  const roofY=(x:number)=>{
-   const normalized=Math.abs(x/(w/2));
-   const leftWing=Math.exp(-Math.pow((normalized-.66)/.16,2));
-   const centralSaddle=Math.exp(-Math.pow(normalized/.28,2));
-   return t.height+1+10.8*leftWing+4.8*centralSaddle;
-  };
+  const roofY=(x:number)=>t1RoofHeight(x,t.width,t.height);
   for(let j=0;j<=segments;j++){const u=j/segments,x=(u-.5)*w,y=roofY(x);for(const z of [-d/2,d/2]){p.push(t.x+x,y,t.z+z);uv.push(u,z>0?1:0);}}
   for(let j=0;j<segments;j++){const a=j*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();roofPearl.side=THREE.DoubleSide;const mesh=new THREE.Mesh(g,roofPearl);mesh.castShadow=mesh.receiveShadow=true;parent.add(mesh);
@@ -184,7 +180,6 @@ export function terminalRoof(parent:THREE.Group,t:Terminal){
   for(let x=-w/2+8;x<w/2;x+=8){const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(t.x+x,innerY(x)-.36,t.z-d/2),new THREE.Vector3(t.x+x,innerY(x)-.36,t.z+d/2)]),purlin=new THREE.Mesh(new THREE.TubeGeometry(curve,2,.07,6,false),interiorRib);purlin.castShadow=false;parent.add(purlin);}
   const ceilingLight=new THREE.MeshBasicMaterial({color:'#fff0d3',toneMapped:false});
   for(let x=-w/2+20;x<w/2-12;x+=18){const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(t.x+x,innerY(x)-.64,t.z-d/2),new THREE.Vector3(t.x+x,innerY(x)-.64,t.z+d/2)]),strip=new THREE.Mesh(new THREE.TubeGeometry(curve,2,.065,6,false),ceilingLight);strip.castShadow=false;parent.add(strip);}
-  for(const side of [-1,1]){box(parent,18,.65,d+9,t.x+side*(w/2-7),t.height+12,t.z,pearl);for(let z=-d/2+10;z<d/2;z+=20){const c=box(parent,.9,t.height+10,1.1,t.x+side*(w/2-13),(t.height+10)/2,t.z+z,pearl);c.rotation.z=-side*.10;}}
  }else if(t.id==='T2'){
   // T2's high public hall reads as a glazed space frame. The previous solid
   // two-metre inner slab hid this structure and made the atrium look sealed.
@@ -193,13 +188,16 @@ export function terminalRoof(parent:THREE.Group,t:Terminal){
   // public atrium read as a black ceiling in ordinary evening conditions.
   const glassRoof=new THREE.MeshPhysicalMaterial({color:'#a9bbb6',roughness:.3,metalness:.035,transparent:true,opacity:.3,depthWrite:false,side:THREE.DoubleSide,envMapIntensity:.28,emissive:'#344b48',emissiveIntensity:.08,clearcoat:.38,clearcoatRoughness:.28});
   glassRoof.forceSinglePass=true;
-  const panels:Parameters<typeof instances>[3]=[],frameMembers:Parameters<typeof instances>[3]=[],spaceFrameNodes:Parameters<typeof instances>[3]=[],webMatrices:THREE.Matrix4[]=[];
+  const panels:Parameters<typeof instances>[3]=[],opaquePanels:Parameters<typeof instances>[3]=[],frameMembers:Parameters<typeof instances>[3]=[],spaceFrameNodes:Parameters<typeof instances>[3]=[],webMatrices:THREE.Matrix4[]=[];
  const panelStep=7.6,panelSize=7.15,roofY=t.height+.28;
   const topChordY=t.height-.1,bottomChordY=t.height-1.8;
   const xGrid=Array.from({length:Math.ceil(t.width/panelStep)+1},(_,i)=>-t.width/2+Math.min(i*panelStep,t.width));
   const zGrid=Array.from({length:Math.ceil(t.depth/panelStep)+1},(_,i)=>-t.depth/2+Math.min(i*panelStep,t.depth));
   for(let x=-t.width/2+panelStep/2;x<t.width/2;x+=panelStep){
-   for(let z=-t.depth/2+panelStep/2;z<t.depth/2;z+=panelStep)panels.push({x:t.x+x,y:roofY,z:t.z+z,sx:panelSize,sy:.1,sz:panelSize});
+   for(let z=-t.depth/2+panelStep/2;z<t.depth/2;z+=panelStep){
+    const destination=Math.abs(x)<t.width*.115?panels:opaquePanels;
+    destination.push({x:t.x+x,y:roofY,z:t.z+z,sx:panelSize,sy:.1,sz:panelSize});
+   }
   }
   // A double-layer space frame has upper and lower chord grids, with vertical
   // nodes and alternating diagonal webs. The old coplanar X pattern looked like
@@ -233,8 +231,12 @@ export function terminalRoof(parent:THREE.Group,t:Terminal){
    if((ix+iz)%2===0)addWeb(x,topChordY,z,xNext,bottomChordY,zNext,.085);
    else addWeb(xNext,topChordY,z,x,bottomChordY,zNext,.085);
   }
-  const trussFinish=new THREE.MeshStandardMaterial({color:'#7a8581',roughness:.56,metalness:.38}),braceFinish=new THREE.MeshStandardMaterial({color:'#8d9995',roughness:.5,metalness:.42});
+  const trussFinish=new THREE.MeshStandardMaterial({color:'#62695f',roughness:.56,metalness:.32}),braceFinish=new THREE.MeshStandardMaterial({color:'#7f877c',roughness:.5,metalness:.36});
   const glazing=instances(parent,new THREE.BoxGeometry(1,1,1),glassRoof,panels);glazing.castShadow=false;glazing.receiveShadow=false;
+  // The hall photograph shows a dark opaque roof field with a clear skylight
+  // strip, not a uniform all-glass square grid. The strip width is a visual fit.
+  const liner=new THREE.MeshStandardMaterial({color:'#8c8675',roughness:.88,metalness:.025,emissive:'#615c4e',emissiveIntensity:.08});
+  const opaque=instances(parent,new THREE.BoxGeometry(1,1,1),liner,opaquePanels);opaque.castShadow=false;opaque.receiveShadow=true;
   const frame=instances(parent,new THREE.BoxGeometry(1,1,1),trussFinish,frameMembers);frame.castShadow=false;frame.receiveShadow=true;
   const nodeGeometry=new THREE.SphereGeometry(.5,8,6),nodes=instances(parent,nodeGeometry,trussFinish,spaceFrameNodes);nodes.castShadow=false;nodes.receiveShadow=true;
   const bracing=new THREE.InstancedMesh(webGeometry,braceFinish,webMatrices.length);webMatrices.forEach((matrix,index)=>bracing.setMatrixAt(index,matrix));bracing.instanceMatrix.needsUpdate=true;bracing.castShadow=false;bracing.receiveShadow=true;parent.add(bracing);
@@ -261,11 +263,15 @@ export function terminalRoof(parent:THREE.Group,t:Terminal){
     const left=-t.width/2,right=t.width/2,openingLeft=doorCenter-doorHalf,openingRight=doorCenter+doorHalf;
     box(parent,openingLeft-left,.28,.22,t.x+(left+openingLeft)/2,y,wallZ,pearl);
     box(parent,right-openingRight,.28,.22,t.x+(openingRight+right)/2,y,wallZ,pearl);
+   }else if(t.id==='T1'){
+    // Stop facade transoms where the real roof has already dropped to its eave.
+    for(let x=-t.width/2;x<t.width/2;x+=4)if(y<t1RoofHeight(x+2,t.width,t.height)-.45)box(parent,4,.18,.2,t.x+x+2,y,wallZ,pearl);
    }else box(parent,t.width,.28,.22,t.x,y,wallZ,pearl);
   }
   for(let x=-t.width/2;x<=t.width/2;x+=4){
    if(t.id==='T2'&&Math.abs(x-doorCenter)<doorHalf)continue;
-   box(parent,.14,t.height,.22,t.x+x,t.height/2,wallZ,silver);
+   const height=t.id==='T1'?t1RoofHeight(x,t.width,t.height)-.4:t.height;
+   box(parent,.14,height,.22,t.x+x,height/2,wallZ,silver);
   }
  }
  if(t.id==='T2')terminal2CurbsideCanopy(parent,t);

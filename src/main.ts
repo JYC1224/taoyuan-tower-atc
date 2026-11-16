@@ -6,7 +6,7 @@ import {routineEnabled} from './sim/difficulty';
 import {explorationScenario} from './sim/exploration';
 import { Simulation } from './sim/Simulation';
 import { AirportScene } from './render/AirportScene';
-import {exploreSpots,type ExploreSpotId} from './render/exploration';
+import {primaryExploreSpots,detailExploreSpots,type ExploreSpotId} from './render/exploration';
 import { FLEET, AIRLINES } from './data/fleet';
 import { airport, airportSource } from './data/airport';
 import { hasOfficialSchedule, OFFICIAL_SCHEDULE_CAPTURED_AT, OFFICIAL_SCHEDULE_COUNT, OFFICIAL_SCHEDULE_DATE } from './data/schedule';
@@ -78,7 +78,7 @@ function renderExploreHUD(){
   <header class="explore-top"><div class="explore-brand">${logoHTML()}<span class="explore-badge"><span class="status-dot"></span>${bi('AI CONTROLLERS ACTIVE','AI 自動管制中')}</span></div>
    <div class="explore-top-actions"><span id="explore-clock" class="mono"></span><div class="explore-speed" aria-label="${bi('Simulation speed','模擬速度')}">${[0,1,2,4].map(n=>`<button data-explore-speed="${n}" title="${n===0?t('pause'):n+'×'}">${n===0?'Ⅱ':n+'×'}</button>`).join('')}</div><button id="explore-labels"></button><button id="explore-exit">${bi('Exit','結束漫遊')}</button></div>
   </header>
-  <section class="explore-panel"><label for="explore-location">${bi('GO TO','快速移動')}</label><select id="explore-location" aria-label="${bi('Choose a location','選擇觀景位置')}">${exploreSpots.map(s=>`<option value="${s.id}" ${s.id===exploreLocation?'selected':''}>${esc(lang==='en'?s.en:s.zh)}</option>`).join('')}</select><small id="explore-traffic"></small></section>
+  <section class="explore-panel"><label for="explore-location">${bi('GO TO','快速移動')}</label><select id="explore-location" aria-label="${bi('Choose a location','選擇觀景位置')}">${[{label:bi('Passenger halls & airport views','旅客主要空間與機場觀景'),spots:primaryExploreSpots},{label:bi('Detailed inspection views','細部觀景位置'),spots:detailExploreSpots}].map(group=>`<optgroup label="${group.label}">${group.spots.map(s=>`<option value="${s.id}" ${s.id===exploreLocation?'selected':''}>${esc(lang==='en'?s.en:s.zh)}</option>`).join('')}</optgroup>`).join('')}</select><small id="explore-traffic"></small></section>
   <div class="explore-help">${bi('W A S D / arrows · walk   |   Drag mouse · look   |   Shift · walk faster   |   Space · pause','W A S D／方向鍵：走動　｜　按住滑鼠左鍵拖曳：轉向　｜　Shift：快走　｜　空白鍵：暫停')}</div>
   <div class="explore-paused" id="explore-paused" hidden>${t('paused')}</div>
  </main>`;

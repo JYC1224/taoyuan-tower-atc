@@ -2,6 +2,32 @@
 
 The current **Explore / 機場漫遊** mode offers first-person sightseeing while AI controllers operate the simulation. It now includes selectable first-floor public areas and gate concourses in Terminals 1 and 2, Terminal 2 levels 2–5, Terminal 3 north concourse and the tower. Floor changes and travel between disconnected scene areas use the location selector. Walking continuously between the terminal and tower and starting a shift at a workstation remain future work.
 
+## Passenger-space architecture first — 2026-11-17
+
+This pass changes the priority from tenant completeness to recognisable public interiors. Compare the entrance-to-check-in view, roof/soffit profile, structural rhythm, floor colour, broad material fields and clear circulation before refining individual shops. The earlier tenant and counter-layout entries below are historical; this section supersedes their conflicting main-hall geometry assumptions.
+
+| Space | Inspected visual/plan evidence | Implemented correction | Remaining limit |
+| --- | --- | --- | --- |
+| T1 1F check-in | Norihiko Dan first-floor plan, section and check-in photos; Wutthichai Charoenburi's 2023-03-26 check-in photo | Six longitudinally distributed islands occupy the +X half of the local plan; broad curved/slatted timber canopies, pale counter bodies, dark tops, cream shallow vaults and repeated light coves replace generic isolated tables/flat grey ceiling | Island dimensions, desk count, ceiling heights and finish colours are photographic fits, not a measured counter schedule |
+| T1 arrival/reclaim | Architect's first-floor plan and section | Reclaim moves to the opposite half, with a separate outer public passage, pale illuminated soffit, seating, flight boards, partition and three open portals; furniture collision follows the rendered positions | Portal positions and service fit-outs are schematic; this does not establish today's exact arrival-wall design |
+| T1 roof and upper core | Architect's section and upper-floor plan/photos | The roof drops at the eaves, peaks at outward-raked piers and covers a narrower upper central deck; glazing follows the roof instead of protruding above it. Upper service-floor height is fitted to clear the roof ribs, with corner supports below the compact suites | Section-derived proportions in the existing scene footprint; no surveyed elevations or BIM |
+| T2 3F check-in | Cheng-en Cheng's 2020-08-15 wide hall photograph; airport visitor guide | Open black island frames, repeated curved pale metal counter shells, a dark roof field with a central glazed strip, warm stone gallery fascia, larger coherent upper opening | Roof strip width, equipment geometry and wall-panel modules are estimates; the dated photo is not proof of every 2026 equipment change |
+| T1/T2 polished floors | The above hall photos and local in-app walkthroughs | Neutral stone tones and local area lighting; high quality captures the actual modeled hall into a cached reflection probe on entry and when hour/weather changes | A cubemap is a local static approximation, not an exact planar reflection or continuous reflection of moving people |
+| Walkthrough access | All authored viewpoints and shared structural/fixture bounds | Major passenger halls are first in the location list. Eye height is consistent; a camera displaced by a fixture is moved to a nearby free position without deleting collision geometry | Floors still change using the location selector; continuous passenger processing through escalators/security is not implemented |
+
+Evidence opened in Codex's in-app browser (no desktop Chrome, and no reference image bundled):
+
+- [Architect-provided project, plans, section and photos](https://www.archdaily.com/771071/regeneration-of-taoyuan-international-airport-terminal-1-norihiko-dan-and-associates), completed 2013, article 2015. In particular the first-floor plan, third-floor plan, section, check-in timber-canopy photos and white pier/clerestory photograph were inspected.
+- [T1 check-in photograph, 2023-03-26](https://commons.wikimedia.org/wiki/File:Taoyuan_Airport_Terminal_1_Thai_Airways_Check-in_Counter.jpg), Wutthichai Charoenburi, CC BY 2.0. It corroborates the curved timber canopy and shows pale counter faces with dark tops. Used as a visual reference only.
+- [T2 check-in hall, 2020-08-15](https://commons.wikimedia.org/wiki/File:Taiwan_Taoyuan_International_Airport_Terminal_2_Check-in_Hall_20200815.jpg), Cheng-en Cheng, CC BY-SA 2.0. Used as a visual reference only.
+- [Official visitor guide](https://www.taoyuan-airport.com/fun_info/En-metro.html), including the T1 counter-10 and T2 check-in/arrival-hall cards. It confirms the public level labels, not dimensions.
+
+Rendering scope: local area fills are enabled only while the camera is inside their public-hall volume; outside views retain zero additional area lights. High-quality reflection captures use a 128-pixel cubemap restricted to the relevant terminal layer. Static batching preserves those visibility layers. Captures are cached, bounded to one result per terminal and replaced on hour/weather changes. This limits added rendering work; no comparative FPS benchmark has been established.
+
+Validation: production build and 14 relevant layout, walking, lighting and autonomous sightseeing tests passed. Layout checks cover the separation of departures/reclaim/public arrival passage, open customs portals, support/queue clearance, upper service ceiling/roof clearance, T2 opening coverage and preservation of all walkthrough destinations. These checks do not prove photographic identity. In-app visual checks are recorded separately by the screenshots produced during this pass.
+
+Next work follows the same priority: refine hall proportions/material balance against several matching views, then T1/T2 passport control, security, reclaim and gate-concourse volumes. Tenant logos, menus and individual shop inventories remain lower priority. The current procedural interiors are not a complete or dimensionally exact replica of all terminal spaces.
+
 ## Initial findings (historical baseline)
 
 - `src/render/AirportScene.ts` already supports first-person movement in the tower cab, bounded to the cab and with limited furniture collision. Its free camera is a flying camera, not a pedestrian controller.
