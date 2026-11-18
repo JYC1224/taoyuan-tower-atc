@@ -4,6 +4,7 @@ import {box,cylinder,material,pavement,instances,canvasTexture,seeded} from './p
 import {isSea} from './coastline';
 import {roofMaterial} from './roofMaterial';
 import {T2_FLOOR_LEVELS,T2_OBSERVATION_DECK_LAYOUT} from './terminalInteriorLayout';
+import {terminalBuildingBounds,T2_PASSENGER_SECTION,T2_ROOF_GRID} from './terminalBuildingLayout';
 import {t1RoofHeight} from './terminalPublicHallLayout';
 
 const pearl=material('#d3d8d8',.62,.18),silver=material('#aab7bf',.4,.58),dark=material('#566b78',.38,.25);
@@ -189,13 +190,13 @@ export function terminalRoof(parent:THREE.Group,t:Terminal){
   const glassRoof=new THREE.MeshPhysicalMaterial({color:'#a9bbb6',roughness:.3,metalness:.035,transparent:true,opacity:.3,depthWrite:false,side:THREE.DoubleSide,envMapIntensity:.28,emissive:'#344b48',emissiveIntensity:.08,clearcoat:.38,clearcoatRoughness:.28});
   glassRoof.forceSinglePass=true;
   const panels:Parameters<typeof instances>[3]=[],opaquePanels:Parameters<typeof instances>[3]=[],frameMembers:Parameters<typeof instances>[3]=[],spaceFrameNodes:Parameters<typeof instances>[3]=[],webMatrices:THREE.Matrix4[]=[];
- const panelStep=7.6,panelSize=7.15,roofY=t.height+.28;
-  const topChordY=t.height-.1,bottomChordY=t.height-1.8;
+ const panelStep=T2_ROOF_GRID.pitch,panelSize=7.15,roofY=t.height+.28;
+  const topChordY=t.height-.1,bottomChordY=t.height-T2_ROOF_GRID.bottomOffset;
   const xGrid=Array.from({length:Math.ceil(t.width/panelStep)+1},(_,i)=>-t.width/2+Math.min(i*panelStep,t.width));
   const zGrid=Array.from({length:Math.ceil(t.depth/panelStep)+1},(_,i)=>-t.depth/2+Math.min(i*panelStep,t.depth));
   for(let x=-t.width/2+panelStep/2;x<t.width/2;x+=panelStep){
    for(let z=-t.depth/2+panelStep/2;z<t.depth/2;z+=panelStep){
-    const destination=Math.abs(x)<t.width*.115?panels:opaquePanels;
+    const destination=Math.abs(x-T2_PASSENGER_SECTION.checkInX)<16?panels:opaquePanels;
     destination.push({x:t.x+x,y:roofY,z:t.z+z,sx:panelSize,sy:.1,sz:panelSize});
    }
   }
@@ -255,26 +256,30 @@ export function terminalRoof(parent:THREE.Group,t:Terminal){
   box(parent,t.width+9,1.5,t.depth+9,t.x,t.height+.7,t.z,roofPearl);
   for(let x=-t.width/2+12;x<t.width/2;x+=18)box(parent,1,.6,t.depth+8,t.x+x,t.height+1.8,t.z,silver);
  }
+ // Keep the existing roof/canopy envelope; transoms and doors belong to the
+ // enclosed body rather than a fictitious room over the landside road.
+ const facade=terminalBuildingBounds(t,t.id);
  // Facade floors and mullions give human scale without extra transparent sorting.
  for(const side of [-1,1]){
   const wallZ=t.z+side*(t.depth/2+.12),doorFloor=T2_FLOOR_LEVELS[6],doorCenter=T2_OBSERVATION_DECK_LAYOUT.accessXOffset,doorHalf=T2_OBSERVATION_DECK_LAYOUT.accessWidth/2;
-  for(let y=5;y<t.height;y+=5){
+  const transoms=t.id==='T2'?T2_FLOOR_LEVELS.filter(y=>y>1):Array.from({length:Math.floor((t.height-.01)/5)},(_,i)=>(i+1)*5);
+  for(const y of transoms){
    if(t.id==='T2'&&y>doorFloor&&y<doorFloor+T2_OBSERVATION_DECK_LAYOUT.accessHeight){
-    const left=-t.width/2,right=t.width/2,openingLeft=doorCenter-doorHalf,openingRight=doorCenter+doorHalf;
+    const left=-facade.width/2,right=facade.width/2,openingLeft=doorCenter-doorHalf,openingRight=doorCenter+doorHalf;
     box(parent,openingLeft-left,.28,.22,t.x+(left+openingLeft)/2,y,wallZ,pearl);
     box(parent,right-openingRight,.28,.22,t.x+(openingRight+right)/2,y,wallZ,pearl);
    }else if(t.id==='T1'){
     // Stop facade transoms where the real roof has already dropped to its eave.
     for(let x=-t.width/2;x<t.width/2;x+=4)if(y<t1RoofHeight(x+2,t.width,t.height)-.45)box(parent,4,.18,.2,t.x+x+2,y,wallZ,pearl);
-   }else box(parent,t.width,.28,.22,t.x,y,wallZ,pearl);
+   }else box(parent,facade.width,.28,.22,t.x,y,wallZ,pearl);
   }
-  for(let x=-t.width/2;x<=t.width/2;x+=4){
+  for(let x=-facade.width/2;x<=facade.width/2;x+=4){
    if(t.id==='T2'&&Math.abs(x-doorCenter)<doorHalf)continue;
    const height=t.id==='T1'?t1RoofHeight(x,t.width,t.height)-.4:t.height;
    box(parent,.14,height,.22,t.x+x,height/2,wallZ,silver);
   }
  }
- if(t.id==='T2')terminal2CurbsideCanopy(parent,t);
+ if(t.id==='T2')terminal2CurbsideCanopy(parent,facade);
 }
 
 export function landsideDetail(parent:THREE.Group){

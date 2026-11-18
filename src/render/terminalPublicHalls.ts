@@ -1,8 +1,39 @@
 import * as THREE from 'three';
 import {RectAreaLightUniformsLib} from 'three/addons/lights/RectAreaLightUniformsLib.js';
+import {terminals} from '../data/airport';
 import type {TerminalBounds} from './terminalArchitecture';
-import {box,canvasTexture,instances,seeded} from './primitives';
-import {T1_PUBLIC_HALL,t1CheckInBanks} from './terminalPublicHallLayout';
+import {box,canvasTexture,instances,material,seeded} from './primitives';
+import {T1_PUBLIC_HALL,t1ArrivalHallBounds,t1CheckInBanks} from './terminalPublicHallLayout';
+import {T2_PASSENGER_SECTION,T2_ROOF_GRID,placeBuildingRect,t2ArrivalHallFixtures,t2StructuralColumnCenters} from './terminalBuildingLayout';
+
+const panelGeometry=new THREE.BoxGeometry(1,1,1);
+const graphiteStone=new THREE.MeshPhysicalMaterial({color:'#383c3a',roughness:.14,metalness:.08,clearcoat:.54,clearcoatRoughness:.12});
+graphiteStone.userData.noShadow=true;
+
+/** Stone inlays give each main walkway an edge and help read the building's scale. */
+export function addPublicHallFloorBands(parent:THREE.Object3D,b:TerminalBounds,floor:number,terminal:'T1'|'T2',zone:'arrivals'|'departures'){
+ const hall=terminal==='T1'?t1ArrivalHallBounds(b.x,b.z,b.width,b.depth):placeBuildingRect(b,T2_PASSENGER_SECTION.publicHall);
+ const y=floor+(terminal==='T2'&&zone==='arrivals'?.043:.035);
+ const strip=(width:number,depth:number,x:number,z:number)=>{
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),graphiteStone);
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(x,y,z);mesh.receiveShadow=true;parent.add(mesh);
+ };
+ if(zone==='arrivals'){
+  if(terminal==='T1')for(const side of [-1,1])strip(.21,hall.depth-1.2,hall.x+side*hall.width*.445,hall.z);
+  else{
+   const fixtures=t2ArrivalHallFixtures(b);
+   for(const wall of fixtures.partitionPanels)strip(.62,wall.depth-.1,wall.x-2.1,wall.z);
+   for(const rail of fixtures.lowBarriers)strip(1.32,rail.depth+.24,rail.x,rail.z);
+  }
+ }else{
+  const center=terminal==='T1'?b.x+b.width*T1_PUBLIC_HALL.checkInXRatio:b.x+T2_PASSENGER_SECTION.checkInX;
+  const spacing=terminal==='T1'?27.3:20.8,depth=b.depth*(terminal==='T1'?.79:.709);
+  for(const side of [-1,1]){
+   strip(.29,depth,center+side*spacing,b.z);
+   strip(2*spacing+.29,.34,center,b.z+side*depth/2);
+  }
+ }
+}
 
 /** T1 check-in photographs show horizontal honey-coloured timber laminations. */
 let timber:THREE.MeshStandardMaterial|undefined;
@@ -64,10 +95,22 @@ export function t1PublicHallCeilings(parent:THREE.Object3D,b:TerminalBounds,floo
  const vaults=new THREE.Mesh(geometry,ceiling);vaults.castShadow=false;vaults.receiveShadow=false;parent.add(vaults);
  instances(parent,new THREE.BoxGeometry(1,1,1),cove,lights);instances(parent,new THREE.BoxGeometry(1,1,1),trim,seams);
  hallAreaLight(parent,(left+right)/2,floorY+4.6,b.z,right-left,b.depth*.82,.38);
- // The public arrival passage uses restrained pale soffits; no fictitious
- // shops or ornamental structures are needed to establish its scale.
- hallAreaLight(parent,b.x+b.width*T1_PUBLIC_HALL.arrivalsXRatio,floorY+4.8,b.z,b.width*T1_PUBLIC_HALL.arrivalsWidthRatio,b.depth*.84,.55,'#f7f1df');
  box(parent,.14,.18,b.depth*.9,b.x+b.width*.36,floorY+4.65,b.z,trim);
+}
+
+/** Upper canopy displays share a single atlas surface across the T2 islands. */
+let checkInScreen:THREE.MeshBasicMaterial|undefined;
+export function t2DepartureDisplayMaterial(){
+ if(checkInScreen)return checkInScreen;
+ const map=canvasTexture(512,240,ctx=>{
+  const face=ctx.createLinearGradient(0,0,512,240);face.addColorStop(0,'#dceff5');face.addColorStop(.7,'#4f93b3');face.addColorStop(1,'#286082');
+  ctx.fillStyle=face;ctx.fillRect(0,0,512,240);
+  ctx.fillStyle='#244758';ctx.fillRect(0,178,512,62);ctx.fillStyle='#f2f2df';ctx.font='27px Arial,sans-serif';ctx.fillText('PASSPORT AND BOARDING PASS',26,218,466);
+  ctx.fillStyle='#174051';ctx.font='bold 65px "Microsoft JhengHei",sans-serif';ctx.fillText('報到櫃台',28,86);
+  ctx.font='bold 32px Arial,sans-serif';ctx.fillText('CHECK-IN',31,135);
+  ctx.fillStyle='rgba(239,250,251,.34)';ctx.beginPath();ctx.moveTo(400,0);ctx.lineTo(512,0);ctx.lineTo(512,177);ctx.lineTo(348,177);ctx.closePath();ctx.fill();
+ });
+ checkInScreen=new THREE.MeshBasicMaterial({map,toneMapped:false});return checkInScreen;
 }
 
 /** A dark linear core, curved timber ribs and a slatted overhang, as photographed. */
@@ -93,10 +136,14 @@ export function t2CheckInShellGeometry(){
 
 /** Warm stone gallery fascia and a restrained dark clerestory establish T2's enclosure. */
 export function t2HallEnvelope(parent:THREE.Object3D,b:TerminalBounds,opening:{x:number;z:number;width:number;depth:number},galleryY:number){
- const stone=new THREE.MeshStandardMaterial({color:'#d0c9b5',roughness:.73,metalness:.025,emissive:'#8c8574',emissiveIntensity:.12}),joints=new THREE.MeshStandardMaterial({color:'#79796e',roughness:.64,metalness:.18}),panels:Parameters<typeof instances>[3]=[],seams:Parameters<typeof instances>[3]=[],windows:Parameters<typeof instances>[3]=[],glazing=new THREE.MeshStandardMaterial({color:'#36494b',roughness:.28,metalness:.18});
+ const stone=new THREE.MeshStandardMaterial({color:'#beb5a0',roughness:.73,metalness:.025,emissive:'#817763',emissiveIntensity:.075}),joints=new THREE.MeshStandardMaterial({color:'#555b52',roughness:.64,metalness:.18}),panels:Parameters<typeof instances>[3]=[],seams:Parameters<typeof instances>[3]=[],windows:Parameters<typeof instances>[3]=[],glazing=new THREE.MeshStandardMaterial({color:'#263c40',roughness:.28,metalness:.18});
  for(const side of [-1,1]){
   const edgeX=opening.x+side*opening.width/2;
   panels.push({x:edgeX,y:galleryY-.62,z:opening.z,sx:.16,sy:1.18,sz:opening.depth});
+  seams.push({x:edgeX-side*.10,y:galleryY-1.12,z:opening.z,sx:.04,sy:.15,sz:opening.depth});
+  for(let z=opening.z-opening.depth/2+4.9;z<opening.z+opening.depth/2-1;z+=4.9){
+   seams.push({x:edgeX-side*.086,y:galleryY-.55,z,sx:.03,sy:1.0,sz:.018});
+  }
   // The occupied side galleries have a built wall above the public opening,
   // with a narrow high window strip, rather than glass across the whole facade.
   const wallX=b.x+side*(b.width/2-1.1),bottom=galleryY+4.5,top=b.height-2.2;
@@ -107,6 +154,25 @@ export function t2HallEnvelope(parent:THREE.Object3D,b:TerminalBounds,opening:{x
   }
   for(const y of [bottom+1.48,bottom+2.72])seams.push({x:wallX-side*.16,y,z:b.z,sx:.04,sy:.075,sz:b.depth-4});
  }
- instances(parent,new THREE.BoxGeometry(1,1,1),stone,panels);instances(parent,new THREE.BoxGeometry(1,1,1),joints,seams);instances(parent,new THREE.BoxGeometry(1,1,1),glazing,windows);
- hallAreaLight(parent,opening.x,Math.min(b.height-4,galleryY+10),opening.z,opening.width*.82,opening.depth*.9,.65,'#f7efd9');
+ instances(parent,panelGeometry,stone,panels);instances(parent,panelGeometry,joints,seams);instances(parent,panelGeometry,glazing,windows);
+ hallAreaLight(parent,opening.x,Math.min(b.height-4,galleryY+10),opening.z,opening.width*.82,opening.depth*.9,.53,'#fff3da');
+
+ // Branches spread the west column heads into the lowest roof-grid chord.
+ // They stay above the occupied galleries and share a single beam batch.
+ const roof=terminals.find(t=>t.id==='T2')!,firstX=roof.x-roof.width/2,firstZ=roof.z-roof.depth/2,pitch=T2_ROOF_GRID.pitch,
+  columns=t2StructuralColumnCenters(b.x,b.z,b.width,b.depth).filter(p=>p.x<b.x),
+  crownY=b.height-8.8,chordY=roof.height-T2_ROOF_GRID.bottomOffset,beam=new THREE.InstancedMesh(new THREE.CylinderGeometry(.5,.5,1,10),material('#5a6461',.43,.49),columns.length*4),
+  jointsAtCrown:Parameters<typeof instances>[3]=[],origin=new THREE.Vector3(),end=new THREE.Vector3(),direction=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),dummy=new THREE.Object3D();
+ let index=0;
+ for(const p of columns){
+  origin.set(p.x,crownY-.11,p.z);
+  jointsAtCrown.push({x:p.x,y:crownY-.16,z:p.z,sx:1.90,sy:.48,sz:1.90});
+  const ix=Math.round((p.x-firstX)/pitch),iz=Math.round((p.z-firstZ)/pitch);
+  for(const dx of [-1,1])for(const dz of [-1,1]){
+   end.set(firstX+(ix+dx)*pitch,chordY,firstZ+(iz+dz)*pitch);direction.subVectors(end,origin);
+   dummy.position.copy(origin).lerp(end,.5);dummy.quaternion.setFromUnitVectors(up,direction.clone().normalize());dummy.scale.set(.38,direction.length(),.38);dummy.updateMatrix();beam.setMatrixAt(index++,dummy.matrix);
+  }
+ }
+ beam.instanceMatrix.needsUpdate=true;parent.add(beam);
+ instances(parent,new THREE.CylinderGeometry(.5,.5,1,24),stone,jointsAtCrown);
 }

@@ -2,6 +2,50 @@
 
 The current **Explore / 機場漫遊** mode offers first-person sightseeing while AI controllers operate the simulation. It now includes selectable first-floor public areas and gate concourses in Terminals 1 and 2, Terminal 2 levels 2–5, Terminal 3 north concourse and the tower. Floor changes and travel between disconnected scene areas use the location selector. Walking continuously between the terminal and tower and starting a shift at a workstation remain future work.
 
+## Multi-view passenger-space follow-up — 2026-11-18
+
+The next architecture-first slice extends into the T1 A-side passenger route.
+The [reference ledger](docs/TERMINAL_PASSENGER_REFERENCE_20261118.md) records the
+official whole-terminal/floor-map comparison and the multiple wide, oblique and
+detail views actually inspected for A1–A3, A7 and the connecting passage. It
+also distinguishes older photographs, identity-panel close-ups and schematic
+diagrams from current whole-room evidence. Research used the in-app browser.
+
+- Replaced the oversized ground-level A glass hall, which enclosed parts of
+  the aircraft stand field, with a narrower lounge/service wing, a separate
+  upper departure passage and a raised connection to the main terminal.
+- A1–A3 now share a single hall with a curved cream service core, upper gallery
+  band and a modular louvered ceiling. A7 uses white round columns, a lower
+  timber boarding band, tall mountain colour field, white recessed coffers,
+  blue/teal floor and linked dark passenger chairs. Its width was tightened
+  during visual review; the central aisle remains over 4 m wide.
+- The passage uses dark stone, a metal ceiling rhythm, blue coves, blue gate
+  directions and a short cream-lettering feature wall. The lettering and
+  mountain/blossom studies are newly authored interpretations, not copies of
+  the airport's commissioned artwork. Brands remain outside this pass's focus.
+- Five primary route/room views share collision/layout data with the model.
+  The upper link joins the passage continuously; its walls stop at the branch
+  junction. Lower-room floor changes still use the location selector. Guards
+  prevent walking off the raised slab or into stairs at a fixed eye elevation.
+- A-side bridge terminal connections follow the new facade/deck. Fully docked
+  aircraft-side positions remain unchanged across the compatible fleet.
+- Seat shells, feet, mullions, coffers, grilles and stair parts are instanced.
+  Original high-quality settings and the preceding batching/cache work remain.
+  Native GPU FPS comparison has not been measured for this architectural pass.
+
+Public maps do not publish a measured gate-room section. The lounge/upper
+passage elevations use existing scene levels to express the photographic split
+level; the lower rooms are not relabeled as officially "2F". Dimensions and the
+remaining neutral A-room fit-outs are approximate. T2 D6 research did not yet
+supply enough matching whole-room angles to justify a detailed rebuild, so its
+fit-out is retained. This remains a staged reconstruction, not a complete
+measured replica of every T1/T2 passenger space.
+
+Validation: production build; 20 layout, bridge, lighting, batching and texture
+ownership checks; the existing seven autonomous-exploration/lifecycle checks;
+and in-app daytime/after-dark walkthrough checks. Screenshots are stored under
+`tmp/terminal-passenger-20261118-qa/` (not game assets).
+
 ## Passenger-space architecture first — 2026-11-17
 
 This pass changes the priority from tenant completeness to recognisable public interiors. Compare the entrance-to-check-in view, roof/soffit profile, structural rhythm, floor colour, broad material fields and clear circulation before refining individual shops. The earlier tenant and counter-layout entries below are historical; this section supersedes their conflicting main-hall geometry assumptions.
@@ -205,3 +249,8 @@ The official airport [Explore the Fun entry](https://www.taoyuan-airport.com/exp
 The official visitor guide's T2 Arrival Hall card says the public photo spot is on 1F near the South Meeting Point. In the in-app browser, its photograph shows a horizontal timber-slat airport welcome wall, bilingual lettering and a projecting aircraft sculpture. The existing `t2-arrivals` view instead faced the north-side baggage-belt row, with a structural column centered in the frame. Moved that primary view to the south-side welcome feature, modeled the timber face, restrained multicolor airport mark, bilingual welcome lettering and a small three-dimensional airplane, and preserved the previous view as `t2-baggage` for belts 1–8. The guide establishes the public zone and visible character but publishes no wall dimensions or mapped coordinate; the wall location, scale and lettering finish are visual fits. No reference image was copied or bundled. References: [official visitor guide](https://www.taoyuan-airport.com/fun_info/En-metro.html), [official T2 floor map](https://www.taoyuan-airport.com/map/).
 
 - T1 4F The Jade ceiling and furniture correction (2026-11-15): reopened all four images on the operator's current Zone C page beside the local walkthrough. The dining and food-service photos show a pale, smooth ceiling with small recessed downlights; close-set light-oak fins and a concealed warm wash sit behind a continuous teal banquette. The dining tables have pale tops, dark slender legs and textured high-back chairs. The separate quiet-seat photo shows pale woven armchairs against a heavily textured, irregular vertical timber wall. Corrected the dining ceiling from the unsupported dark slat field to a light recessed-light ceiling, reduced the point fixtures, strengthened the procedural relief in the quiet-seat wall, and changed the banquette-side tables to four slim metal legs with a larger light top. Increased the local warm fill and lightened the dining-chair fabric tint. The Blossom, terminal shell, floor levels and airport-wide lighting remain unchanged. No ceiling, joinery or furniture schedule is published; dimensions, timber species, upholstery and fixture details remain visual estimates. Reference: [The Jade current official page and gallery](https://www.plazapremiumlounge.com/en-uk/find/china-regions/taiwan/taipei/taiwan-taoyuan-international-airport/international-departures-terminal-one-zone-c).
+
+
+### Terminal building sections and passenger allocation — 2026-11-18
+
+The architecture-first pass is recorded in [the building evidence and section ledger](docs/TERMINAL_BUILDING_SECTION_20261118.md). Multiple independent T1/T2 pickup-hall photographs, the airport indoor map, JAL arrival/departure diagrams, the CECI engineering description/canopy photograph and two government expansion-opening photographs were inspected in Codex's in-app browser. T2 arrival immigration is now on 2F, with reclaim/customs on 1F and a distinct double-height public meeting hall. Counter, security, passport-control and airside bands no longer overlap. The occupied T2 body is separated from its retained roof/canopy envelope; its 150 m cross-axis width and floor elevations are explicit scene fits, not a measured real-airport claim. T1 arrivals gained a high white raked/louvered ceiling, piers and a clerestory/service band. Floor-edge rail placement, escalator openings, structural-column clearance, public/restricted cores and walking collision were checked together. Exact T1 3F processing and T2 C/D concourse sections remain unverified. Existing A7 and check-in detailing were regression-checked; no source photograph was bundled.

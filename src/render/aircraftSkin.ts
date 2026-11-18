@@ -4,6 +4,13 @@ import {canvasTexture} from './primitives';
 import {liveryTexture,paintFuselageBase,paintFuselageBrand,paintTail} from './liveries';
 import {noseSpec,type NosePoint} from './aircraftNose';
 import {airframeDesign} from './aircraftDesign';
+import {RefCountedCache} from './refCountedCache';
+
+const skinTextures=new RefCountedCache<THREE.Texture>(texture=>texture.dispose());
+const materialReleases=new WeakMap<THREE.Material,()=>void>();
+const sharedTexture=(key:string,create:()=>THREE.Texture)=>skinTextures.acquire(key,()=>{const texture=create();texture.userData.shared=true;return texture;});
+/** Release each material's references exactly once, even if it appears on several meshes. */
+export function releaseAircraftSkin(material:THREE.Material){const release=materialReleases.get(material);if(release){materialReleases.delete(material);release();}}
 
 export function fuselageRadius(t:number,r:number,noseFraction=.115,roundness=2){
  if(t<noseFraction){const q=t/noseFraction;return r*Math.sqrt(Math.max(0,1-(1-q)**roundness));}
@@ -43,7 +50,8 @@ function passengerWindows(ctx:CanvasRenderingContext2D,W:number,profile:FleetPro
 /** A single UV skin eliminates coplanar belly/livery rectangles. */
 export function fuselage(profile:FleetProfile,airline:Airline,r:number){
  const L=profile.length,W=4096,H=1024,nose=noseSpec(profile),noseFraction=nose.length/L,design=airframeDesign(profile);
- const map=liveryTexture(W,H,ctx=>{
+ const profileKey=JSON.stringify([profile.id,profile.name,profile.length,profile.span,!!profile.cargo,r]),airlineKey=JSON.stringify([airline.id,airline.name,airline.localName,airline.color,airline.secondary,airline.tailText]);
+ const colorLease=sharedTexture(`body:${profileKey}:${airlineKey}`,()=>{const texture=liveryTexture(W,H,ctx=>{
   paintFuselageBase(ctx,airline,W,H);
   const side=(mirror:boolean)=>{
    const text=(value:string,x:number,y:number,width:number)=>{ctx.save();if(mirror){ctx.translate(x+width,y);ctx.scale(-1,1);ctx.fillText(value,0,0,width);}else ctx.fillText(value,x,y,width);ctx.restore();};
@@ -69,20 +77,22 @@ export function fuselage(profile:FleetProfile,airline:Airline,r:number){
    ctx.fillStyle='#72818a55';for(const t of [.29,.46,.64,.76])for(let y=88;y<390;y+=19){ctx.beginPath();ctx.arc(W*t+3,y,.9,0,Math.PI*2);ctx.fill();}
    ctx.fillStyle='#6e7c85';ctx.font='20px Arial';text(profile.name.toUpperCase(),W*.76,284,W*.16);
   };side(true);ctx.save();ctx.translate(0,H);ctx.scale(1,-1);side(false);ctx.restore();
- });map.anisotropy=8;
- const roughnessMap=canvasTexture(1024,256,ctx=>{ctx.fillStyle='#c0c0c0';ctx.fillRect(0,0,1024,256);ctx.fillStyle='#99999912';for(let x=6;x<1024;x+=27)ctx.fillRect(x,0,1,256);ctx.save();ctx.scale(.25,.25);const side=()=>{cockpitPanes(ctx,W,profile,true);passengerWindows(ctx,W,profile,true);};side();ctx.translate(0,H);ctx.scale(1,-1);side();ctx.restore();});
- const normalMap=canvasTexture(1024,256,ctx=>{ctx.fillStyle='#8080ff';ctx.fillRect(0,0,1024,256);ctx.strokeStyle='#837dff';ctx.lineWidth=.6;for(const t of [noseFraction*.24,.29,.46,.64,.76]){ctx.beginPath();ctx.moveTo(t*1024,0);ctx.lineTo(t*1024,256);ctx.stroke();}});normalMap.colorSpace=roughnessMap.colorSpace=THREE.NoColorSpace;
+ });texture.anisotropy=8;return texture;});const map=colorLease.value;
+ const roughLease=sharedTexture(`rough:${profileKey}`,()=>{const texture=canvasTexture(1024,256,ctx=>{ctx.fillStyle='#c0c0c0';ctx.fillRect(0,0,1024,256);ctx.fillStyle='#99999912';for(let x=6;x<1024;x+=27)ctx.fillRect(x,0,1,256);ctx.save();ctx.scale(.25,.25);const side=()=>{cockpitPanes(ctx,W,profile,true);passengerWindows(ctx,W,profile,true);};side();ctx.translate(0,H);ctx.scale(1,-1);side();ctx.restore();});texture.colorSpace=THREE.NoColorSpace;return texture;});
+ const normalLease=sharedTexture(`normal:${profileKey}`,()=>{const texture=canvasTexture(1024,256,ctx=>{ctx.fillStyle='#8080ff';ctx.fillRect(0,0,1024,256);ctx.strokeStyle='#837dff';ctx.lineWidth=.6;for(const t of [noseFraction*.24,.29,.46,.64,.76]){ctx.beginPath();ctx.moveTo(t*1024,0);ctx.lineTo(t*1024,256);ctx.stroke();}});texture.colorSpace=THREE.NoColorSpace;return texture;});
+ const roughnessMap=roughLease.value,normalMap=normalLease.value;
    const positions:number[]=[],uv:number[]=[],indices:number[]=[],rings=104,sides=48,noseRings=22;
  for(let j=0;j<=rings;j++){const t=j<=noseRings?noseFraction*(j/noseRings)**1.5:noseFraction+(1-noseFraction)*(j-noseRings)/(rings-noseRings),rr=fuselageRadius(t,r,noseFraction,nose.roundness),noseFactor=Math.max(0,1-t/noseFraction),tail=Math.max(0,(t-.73)/.27),center=-r*nose.drop*noseFactor*noseFactor+r*.36*tail*tail;for(let k=0;k<=sides;k++){const a=k/sides*Math.PI*2,sx=Math.sin(a),cy=Math.cos(a),shoulder=Math.exp(-Math.pow((Math.abs(cy)-.52)/.19,2))*.018,upperTaper=Math.max(0,cy)**2*.06,lowerTaper=Math.max(0,-cy)**2*.015,xProfile=design.doubleDeck?Math.sign(sx)*Math.pow(Math.abs(sx),.84)*(1-upperTaper-lowerTaper+shoulder):sx,yProfile=design.doubleDeck?Math.sign(cy)*Math.pow(Math.abs(cy),.86)*1.035:cy;positions.push(xProfile*rr,yProfile*rr*(1-noseFactor*.12)+center,(t-.5)*L);uv.push(t,1-k/sides);}}
  for(let j=0;j<rings;j++)for(let k=0;k<sides;k++){const a=j*(sides+1)+k,b=a+sides+1;indices.push(a,b,a+1,a+1,b,b+1);}
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geometry.setIndex(indices);geometry.computeVertexNormals();
  // Weld seam normals analytically; central body is perfectly round, nose/tail smooth.
  const normal=geometry.getAttribute('normal');for(let j=0;j<=rings;j++){const a=j*(sides+1),b=a+sides;const n=new THREE.Vector3().fromBufferAttribute(normal,a).add(new THREE.Vector3().fromBufferAttribute(normal,b)).normalize();normal.setXYZ(a,n.x,n.y,n.z);normal.setXYZ(b,n.x,n.y,n.z);}
- const material=new THREE.MeshPhysicalMaterial({color:'#ffffff',map,roughnessMap,normalMap,normalScale:new THREE.Vector2(.10,.10),roughness:.48,metalness:.025,clearcoat:.45,clearcoatRoughness:.22,envMapIntensity:.7});material.userData.aircraftOwned=true;
+ const material=new THREE.MeshPhysicalMaterial({color:'#ffffff',map,roughnessMap,normalMap,normalScale:new THREE.Vector2(.10,.10),roughness:.48,metalness:.025,clearcoat:.45,clearcoatRoughness:.22,envMapIntensity:.7});material.userData.aircraftOwned=true;materialReleases.set(material,()=>{colorLease.release();roughLease.release();normalLease.release();});
  const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
 }
 
 export function tailSkin(airline:Airline){
- const map=liveryTexture(1024,1024,ctx=>paintTail(ctx,airline));
- const material=new THREE.MeshStandardMaterial({map,roughness:.36,metalness:.1});material.userData.aircraftOwned=true;return material;
+ const airlineKey=JSON.stringify([airline.id,airline.name,airline.localName,airline.color,airline.secondary,airline.tailText]);
+ const lease=sharedTexture(`tail:${airlineKey}`,()=>liveryTexture(1024,1024,ctx=>paintTail(ctx,airline)));
+ const material=new THREE.MeshStandardMaterial({map:lease.value,roughness:.36,metalness:.1});material.userData.aircraftOwned=true;materialReleases.set(material,lease.release);return material;
 }

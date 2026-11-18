@@ -4,9 +4,10 @@ import {gates as airportGates} from '../data/airport';
 import {box,canvasTexture,instances,material} from './primitives';
 import {surfaceImages} from './realismAssets';
 import {buildTerminalInterior,type TerminalInteriorProfile} from './terminalInteriors';
-import {decorateGateConcourse} from './terminalInteriorFidelity';
 import {T2_FLOOR_LEVELS,T2_OBSERVATION_DECK_LAYOUT} from './terminalInteriorLayout';
 import {t1RoofHeight} from './terminalPublicHallLayout';
+import {T1_A_PASSENGER} from './terminalPassengerLayout';
+import {terminalBuildingBounds} from './terminalBuildingLayout';
 
 export interface TerminalBounds {x:number;z:number;width:number;depth:number;height:number}
 export interface TerminalMaterials {glass:THREE.Material;cladding:THREE.MeshStandardMaterial;concrete:THREE.Material;metal:THREE.Material;roof?:THREE.Material;floor?:THREE.Material;ceiling?:THREE.Material;deck?:THREE.Material;structure?:THREE.Material}
@@ -26,14 +27,14 @@ export function terminalCladdingMaterial(){
  return cladding;
 }
 
-function claddingBands(parent:THREE.Object3D,b:TerminalBounds,cladding:THREE.MeshStandardMaterial){
+function claddingBands(parent:THREE.Object3D,b:TerminalBounds,cladding:THREE.MeshStandardMaterial,floorLevels?:readonly number[],openWestBase=false){
  const baseHeight=Math.min(3.4,Math.max(1.7,b.height*.18)),offset=.19;
  for(const side of [-1,1]){
   box(parent,b.width,baseHeight,.38,b.x,baseHeight/2,b.z+side*(b.depth/2+offset),cladding);
-  box(parent,.38,baseHeight,b.depth,b.x+side*(b.width/2+offset),baseHeight/2,b.z,cladding);
+  if(!openWestBase||side>0)box(parent,.38,baseHeight,b.depth,b.x+side*(b.width/2+offset),baseHeight/2,b.z,cladding);
  }
  if(b.height>17){
-  for(const y of b.height>25?[b.height*.35,b.height*.68,b.height-1.2]:[b.height*.53,b.height-1.15]){
+  for(const y of floorLevels?[...floorLevels.filter(y=>y>1),b.height-1.2]:b.height>25?[b.height*.35,b.height*.68,b.height-1.2]:[b.height*.53,b.height-1.15]){
    const bandHeight=y>b.height-2?1.35:.48;
    for(const side of [-1,1]){
     box(parent,b.width,bandHeight,.3,b.x,y,b.z+side*(b.depth/2+.17),cladding);
@@ -100,17 +101,24 @@ export function terminalInterior(parent:THREE.Object3D,b:TerminalBounds,concrete
  if(gateList.length)gateSigns(parent,b,gateList,gateSide);
 }
 
-/** Glass-and-cladding shell used for the terminal halls without changing their surveyed footprints. */
+/** Glass-and-cladding shell. Airport scene footprints are authored fits, not surveys. */
 export function buildTerminalAtrium(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials,gateList:Gate[]=[],gateSide:-1|1=1,profile?:TerminalInteriorProfile){
+ b=terminalBuildingBounds(b,profile??'');
  if(profile==='T1'){
   // A rectangular glass box protruded above the dropped T1 eaves. Trim the
   // end glazing to the same section used by the roof and upper hall piers.
   for(const side of [-1,1]){
-   const positions:number[]=[],indices:number[]=[],segments=64;
-   for(let i=0;i<=segments;i++){
-    const x=(i/segments-.5)*b.width,top=t1RoofHeight(x,b.width,b.height)-.4;
-    positions.push(b.x+x,0,b.z+side*b.depth/2,b.x+x,top,b.z+side*b.depth/2);
-    if(i<segments){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}
+   const positions:number[]=[],indices:number[]=[],segments=64,
+    stations=[...new Set([...Array.from({length:segments+1},(_,i)=>(i/segments-.5)*b.width),-8,8])].sort((a,c)=>a-c),
+    quad=(x0:number,x1:number,bottom:number,top0:number,top1:number)=>{const k=positions.length/3,z=b.z+side*b.depth/2;positions.push(b.x+x0,bottom,z,b.x+x0,top0,z,b.x+x1,bottom,z,b.x+x1,top1,z);indices.push(k,k+1,k+2,k+1,k+3,k+2);};
+   for(let i=1;i<stations.length;i++){
+    const x0=stations[i-1],x1=stations[i],top0=t1RoofHeight(x0,b.width,b.height)-.4,top1=t1RoofHeight(x1,b.width,b.height)-.4;
+    if(side===-1&&x0>=-8&&x1<=8){
+     // Open the raised passenger link instead of running a curtain pane
+     // through its 3F doorway. The rest of the roof-conforming facade stays.
+     quad(x0,x1,0,T1_A_PASSENGER.passageFloor,T1_A_PASSENGER.passageFloor);
+     quad(x0,x1,T1_A_PASSENGER.passageCeiling,top0,top1);
+    }else quad(x0,x1,0,top0,top1);
    }
    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
    const glass=new THREE.Mesh(geometry,mats.glass);glass.castShadow=false;parent.add(glass);
@@ -147,26 +155,10 @@ export function buildTerminalAtrium(parent:THREE.Object3D,b:TerminalBounds,mats:
    }
    box(parent,doorWidth,.12,.18,doorCenter,floorY+doorHeight,wallZ-side*.12,frame);
   }else box(parent,b.width,b.height,.12,b.x,b.height/2,wallZ,mats.glass);
-  box(parent,.12,b.height,b.depth,b.x+side*(b.width/2),b.height/2,b.z,mats.glass);
+  if(profile!=='T2'||side>0)box(parent,.12,b.height,b.depth,b.x+side*(b.width/2),b.height/2,b.z,mats.glass);
  }
- claddingBands(parent,b,mats.cladding);
+ claddingBands(parent,b,mats.cladding,profile==='T2'?T2_FLOOR_LEVELS:undefined,profile==='T2');
  terminalInterior(parent,b,mats.concrete,gateList,gateSide,profile,mats);
-}
-
-/** Passenger concourse with a continuous glass wall, human-scale frames and interior gate lounges. */
-export function buildGateConcourse(parent:THREE.Object3D,b:TerminalBounds,mats:TerminalMaterials,gateList:Gate[],gateSide:-1|1,terminal?:'T1'|'T2'){
- buildTerminalAtrium(parent,b,mats,gateList,gateSide);
- const frames:{x:number;y:number;z:number;sx:number;sy:number;sz:number}[]=[];
- for(let x=b.x-b.width/2+4;x<=b.x+b.width/2-4;x+=8){
-  for(const side of [-1,1])frames.push({x,y:b.height/2,z:b.z+side*(b.depth/2-.12),sx:.26,sy:b.height,sz:.38});
- }
- instances(parent,new THREE.BoxGeometry(1,1,1),mats.metal,frames);
- for(const y of [b.height*.42,b.height*.76])for(const side of [-1,1])box(parent,b.width,.22,.3,b.x,y,b.z+side*(b.depth/2+.17),mats.metal);
- box(parent,b.width+4,1.35,b.depth+5,b.x,b.height+.68,b.z,mats.roof??mats.metal);
- for(let x=b.x-b.width/2+11;x<b.x+b.width/2;x+=22){
-  box(parent,13,.1,b.depth+2,x,b.height+1.42,b.z,mats.metal);
- }
- if(terminal)decorateGateConcourse(parent,b,gateList,gateSide,terminal);
 }
 
 /** PBR spandrels applied to the completed-design terminal volumes; geometry stays project-authored. */

@@ -1,4 +1,5 @@
 /** Public-map proportions for built terminal interior footprints. */
+export {T1_FLOOR_LEVELS,T2_FLOOR_LEVELS,t2StructuralColumnCenters} from './terminalBuildingLayout';
 /**
  * Public-service points marked on the current T1 1F airport map. The map
  * confirms the facilities and their broad side-of-hall placement, but does
@@ -32,7 +33,6 @@ export function t1FirstFloorServiceCenter(centerX:number,centerZ:number,width:nu
 // basement ceiling must sit below the terrain mesh instead of coplanar with it.
 // The 4F service spine is a compact upper floor under the central roof saddle,
 // not another full 5.4 m storey. Heights remain section-informed estimates.
-export const T1_FLOOR_LEVELS=[-5.51,0,5.44,10.94,14.64] as const;
 /**
  * The official visitor photograph near T1 counter 10 shows a tall, narrow,
  * shallow airport-name marker. Its surveyed position and dimensions are
@@ -173,22 +173,33 @@ export function t1FourthFloorSuiteCenterX(centerX:number,terminalWidth:number){
 
 /**
  * T2's public 4F diagram shows separate shop, dining and lounge footprints
- * beside the atrium. These ratios preserve those distinct zones in the game
- * footprint; the airport map is schematic and does not publish dimensions.
+ * beside the west-side atrium, with lounge suites on the east. These ratios
+ * fit those zones to the scene; the map does not publish a measured section.
  */
 export const T2_FOURTH_FLOOR_LAYOUT={
- atrium:{xOffset:0,zOffset:-52,width:110,depth:172},
- foodCourt:{xOffset:0,zRatio:.29,widthRatio:.52,depthRatio:.24},
- shop:{frontOffsetRatio:.43,depth:8.4,length:13.2,height:3.65},
+ atrium:{xOffset:-30,zOffset:0,width:58,depth:196},
+ foodCourt:{xOffset:-30,zRatio:.421,widthRatio:.43,depthRatio:.13},
+ shop:{frontOffsetRatio:5/12,depth:8.4,length:13.2,height:3.65},
  // Keep lounge suites in the side galleries outside the open atrium edge.
- lounge:{centerOffsetRatio:.34,width:27,depth:22,height:3.8},
+ lounge:{centerOffsetRatio:.18,width:27,depth:22,height:3.8},
 } as const;
+
+export const T2_FOURTH_FLOOR_PUBLIC_FEATURES={palms:[{dx:-30,dz:-121},{dx:10,dz:-121}],fountain:{dx:3,dz:-120}} as const;
+
+/** Keep human-sized tables on the actual south gallery, outside the void. */
+export function t2FourthFloorDiningLayout(centerX:number,centerZ:number,width:number,depth:number){
+ const layout=T2_FOURTH_FLOOR_LAYOUT.foodCourt,zone={x:centerX+layout.xOffset,z:centerZ+depth*layout.zRatio,width:width*layout.widthRatio,depth:depth*layout.depthRatio},
+  pitch=4.2,cols=Math.max(1,Math.floor((zone.width-8)/pitch)),rows=Math.max(1,Math.floor((zone.depth-8)/pitch));
+ const tables=Array.from({length:rows*cols},(_,index)=>{const col=index%cols,row=Math.floor(index/cols);return {x:zone.x+(col-(cols-1)/2)*pitch,z:zone.z+(row-(rows-1)/2)*pitch,palette:(row+col)%4,width:2.7,depth:2.7};}).filter(p=>Math.abs(p.x-zone.x)>2.8);
+ return {zone,tables};
+}
 
 /**
  * Current T2 4F departure tenants from the official services directory.
  * The interactive floor map still carries several superseded shop labels; keep
- * its two frontage bands and verified surviving anchor coordinates, then fit
- * directory-only tenants into the unlabelled units as approximate locations.
+ * its broad public/service relationship, then fit the existing storefronts
+ * around the corrected atrium as approximate locations. Brand positions are
+ * secondary to floor allocation and are not treated as surveyed coordinates.
  * Neither source publishes surveyed tenant boundaries or dimensions.
  */
 export const T2_FOURTH_FLOOR_SHOPS=[
@@ -210,21 +221,21 @@ export const T2_FOURTH_FLOOR_SHOPS=[
 ] as const;
 
 export const T2_FOURTH_FLOOR_LOUNGES=[
- {name:'中華航空貴賓室',operator:'China Airlines',side:-1,zRatio:-.27,width:27,depth:36,height:3.8,accent:'#7b4d55',style:'china'},
- {name:'長榮航空貴賓室',operator:'EVA Air',side:-1,zRatio:-.06,width:27,depth:34,height:3.8,accent:'#8c7448',style:'eva'},
- {name:'長榮航空貴賓室',operator:'EVA Air',side:1,zRatio:.14,width:27,depth:36,height:3.8,accent:'#8c7448',style:'eva'},
- {name:'長榮航空貴賓室',operator:'EVA Air',side:1,zRatio:.32,width:27,depth:36,height:3.8,accent:'#8c7448',style:'eva'},
+ {name:'中華航空貴賓室',operator:'China Airlines',side:1,zRatio:-.32,width:27,depth:36,height:3.8,accent:'#7b4d55',style:'china'},
+ {name:'長榮航空貴賓室',operator:'EVA Air',side:1,zRatio:-.13,width:27,depth:34,height:3.8,accent:'#8c7448',style:'eva'},
+ {name:'長榮航空貴賓室',operator:'EVA Air',side:1,zRatio:.07,width:27,depth:36,height:3.8,accent:'#8c7448',style:'eva'},
+ {name:'長榮航空貴賓室',operator:'EVA Air',side:1,zRatio:.27,width:27,depth:36,height:3.8,accent:'#8c7448',style:'eva'},
  {name:'東方宇逸貴賓室',operator:'Oriental Club',side:1,zRatio:.43,width:27,depth:32,height:3.8,accent:'#8b7059',style:'oriental'},
 ] as const;
 
 /** 4F public amenities read from the official map; room sizes and offsets are schematic. */
 export const T2_FOURTH_FLOOR_SERVICES={
- restroom:{dx:-78,dz:118,width:15,depth:10,facing:1 as const},
+ restroom:{dx:62,dz:125,width:15,depth:10,facing:-1 as const},
  showers:[
-  {id:'north-showers',dx:82,dz:-135,width:16,depth:10,facing:-1 as const},
-  {id:'central-showers',dx:82,dz:-43,width:16,depth:10,facing:-1 as const},
+  {id:'north-showers',dx:50,dz:-135,width:16,depth:10,facing:-1 as const},
+  {id:'central-showers',dx:50,dz:-43,width:16,depth:10,facing:-1 as const},
  ],
- aeds:[{id:'west-aed',dx:-74,dz:-18,facing:1 as const},{id:'south-aed',dx:24,dz:128,facing:1 as const}],
+ aeds:[{id:'west-aed',dx:-69,dz:-18,facing:1 as const},{id:'south-aed',dx:49,dz:128,facing:1 as const}],
 } as const;
 
 /**
@@ -262,10 +273,11 @@ export const T2_TEMPLE_AVENUE_LAYOUT={
 /** T2's official 3F map names five separate airside retail/service frontages. */
 export const T2_THIRD_FLOOR_LAYOUT={
  checkIn:{
-  centerZOffset:-67,
+  centerXOffset:-34,
+  centerZOffset:0,
   bankCount:13,
-  bankSpacingRatio:.03793,
-  maxBankSpacing:11,
+  bankSpacingRatio:.04656,
+  maxBankSpacing:13.5,
   numbersPerBank:2,
   stationsPerNumber:10,
   stationSpacing:2.8,
@@ -276,17 +288,17 @@ export const T2_THIRD_FLOOR_LAYOUT={
   queueNearOffset:3.6,
   queueFarOffset:4.8,
  },
- retail:{centerZOffset:85,frontOffsetRatio:.22,span:120,gap:1.5},
+ retail:{centerZOffset:0,frontOffsetRatio:.37,span:120,gap:1.5},
  services:[
-  {id:'nursing',dx:-24,dz:-89,width:14,depth:10,label:'NURSING ROOM  哺集乳室',kind:'nursing',facing:-1 as const},
-  {id:'restrooms',dx:55,dz:-98,width:18,depth:12,label:'RESTROOMS  廁所',kind:'restroom',facing:1 as const},
+  {id:'nursing',dx:-24,dz:-125,width:14,depth:10,label:'NURSING ROOM  哺集乳室',kind:'nursing',facing:-1 as const},
+  {id:'restrooms',dx:61,dz:-123,width:18,depth:12,label:'RESTROOMS  廁所',kind:'restroom',facing:1 as const},
  ],
- atm:{wallDx:-90,dz:-100},
+ atm:{wallDx:-70,dz:-100},
  bankServices:[
-  {id:'west-bank',wallDx:-90,dz:-66,length:17,label:'BANK OF TAIWAN  臺灣銀行',accent:'#95804e',stations:3},
-  {id:'central-bank',wallDx:18,dz:38,length:15,label:'BANK OF TAIWAN  臺灣銀行',accent:'#887b54',stations:2},
+  {id:'west-bank',wallDx:-70,dz:-66,length:17,label:'BANK OF TAIWAN  臺灣銀行',accent:'#95804e',stations:3},
+  {id:'central-bank',wallDx:57,dz:103,length:15,label:'BANK OF TAIWAN  臺灣銀行',accent:'#887b54',stations:2},
  ],
- exchange:{dx:-70,dz:-27},
+ exchange:{dx:-64,dz:35},
  aeds:[{dx:55,dz:-5}]
 } as const;
 
@@ -294,7 +306,7 @@ export const T2_THIRD_FLOOR_LAYOUT={
 export function t2ThirdFloorCheckInBanks(centerX:number,centerZ:number,terminalDepth:number){
  const layout=T2_THIRD_FLOOR_LAYOUT.checkIn,spacing=Math.min(layout.maxBankSpacing,terminalDepth*layout.bankSpacingRatio);
  return Array.from({length:layout.bankCount},(_,index)=>({
-  x:centerX,
+  x:centerX+layout.centerXOffset,
   z:centerZ+(index-(layout.bankCount-1)/2)*spacing,
   counterCount:layout.numbersPerBank,
   firstCounterNumber:index*layout.numbersPerBank+1,
@@ -333,7 +345,6 @@ export function t2ThirdFloorRetailUnits(centerX:number,centerZ:number,terminalWi
  * the B1 layer does not publish interior zoning, so vertical dimensions and
  * all interior footprints below are model estimates; B1 is kept structural.
  */
-export const T2_FLOOR_LEVELS=[-10.7,-5.2,.36,6.25,12.35,18.55,23.45] as const;
 /**
  * The airport visitor guide places its T2 1F arrival photo spot near the
  * South Meeting Point and shows a timber welcome wall with a plane sculpture.
@@ -341,8 +352,8 @@ export const T2_FLOOR_LEVELS=[-10.7,-5.2,.36,6.25,12.35,18.55,23.45] as const;
  * feature footprint within the modeled south-side public hall.
  */
 export const T2_ARRIVAL_WELCOME_LAYOUT={
- centerXOffset:66,
- centerZOffset:96,
+ centerXOffset:-45,
+ centerZOffset:135,
  width:18,
  height:3.6,
  depth:.62,
@@ -395,12 +406,6 @@ export function t2BasementDiningCenters(centerX:number,centerZ:number,terminalWi
  const aisleX=t2BasementAisleX(centerX,terminalWidth),layout=T2_BASEMENT_LAYOUT.dining,centers:{x:number;z:number;side:-1|1}[]=[];
  for(const side of layout.sides)for(let row=0;row<layout.rowCount;row++)centers.push({x:aisleX+side*layout.centerOffset,z:centerZ+layout.zStartOffset+row*layout.zSpacing,side});
  return centers;
-}
-
-export function t2StructuralColumnCenters(centerX:number,centerZ:number,width:number,depth:number){
- const columns:{x:number;z:number}[]=[];
- for(const side of [-1,1])for(let z=centerZ-depth*.4;z<=centerZ+depth*.4;z+=27.5)columns.push({x:centerX+side*width*.29,z});
- return columns;
 }
 
 export function t2FourthFloorShopCenter(centerX:number,centerZ:number,terminalWidth:number,terminalDepth:number,side:-1|1,zRatio:number,shopDepth:number=T2_FOURTH_FLOOR_LAYOUT.shop.depth){

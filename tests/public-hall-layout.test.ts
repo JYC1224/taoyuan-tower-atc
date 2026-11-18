@@ -4,6 +4,7 @@ import {terminals} from '../src/data/airport';
 import {T1_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t2ThirdFloorCheckInBanks} from '../src/render/terminalInteriorLayout';
 import {T1_PUBLIC_HALL,t1ArrivalHallBounds,t1ArrivalPartitionPanels,t1CheckInBanks,t1RoofHeight,t1SupportStations} from '../src/render/terminalPublicHallLayout';
 import {exploreSpot,moveExplorer,primaryExploreSpots,detailExploreSpots,exploreSpots} from '../src/render/exploration';
+import {t1ArrivalStructure} from '../src/render/terminalBuildingLayout';
 
 const t1=terminals.find(t=>t.id==='T1')!,t2=terminals.find(t=>t.id==='T2')!;
 
@@ -21,13 +22,16 @@ test('T1 check-in islands occupy the departure half, with clear aisles and suppo
 test('T1 public arrival passage is west of reclaim and customs portals remain traversable',()=>{
  const hall=t1ArrivalHallBounds(t1.x,t1.z,t1.width,t1.depth),panels=t1ArrivalPartitionPanels(t1.x,t1.z,t1.width,t1.depth),spot=exploreSpot('t1-arrivals');
  assert.ok(hall.x+hall.width/2<t1.x+t1.width*T1_PUBLIC_HALL.baggageXRatio-10);
- for(const offset of [-t1.depth*.33,0,t1.depth*.33]){
+ for(const offset of [-t1.depth*.33,-2.1,2.1,t1.depth*.33]){
   const z=t1.z+offset,from={x:hall.x,z},to={x:hall.x+hall.width/2+2,z};
   assert.ok(panels.every(p=>Math.abs(z-p.z)>p.depth/2));
   assert.deepEqual(moveExplorer(spot,from,to),to,'the mapped exit gap must remain open to the walker');
  }
  const panel=panels[0],from={x:panel.x-2,z:panel.z},to={x:panel.x,z:panel.z};
  assert.equal(moveExplorer(spot,from,to).x,from.x,'the partition itself must still block walking');
+ const pier=t1ArrivalStructure(t1).exitPier;
+ const atPortal={x:pier.x-1.2,z:pier.z};
+ assert.deepEqual(moveExplorer(spot,atPortal,pier),atPortal,'both central exits are open around the clock pier');
 });
 
 test('T1 upper service spine fits below the roof while the eaves drop outside the central deck',()=>{

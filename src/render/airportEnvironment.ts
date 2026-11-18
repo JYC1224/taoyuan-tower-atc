@@ -20,8 +20,15 @@ import {regionalSettlements} from './regionalScenery';
 import {createCoastalWater,isSea} from './coastline';
 import {terrainSurfaceHeight} from './terrain';
 import {addRegionalVegetation} from './vegetation';
-import {terminalCurtainGlass,terminalCladdingMaterial,buildTerminalAtrium,buildGateConcourse,type TerminalBounds} from './terminalArchitecture';
+import {terminalCurtainGlass,terminalCladdingMaterial,buildTerminalAtrium,type TerminalBounds} from './terminalArchitecture';
+import {buildT1APassengerArchitecture} from './terminalPassengerArchitecture';
+import {T1_A_PASSENGER} from './terminalPassengerLayout';
+import {GATE_CONCOURSES,GATE_CONCOURSE_INTERFACES} from './terminalConcourseLayout';
+import {buildGateConcourses} from './terminalGateConcourses';
+import {updateTerminal2ArrivalClock} from './terminalArrivalSigns';
 import {HALL_REFLECTION_LAYER} from './terminalPublicHallLayout';
+import {mergeStaticInstances} from './mergeStaticInstances';
+import {mergeStaticSigns} from './mergeStaticSigns';
 
 export interface Environment {group:THREE.Group;graph:THREE.Group;screenTexture:THREE.CanvasTexture;screens:THREE.Mesh[];bridges:BridgeVisual[];vehicles:{group:THREE.Group;phase:number;speed:number;lane:number}[];windsocks:THREE.Group[];lights:THREE.MeshBasicMaterial[];distantLights:THREE.PointsMaterial;water:ReturnType<typeof createCoastalWater>;airfieldLightMaterial:THREE.ShaderMaterial;apronLensMaterial:THREE.MeshStandardMaterial;dockLightMaterial:THREE.MeshStandardMaterial;beacons:{bulb:THREE.MeshBasicMaterial;glow:THREE.PointsMaterial};windowMaterial:THREE.MeshStandardMaterial;ceilingMaterial:THREE.MeshStandardMaterial;pavementMaterials:THREE.MeshStandardMaterial[];updateScreens:(sim:SimulationAPI)=>void;updateVegetation:(time:number,windDirection:number,windSpeed:number,wetness:number)=>void}
 const concrete=surfaceMaterial('concrete','#c3c6c6'),asphalt=surfaceMaterial('asphalt','#525b63'),runwayAsphalt=surfaceMaterial('runway','#a9b5bb'),taxiPave=surfaceMaterial('concrete','#b3b8b9'),taxiAsphalt=surfaceMaterial('asphalt','#687176'),taxiMixed=surfaceMaterial('concrete','#aeb4b6'),white=material('#e1e5e5',.72),metal=material('#a4b1b8',.42,.45),glass=material('#718b9e',.48,.12),curtainGlass=terminalCurtainGlass(),cladding=terminalCladdingMaterial(),roof=material('#c5cccf',.65,.25),yellow=material('#e0b544',.78);
@@ -125,15 +132,21 @@ export function createEnvironment():Environment {
   if(t.id==='T1'||t.id==='T2')terminalRoot.traverse(o=>o.layers.enable(HALL_REFLECTION_LAYER[t.id as 'T1'|'T2']));
 
  }
- const gateRows:{bounds:TerminalBounds;ids:RegExp;gateSide:-1|1;terminal:'T1'|'T2'}[]=[
-  {bounds:{x:451,z:-240,width:660,depth:120,height:12},ids:/^A/,gateSide:-1,terminal:'T1'},
-  {bounds:{x:-245,z:-250,width:840,depth:110,height:12},ids:/^D(?:[1-9]|10)$/,gateSide:-1,terminal:'T2'},
-  {bounds:{x:408,z:112.5,width:650,depth:45,height:12},ids:/^B/,gateSide:1,terminal:'T1'},
-  {bounds:{x:-243.5,z:135,width:750,depth:80,height:12},ids:/^C/,gateSide:1,terminal:'T2'}
- ];
- for(const row of gateRows){box(staticGroup,row.bounds.width+30,.05,155,row.bounds.x,.15,row.bounds.z,concrete);buildGateConcourse(staticGroup,row.bounds,{glass:curtainGlass,cladding,concrete,metal,roof},gates.filter(g=>row.ids.test(g.id)),row.gateSide,row.terminal);}
+ const concourseMaterials={glass:curtainGlass,cladding,concrete,metal,roof},aWing=T1_A_PASSENGER.bounds;
+ box(staticGroup,aWing.width+30,.05,155,aWing.x,.15,aWing.z,concrete);
+ for(const {bounds,facadeZ} of GATE_CONCOURSES)box(staticGroup,bounds.width+30,.05,155,bounds.x,.15,facadeZ,concrete);
+ buildT1APassengerArchitecture(staticGroup,concourseMaterials,gates.filter(g=>g.id.startsWith('A')));
+ buildGateConcourses(staticGroup,concourseMaterials);
  terminalCore(group,staticGroup,glass,cladding);
- for(const g of gates){const concourseZ=g.id.startsWith('A')?-198:g.id.startsWith('B')?90:g.id.startsWith('C')?105:g.terminal==='T3 North'?-240:-225,push=nodes.get(g.pushbackNodeId);if(push)pavement(staticGroup,push,g,.42,yellow,.22);groundText(group,g.id,g.x+17,g.z,17,9,0,'#d6b862');if(!g.remote){const bridge=createJetbridge(g,concourseZ);group.add(bridge.group);bridges.push(bridge);}}
+ for(const g of gates){
+  const push=nodes.get(g.pushbackNodeId);if(push)pavement(staticGroup,push,g,.42,yellow,.22);
+  groundText(group,g.id,g.x+17,g.z,17,9,0,'#d6b862');
+  if(g.remote)continue;
+  const aGate=g.id.startsWith('A'),row=GATE_CONCOURSE_INTERFACES.get(g.id),concourseZ=row?.concourseZ??(aGate?-198:-240);
+  const terminalInterface=aGate?{floorY:T1_A_PASSENGER.loungeFloor,z:T1_A_PASSENGER.roomNear-T1_A_PASSENGER.bridgeSetback}:row?.bridge;
+  const bridge=createJetbridge(g,concourseZ,terminalInterface);
+  group.add(bridge.group);bridges.push(bridge);
+ }
  apronGuidanceSystems(staticGroup,gates);
  taxiwayDirectionSigns(staticGroup,taxiNodes,taxiEdges);
  apronDetail(staticGroup,group,gates,terminals);
@@ -161,8 +174,8 @@ export function createEnvironment():Environment {
  const beacons=obstructionLights(group,beaconPositions);
  vehicles.push(...createServiceVehicles(group));
  const pools=new THREE.MeshBasicMaterial({map:apronLightTexture(),transparent:true,opacity:0,depthWrite:false,toneMapped:false});const poolItems=mastItems.map(p=>({x:p.x,y:.227,z:p.z,sx:260,sy:220,sz:1}));const poolGeo=new THREE.PlaneGeometry(1,1);poolGeo.rotateX(-Math.PI/2);const poolMesh=instances(group,poolGeo,pools,poolItems.map(p=>({...p,sy:1,sz:220})));poolMesh.renderOrder=2;
- consolidate(staticGroup);
- const updateScreens=(sim:SimulationAPI)=>{const ctx=screenCanvas.getContext('2d')!;ctx.fillStyle='#081b23';ctx.fillRect(0,0,1536,768);ctx.fillStyle='#80d7bd';ctx.font='600 27px monospace';ctx.fillText('TAOYUAN  /  SURFACE MOVEMENT',35,48);ctx.font='19px monospace';ctx.fillStyle='#adc1c6';ctx.fillText(`${Math.floor(sim.time/3600)%24}`.padStart(2,'0')+':'+`${Math.floor(sim.time/60)%60}`.padStart(2,'0')+' L  ·  RWY '+sim.activeDirection+'  ·  '+sim.weather.windDirection+'° / '+sim.weather.windSpeed+' KT',36,82);
+ mergeStaticInstances(staticGroup);mergeStaticSigns(staticGroup);consolidate(staticGroup);
+ const updateScreens=(sim:SimulationAPI)=>{updateTerminal2ArrivalClock(sim.time);const ctx=screenCanvas.getContext('2d')!;ctx.fillStyle='#081b23';ctx.fillRect(0,0,1536,768);ctx.fillStyle='#80d7bd';ctx.font='600 27px monospace';ctx.fillText('TAOYUAN  /  SURFACE MOVEMENT',35,48);ctx.font='19px monospace';ctx.fillStyle='#adc1c6';ctx.fillText(`${Math.floor(sim.time/3600)%24}`.padStart(2,'0')+':'+`${Math.floor(sim.time/60)%60}`.padStart(2,'0')+' L  ·  RWY '+sim.activeDirection+'  ·  '+sim.weather.windDirection+'° / '+sim.weather.windSpeed+' KT',36,82);
   const px=(x:number)=>520+x*.18,pz=(z:number)=>405+z*.28;ctx.strokeStyle='#35585c';ctx.lineWidth=3;for(const e of taxiEdges){const a=nodes.get(e.from),b=nodes.get(e.to);if(a&&b){ctx.beginPath();ctx.moveTo(px(a.x),pz(a.z));ctx.lineTo(px(b.x),pz(b.z));ctx.stroke();}}ctx.strokeStyle='#93bab4';ctx.lineWidth=9;for(const r of runways){ctx.beginPath();ctx.moveTo(px(r.x-r.length/2),pz(r.z));ctx.lineTo(px(r.x+r.length/2),pz(r.z));ctx.stroke();ctx.fillStyle='#9cbdbe';ctx.fillText(r.ends.join(' / '),px(r.x-200),pz(r.z)-14);}for(const a of sim.aircraft){ctx.fillStyle=a.state==='HOLDING_SHORT'?'#f3b462':'#6fe0c1';ctx.beginPath();ctx.arc(px(a.position.x),pz(a.position.z),5,0,Math.PI*2);ctx.fill();ctx.font='15px monospace';ctx.fillText(a.flightNumber,px(a.position.x)+8,pz(a.position.z)-6);}
   ctx.fillStyle='#142d35';ctx.fillRect(1050,110,456,618);ctx.fillStyle='#779fa5';ctx.font='22px monospace';ctx.fillText('FLIGHT STRIPS  /  LIVE',1070,145);sim.aircraft.slice(0,10).forEach((a,i)=>{const y=185+i*49;ctx.fillStyle='#76d7be';ctx.font='bold 21px monospace';ctx.fillText(a.flightNumber,1070,y);ctx.fillStyle='#b4c5c6';ctx.font='16px monospace';ctx.fillText(a.type+'  '+a.state.replaceAll('_',' '),1070,y+21);});ctx.fillStyle='#7fa2a8';ctx.font='18px monospace';ctx.fillText('SELECT A SCREEN TO OPEN CONTROLLER WORKSPACE',35,741);screenTexture.needsUpdate=true;};
  return {group,graph,screenTexture,screens,bridges,vehicles,windsocks,lights:[pools],distantLights,water,airfieldLightMaterial,apronLensMaterial,dockLightMaterial,beacons,windowMaterial:glass,ceilingMaterial,pavementMaterials:[asphalt,runwayAsphalt,taxiPave,taxiAsphalt,taxiMixed,concrete],updateScreens,updateVegetation:vegetation.update};

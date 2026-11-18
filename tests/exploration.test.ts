@@ -5,6 +5,7 @@ import {explorationScheduleAfter} from '../src/data/schedule';
 import {explorationScenario} from '../src/sim/exploration';
 import {Simulation} from '../src/sim/Simulation';
 import {exploreSpot,exploreSpots,moveExplorer} from '../src/render/exploration';
+import {terminalBuildingBounds} from '../src/render/terminalBuildingLayout';
 import type {Scenario} from '../src/types';
 
 const base:Scenario={date:'2026-11-11',startTime:'17:00',duration:15,difficulty:'hardcore',weather:'clear',seed:182731,incidents:'training',positions:['Ground','Tower'],tutorial:true,density:1,routineAutomation:false};
@@ -53,7 +54,7 @@ test('continued sightseeing traffic uses deterministic future synthetic days',()
 });
 
 test('a pedestrian stays on the selected terminal floor and outdoor walls stop entry',()=>{
- const spot=exploreSpot('t2-departures'),terminal=terminals.find(t=>t.id==='T2')!;
+ const spot=exploreSpot('t2-departures'),terminal=terminalBuildingBounds(terminals.find(t=>t.id==='T2')!,'T2');
  const acrossAtrium=moveExplorer(spot,spot.position,{x:terminal.x,z:spot.position.z});
  assert.ok(acrossAtrium.x<terminal.x-terminal.width*.08);
  const outside={x:terminal.x-terminal.width/2-3,z:terminal.z};

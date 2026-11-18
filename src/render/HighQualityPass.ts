@@ -27,6 +27,9 @@ export class HighQualityPass {
     vec3 weights=vec3(.299,.587,.114);
     float a=dot(nw,weights),b=dot(ne,weights),c=dot(sw,weights),d=dot(se,weights),l=dot(center,weights);
     float low=min(l,min(min(a,b),min(c,d))),high=max(l,max(max(a,b),max(c,d)));
+    // Flat pixels already return the original colour. Avoid four more texture
+    // reads there, while leaving the edge filter and output colour unchanged.
+    if(high-low<.045){gl_FragColor=vec4(center,1.0);return;}
     vec2 direction=vec2(-((a+b)-(c+d)),(a+c)-(b+d));
     float reduce=max((a+b+c+d)*.03125,.0078125);
     direction=clamp(direction/(min(abs(direction.x),abs(direction.y))+reduce),vec2(-6.0),vec2(6.0))*pixel;
@@ -34,7 +37,7 @@ export class HighQualityPass {
     vec3 wide=mid*.5+.25*(texture2D(image,vUv-direction*.5).rgb+texture2D(image,vUv+direction*.5).rgb);
     float result=dot(wide,weights);
     vec3 antialiased=result<low||result>high?mid:wide;
-    gl_FragColor=vec4(high-low<.045?center:mix(center,antialiased,.7),1.0);
+    gl_FragColor=vec4(mix(center,antialiased,.7),1.0);
    }
   `
  });
