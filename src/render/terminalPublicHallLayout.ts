@@ -4,8 +4,6 @@
  * survey: the long axis is Z, departures are on +X, arrivals on -X in the local terminal plan.
  * Keep main hall geometry, walking bounds and cameras on these same values.
  */
-export const HALL_REFLECTION_LAYER={T1:2,T2:3} as const;
-
 export const T1_PUBLIC_HALL = {
  checkInXRatio:.215,
  checkInSpanRatio:.69,
@@ -21,6 +19,10 @@ export const T1_PUBLIC_HALL = {
  supportBaseXRatio:.24,
  supportHeadXRatio:.31,
 } as const;
+
+export function t2CheckInPendantRows(x:number,z:number,roofHeight:number){
+ return {axis:'z',first:z-75,last:z+75,pitch:50,height:roofHeight-7,rows:[x-51,x-34,x-17]} as const;
+}
 
 export function t1CheckInBanks(x:number,z:number,width:number,depth:number){
  const span=depth*T1_PUBLIC_HALL.checkInSpanRatio;

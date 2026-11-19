@@ -4,6 +4,7 @@ import {T2_FLOOR_LEVELS,T2_PASSENGER_SECTION as S,placeBuildingRect,t1ArrivalCei
 import {addArrivalPickupReflections,addTerminal2ArrivalClock,addTerminal2ArrivalNavigation,arrivalPickupSigns} from './terminalArrivalSigns';
 import {hallAreaLight} from './terminalPublicHalls';
 import {t1ArrivalPartitionPanels} from './terminalPublicHallLayout';
+import {addFloorContactShadows} from './terminalFloorLighting';
 
 type Instance=Parameters<typeof instances>[3][number];
 type Label=(parent:THREE.Object3D,text:string,x:number,y:number,z:number,width:number,accent?:string,rotation?:number,height?:number)=>unknown;
@@ -222,6 +223,10 @@ export function buildT1ArrivalEnvelope(parent:THREE.Object3D,b:BuildingBounds,ha
 export function buildT2PublicArrivals(parent:THREE.Object3D,b:BuildingBounds,label:Label){
  const y=T2_FLOOR_LEVELS[2]+.025,mezzanine=T2_FLOOR_LEVELS[3],fixtures=t2ArrivalHallFixtures(b),hall=placeBuildingRect(b,S.publicHall);
  const {exit}=fixtures,panelJoints:Instance[]=[],fascia:Instance[]=[],undersideLights:Instance[]=[],windowReveals:Instance[]=[],housings:Instance[]=[],displays:Instance[]=[],shelves:Instance[]=[];
+ const columns=t2StructuralColumnCenters(b.x,b.z,b.width,b.depth)
+  .filter(p=>Math.abs(p.x-hall.x)<hall.width/2&&Math.abs(p.z-hall.z)<hall.depth/2)
+  .map(p=>({...p,width:1.75,depth:1.75}));
+ addFloorContactShadows(parent,y+.024,[...fixtures.lowBarriers,...fixtures.seats,fixtures.information,...columns],.28);
  const wallFinish=new THREE.MeshStandardMaterial({color:'#d0cdc0',roughness:.63,metalness:.05,emissive:'#938a75',emissiveIntensity:.14});
  const frontageGlass=new THREE.MeshPhysicalMaterial({color:'#acc5c3',roughness:.24,metalness:.085,clearcoat:.35,clearcoatRoughness:.16,transparent:true,opacity:.24,depthWrite:false});
  const displayBacking=new THREE.MeshStandardMaterial({color:'#9e9988',roughness:.73,emissive:'#b4a47f',emissiveIntensity:.16});
@@ -346,7 +351,12 @@ export function buildT2ArrivalCurbside(parent:THREE.Object3D,b:BuildingBounds,gl
 export function buildT2BaggageClaim(parent:THREE.Object3D,b:BuildingBounds,label:Label,loopGeometry:(width:number,depth:number,radius:number,beltWidth:number,extrusion:number)=>THREE.BufferGeometry){
  const y=T2_FLOOR_LEVELS[2]+.025,rubber=material('#252b2c',.71,.025),beltSeam=material('#414747',.74,.045),trim=material('#647071',.38,.59);
  const cases:Instance[]=[],handles:Instance[]=[],slats:Instance[]=[],caseColors=['#566c7b','#934e42','#a99b83','#394851'];
- for(const belt of t2BaggageBelts(b)){
+ const belts=t2BaggageBelts(b);
+ addFloorContactShadows(parent,y+.007,belts.flatMap(({x,z,width,depth,radius})=>[-1,1].flatMap(side=>[
+  {x,z:z+side*(depth/2-.48),width:width-radius,depth:1.05},
+  {x:x+side*(width/2-.48),z,width:1.05,depth:depth-radius},
+ ])),.24);
+ for(const belt of belts){
   const base=new THREE.Mesh(loopGeometry(belt.width-.25,belt.depth-.25,belt.radius-.1,1.20,.105),trim);base.position.set(belt.x,y+.03,belt.z);parent.add(base);
   const rim=new THREE.Mesh(loopGeometry(belt.width,belt.depth,belt.radius,1.25,.49),silver);rim.position.set(belt.x,y+.125,belt.z);rim.receiveShadow=true;parent.add(rim);
   const surface=new THREE.Mesh(loopGeometry(belt.width-.14,belt.depth-.14,belt.radius-.07,1.18,.055),rubber);surface.position.set(belt.x,y+.62,belt.z);surface.receiveShadow=true;parent.add(surface);

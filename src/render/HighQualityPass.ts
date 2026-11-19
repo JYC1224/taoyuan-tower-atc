@@ -59,9 +59,11 @@ export class HighQualityPass {
   this.renderer.render(this.scene,this.camera);
   if(!this.texture)return;
   this.renderer.copyFramebufferToTexture(this.texture);
-  const autoReset=this.renderer.info.autoReset;this.renderer.info.autoReset=false;
-  this.quad.render(this.renderer);
-  this.renderer.info.autoReset=autoReset;
+  const {autoClear}=this.renderer,{autoReset}=this.renderer.info;
+  // Every pixel of the fullscreen pass is overwritten, with depth disabled.
+  this.renderer.autoClear=false;this.renderer.info.autoReset=false;
+  try{this.quad.render(this.renderer);}
+  finally{this.renderer.autoClear=autoClear;this.renderer.info.autoReset=autoReset;}
  }
 
  dispose(){this.texture?.dispose();this.material.dispose();this.quad.dispose();}

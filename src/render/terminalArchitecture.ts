@@ -6,8 +6,9 @@ import {surfaceImages} from './realismAssets';
 import {buildTerminalInterior,type TerminalInteriorProfile} from './terminalInteriors';
 import {T2_FLOOR_LEVELS,T2_OBSERVATION_DECK_LAYOUT} from './terminalInteriorLayout';
 import {t1RoofHeight} from './terminalPublicHallLayout';
-import {T1_A_PASSENGER} from './terminalPassengerLayout';
+import {t1GateOpeningForSide,passengerWallSpans} from './terminalPassengerLayout';
 import {terminalBuildingBounds} from './terminalBuildingLayout';
+import {t2GateLinkForSide} from './terminalGateLinks';
 
 export interface TerminalBounds {x:number;z:number;width:number;depth:number;height:number}
 export interface TerminalMaterials {glass:THREE.Material;cladding:THREE.MeshStandardMaterial;concrete:THREE.Material;metal:THREE.Material;roof?:THREE.Material;floor?:THREE.Material;ceiling?:THREE.Material;deck?:THREE.Material;structure?:THREE.Material}
@@ -23,7 +24,7 @@ export function terminalCurtainGlass(){
 export function terminalCladdingMaterial(){
  const cladding=new THREE.MeshStandardMaterial({color:'#d8dedf',roughness:.82,metalness:.035});
  cladding.userData.facade=true;cladding.userData.facadeUVSize=[2.1,2.1];cladding.normalScale.setScalar(.22);
- surfaceImages('facade').then(images=>{cladding.map=images.color;cladding.normalMap=images.normal;cladding.roughnessMap=images.roughness;cladding.needsUpdate=true;});
+ void surfaceImages('facade').then(images=>{cladding.map=images.color;cladding.normalMap=images.normal;cladding.roughnessMap=images.roughness;cladding.needsUpdate=true;},()=>{});
  return cladding;
 }
 
@@ -37,7 +38,11 @@ function claddingBands(parent:THREE.Object3D,b:TerminalBounds,cladding:THREE.Mes
   for(const y of floorLevels?[...floorLevels.filter(y=>y>1),b.height-1.2]:b.height>25?[b.height*.35,b.height*.68,b.height-1.2]:[b.height*.53,b.height-1.15]){
    const bandHeight=y>b.height-2?1.35:.48;
    for(const side of [-1,1]){
-    box(parent,b.width,bandHeight,.3,b.x,y,b.z+side*(b.depth/2+.17),cladding);
+    const doorX=b.x+T2_OBSERVATION_DECK_LAYOUT.accessXOffset,half=T2_OBSERVATION_DECK_LAYOUT.accessWidth/2;
+    const openings=!openWestBase?[]:y===T2_FLOOR_LEVELS[4]?[t2GateLinkForSide(side).opening]:
+     y===T2_FLOOR_LEVELS[6]?[{left:doorX-half,right:doorX+half}]:[];
+    for(const span of passengerWallSpans(b.x-b.width/2,b.x+b.width/2,openings))
+     box(parent,span.right-span.left,bandHeight,.3,(span.left+span.right)/2,y,b.z+side*(b.depth/2+.17),cladding);
     box(parent,.3,bandHeight,b.depth,b.x+side*(b.width/2+.17),y,b.z,cladding);
    }
   }
@@ -108,16 +113,17 @@ export function buildTerminalAtrium(parent:THREE.Object3D,b:TerminalBounds,mats:
   // A rectangular glass box protruded above the dropped T1 eaves. Trim the
   // end glazing to the same section used by the roof and upper hall piers.
   for(const side of [-1,1]){
+   const opening=t1GateOpeningForSide(side),openingLeft=opening.left-b.x,openingRight=opening.right-b.x;
    const positions:number[]=[],indices:number[]=[],segments=64,
-    stations=[...new Set([...Array.from({length:segments+1},(_,i)=>(i/segments-.5)*b.width),-8,8])].sort((a,c)=>a-c),
+    stations=[...new Set([...Array.from({length:segments+1},(_,i)=>(i/segments-.5)*b.width),openingLeft,openingRight])].sort((a,c)=>a-c),
     quad=(x0:number,x1:number,bottom:number,top0:number,top1:number)=>{const k=positions.length/3,z=b.z+side*b.depth/2;positions.push(b.x+x0,bottom,z,b.x+x0,top0,z,b.x+x1,bottom,z,b.x+x1,top1,z);indices.push(k,k+1,k+2,k+1,k+3,k+2);};
    for(let i=1;i<stations.length;i++){
     const x0=stations[i-1],x1=stations[i],top0=t1RoofHeight(x0,b.width,b.height)-.4,top1=t1RoofHeight(x1,b.width,b.height)-.4;
-    if(side===-1&&x0>=-8&&x1<=8){
+    if(x0>=openingLeft&&x1<=openingRight){
      // Open the raised passenger link instead of running a curtain pane
      // through its 3F doorway. The rest of the roof-conforming facade stays.
-     quad(x0,x1,0,T1_A_PASSENGER.passageFloor,T1_A_PASSENGER.passageFloor);
-     quad(x0,x1,T1_A_PASSENGER.passageCeiling,top0,top1);
+     quad(x0,x1,0,opening.bottom,opening.bottom);
+     quad(x0,x1,opening.top,top0,top1);
     }else quad(x0,x1,0,top0,top1);
    }
    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
@@ -140,12 +146,13 @@ export function buildTerminalAtrium(parent:THREE.Object3D,b:TerminalBounds,mats:
    const floorY=T2_FLOOR_LEVELS[6],doorWidth=T2_OBSERVATION_DECK_LAYOUT.accessWidth,
     doorHeight=Math.min(T2_OBSERVATION_DECK_LAYOUT.accessHeight,b.height-floorY-.5),doorCenter=b.x+T2_OBSERVATION_DECK_LAYOUT.accessXOffset,
     doorLeft=doorCenter-doorWidth/2,doorRight=doorCenter+doorWidth/2,leftEdge=b.x-b.width/2,rightEdge=b.x+b.width/2,
-    lowerHeight=floorY,upperStart=floorY+doorHeight,upperHeight=Math.max(.1,b.height-upperStart),frame=material('#697774',.42,.48);
-   box(parent,b.width,lowerHeight,.12,b.x,lowerHeight/2,wallZ,mats.glass);
-   box(parent,b.width,upperHeight,.12,b.x,upperStart+upperHeight/2,wallZ,mats.glass);
-   const leftWidth=doorLeft-leftEdge,rightWidth=rightEdge-doorRight;
-   if(leftWidth>0)box(parent,leftWidth,doorHeight,.12,(leftEdge+doorLeft)/2,floorY+doorHeight/2,wallZ,mats.glass);
-   if(rightWidth>0)box(parent,rightWidth,doorHeight,.12,(doorRight+rightEdge)/2,floorY+doorHeight/2,wallZ,mats.glass);
+    frame=material('#697774',.42,.48);
+   const openings=[t2GateLinkForSide(side).opening,{left:doorLeft,right:doorRight,bottom:floorY,top:floorY+doorHeight}];
+   const pane=(left:number,right:number,bottom:number,top:number)=>{
+    if(right>left&&top>bottom)box(parent,right-left,top-bottom,.12,(left+right)/2,(bottom+top)/2,wallZ,mats.glass);
+   };
+   for(const span of passengerWallSpans(leftEdge,rightEdge,openings))pane(span.left,span.right,0,b.height);
+   for(const open of openings){pane(open.left,open.right,0,open.bottom);pane(open.left,open.right,open.top,b.height);}
    // Two open sliding leaves remain parked against the jambs. Their clear
    // central path aligns with the exterior deck slab and free-roam bounds.
    const leafWidth=doorWidth*.26,leafOffset=doorWidth*.37;

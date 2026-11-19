@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {terminals} from '../src/data/airport';
-import {T1_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,T2_THIRD_FLOOR_LAYOUT,t2ThirdFloorCheckInBanks} from '../src/render/terminalInteriorLayout';
+import {T1_FLOOR_LEVELS,T2_FOURTH_FLOOR_LAYOUT,t2CheckInBankFootprint,t2CheckInQueueRails,t2CheckInRect,t2ThirdFloorCheckInBanks} from '../src/render/terminalInteriorLayout';
 import {T1_PUBLIC_HALL,t1ArrivalHallBounds,t1ArrivalPartitionPanels,t1CheckInBanks,t1RoofHeight,t1SupportStations} from '../src/render/terminalPublicHallLayout';
 import {exploreSpot,moveExplorer,primaryExploreSpots,detailExploreSpots,exploreSpots} from '../src/render/exploration';
 import {t1ArrivalStructure} from '../src/render/terminalBuildingLayout';
@@ -41,9 +41,20 @@ test('T1 upper service spine fits below the roof while the eaves drop outside th
  for(let x=0;x<t1.width/2;x+=.5)assert.ok(Number.isFinite(t1RoofHeight(x,t1.width,t1.height)));
 });
 
-test('T2 roof opening covers every check-in bank and its approach lanes',()=>{
- const opening=T2_FOURTH_FLOOR_LAYOUT.atrium,banks=t2ThirdFloorCheckInBanks(t2.x,t2.z+T2_THIRD_FLOOR_LAYOUT.checkIn.centerZOffset,t2.depth),near=t2.z+opening.zOffset-opening.depth/2,far=t2.z+opening.zOffset+opening.depth/2;
- for(const bank of banks){assert.ok(bank.z-4.8>near);assert.ok(bank.z+4.8<far);}
+test('T2 main check-in is under the atrium and the end banks are under their own decks',()=>{
+ const opening=T2_FOURTH_FLOOR_LAYOUT.atrium,banks=t2ThirdFloorCheckInBanks(t2.x,t2.z,t2.depth),near=t2.z+opening.zOffset-opening.depth/2,far=t2.z+opening.zOffset+opening.depth/2;
+ for(const bank of banks){
+  const footprint=t2CheckInBankFootprint(bank);
+  if(bank.axis==='z'){
+   assert.ok(footprint.z+footprint.depth/2<near||footprint.z-footprint.depth/2>far);
+   continue;
+  }
+  const rails=t2CheckInQueueRails(bank).map(rail=>t2CheckInRect(bank,rail.along,rail.across,.29,rail.length+.29));
+  for(const rect of [footprint,...rails]){
+   assert.ok(rect.z-rect.depth/2>near);
+   assert.ok(rect.z+rect.depth/2<far);
+  }
+ }
 });
 
 test('primary passenger views precede optional detail views without losing a destination',()=>{

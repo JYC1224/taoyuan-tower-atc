@@ -65,8 +65,8 @@ export function createCoastalWater(parent:THREE.Group){
    float longFade=1.0-smoothstep(3200.0,14000.0,seaDistance),midFade=1.0-smoothstep(1500.0,7200.0,seaDistance);
    float shortFade=1.0-smoothstep(500.0,2400.0,seaDistance),microFade=1.0-smoothstep(120.0,950.0,seaDistance);
    vec2 shortWaves=vec2(0.0),microWaves=vec2(0.0);
-   if(seaDistance<5000.0){float phase3=dot(p,(wind*.42-crossWind*.91)*.34)-t*1.55+3.1;shortWaves=(wind*.42-crossWind*.91)*cos(phase3)*(.012*seaStrength);}
-   if(seaDistance<2000.0){float phase4=dot(p,(wind*.94+crossWind*.34)*.71)-t*2.15+.8;microWaves=(wind*.94+crossWind*.34)*cos(phase4)*(.006*seaStrength);vec3 irregular=seaNoiseGrad(vec2(dot(p,wind)*.115,dot(p,crossWind)*.30)+vec2(t*.055,t*.019));microWaves+=(wind*irregular.y*.115+crossWind*irregular.z*.30)*(.20*seaStrength);}
+   if(shortFade>0.0){float phase3=dot(p,(wind*.42-crossWind*.91)*.34)-t*1.55+3.1;shortWaves=(wind*.42-crossWind*.91)*cos(phase3)*(.012*seaStrength);}
+   if(microFade>0.0){float phase4=dot(p,(wind*.94+crossWind*.34)*.71)-t*2.15+.8;microWaves=(wind*.94+crossWind*.34)*cos(phase4)*(.006*seaStrength);vec3 irregular=seaNoiseGrad(vec2(dot(p,wind)*.115,dot(p,crossWind)*.30)+vec2(t*.055,t*.019));microWaves+=(wind*irregular.y*.115+crossWind*irregular.z*.30)*(.20*seaStrength);}
    vec2 slope=longSwell*longFade+midSwell*midFade+shortWaves*shortFade+microWaves*microFade;
    vec3 waveNormal=normalize(vec3(-slope.x*2.1,1.0,-slope.y*2.1));
    normal=normalize(mix(normal,normalize(mat3(viewMatrix)*waveNormal),.92));
@@ -76,10 +76,12 @@ export function createCoastalWater(parent:THREE.Group){
    roughnessFactor=clamp(roughnessFactor+waterRoughVariation+seaCloudiness*.018,.075,.78);
   `);
   shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
-   vec3 seaSunView=normalize(mat3(viewMatrix)*seaSunDirection);vec3 seaViewDirection=normalize(vViewPosition);
-   float sunFacing=max(dot(normal,seaSunView),0.0);
-   float sunGlint=pow(max(dot(reflect(-seaSunView,normal),seaViewDirection),0.0),mix(80.0,20.0,seaStrength));
-   outgoingLight+=seaSunColor*sunGlint*sunFacing*seaSunIntensity*.32*(1.0-seaCloudiness*.68);
+   if(seaSunIntensity>0.0){
+    vec3 seaSunView=normalize(mat3(viewMatrix)*seaSunDirection);vec3 seaViewDirection=normalize(vViewPosition);
+    float sunFacing=max(dot(normal,seaSunView),0.0);
+    float sunGlint=pow(max(dot(reflect(-seaSunView,normal),seaViewDirection),0.0),mix(80.0,20.0,seaStrength));
+    outgoingLight+=seaSunColor*sunGlint*sunFacing*seaSunIntensity*.32*(1.0-seaCloudiness*.68);
+   }
    #include <opaque_fragment>
   `);
  };

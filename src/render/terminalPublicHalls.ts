@@ -5,16 +5,17 @@ import type {TerminalBounds} from './terminalArchitecture';
 import {box,canvasTexture,instances,material,seeded} from './primitives';
 import {T1_PUBLIC_HALL,t1ArrivalHallBounds,t1CheckInBanks} from './terminalPublicHallLayout';
 import {T2_PASSENGER_SECTION,T2_ROOF_GRID,placeBuildingRect,t2ArrivalHallFixtures,t2StructuralColumnCenters} from './terminalBuildingLayout';
+import {terminalFloorMaterial} from './terminalFloorLighting';
 
 const panelGeometry=new THREE.BoxGeometry(1,1,1);
-const graphiteStone=new THREE.MeshPhysicalMaterial({color:'#383c3a',roughness:.14,metalness:.08,clearcoat:.54,clearcoatRoughness:.12});
-graphiteStone.userData.noShadow=true;
+let graphiteStone:THREE.Material|undefined;
 
 /** Stone inlays give each main walkway an edge and help read the building's scale. */
 export function addPublicHallFloorBands(parent:THREE.Object3D,b:TerminalBounds,floor:number,terminal:'T1'|'T2',zone:'arrivals'|'departures'){
  const hall=terminal==='T1'?t1ArrivalHallBounds(b.x,b.z,b.width,b.depth):placeBuildingRect(b,T2_PASSENGER_SECTION.publicHall);
  const y=floor+(terminal==='T2'&&zone==='arrivals'?.043:.035);
  const strip=(width:number,depth:number,x:number,z:number)=>{
+  graphiteStone??=terminalFloorMaterial('inlay',{color:'#383c3a'});
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),graphiteStone);
   mesh.rotation.x=-Math.PI/2;mesh.position.set(x,y,z);mesh.receiveShadow=true;parent.add(mesh);
  };
@@ -64,6 +65,7 @@ export function hallAreaLight(parent:THREE.Object3D,x:number,y:number,z:number,w
  // Forward rendering evaluates every visible area light for the whole scene.
  // Activate this local fill only while a walker is inside its public volume.
  light.userData.hallLightBounds={left:x-width/2-3,right:x+width/2+3,near:z-depth/2-6,far:z+depth/2+6,bottom:y>20?10:0,top:y+.5};light.visible=false;
+ light.userData.hallLightIntensity=intensity;
  parent.add(light);return light;
 }
 
@@ -98,21 +100,6 @@ export function t1PublicHallCeilings(parent:THREE.Object3D,b:TerminalBounds,floo
  box(parent,.14,.18,b.depth*.9,b.x+b.width*.36,floorY+4.65,b.z,trim);
 }
 
-/** Upper canopy displays share a single atlas surface across the T2 islands. */
-let checkInScreen:THREE.MeshBasicMaterial|undefined;
-export function t2DepartureDisplayMaterial(){
- if(checkInScreen)return checkInScreen;
- const map=canvasTexture(512,240,ctx=>{
-  const face=ctx.createLinearGradient(0,0,512,240);face.addColorStop(0,'#dceff5');face.addColorStop(.7,'#4f93b3');face.addColorStop(1,'#286082');
-  ctx.fillStyle=face;ctx.fillRect(0,0,512,240);
-  ctx.fillStyle='#244758';ctx.fillRect(0,178,512,62);ctx.fillStyle='#f2f2df';ctx.font='27px Arial,sans-serif';ctx.fillText('PASSPORT AND BOARDING PASS',26,218,466);
-  ctx.fillStyle='#174051';ctx.font='bold 65px "Microsoft JhengHei",sans-serif';ctx.fillText('報到櫃台',28,86);
-  ctx.font='bold 32px Arial,sans-serif';ctx.fillText('CHECK-IN',31,135);
-  ctx.fillStyle='rgba(239,250,251,.34)';ctx.beginPath();ctx.moveTo(400,0);ctx.lineTo(512,0);ctx.lineTo(512,177);ctx.lineTo(348,177);ctx.closePath();ctx.fill();
- });
- checkInScreen=new THREE.MeshBasicMaterial({map,toneMapped:false});return checkInScreen;
-}
-
 /** A dark linear core, curved timber ribs and a slatted overhang, as photographed. */
 export function t1CheckInCanopy(parent:THREE.Object3D,x:number,y:number,z:number,length:number){
  const wood=t1CheckInTimber(),slats:Parameters<typeof instances>[3]=[],ribs:Parameters<typeof instances>[3]=[],lamp=new THREE.MeshBasicMaterial({color:'#fff3d7',toneMapped:false}),lamps:Parameters<typeof instances>[3]=[];
@@ -126,12 +113,6 @@ export function t1CheckInCanopy(parent:THREE.Object3D,x:number,y:number,z:number
   for(let station=0;station<8;station++)lamps.push({x:x+(station-3.5)*(length-3)/8,y:y+3.46,z:z+side*2.15,sx:.2,sy:.025,sz:.2});
  }
  instances(parent,new THREE.BoxGeometry(1,1,1),wood,slats);instances(parent,new THREE.BoxGeometry(1,1,1),wood,ribs);instances(parent,new THREE.BoxGeometry(1,1,1),lamp,lamps);
-}
-
-/** Repeated curved metal counter shells visible below T2's black island frames. */
-export function t2CheckInShellGeometry(){
- const profile=new THREE.Shape();profile.moveTo(.15,.55);profile.bezierCurveTo(-.12,2.5,1.75,2.48,2.35,1.38);profile.lineTo(2.28,1.28);profile.bezierCurveTo(1.69,2.28,.02,2.3,.26,.55);profile.closePath();
- const geometry=new THREE.ExtrudeGeometry(profile,{depth:2.08,bevelEnabled:true,bevelSize:.025,bevelThickness:.025,bevelSegments:2,curveSegments:20});geometry.rotateY(-Math.PI/2);geometry.translate(1.04,0,0);return geometry;
 }
 
 /** Warm stone gallery fascia and a restrained dark clerestory establish T2's enclosure. */

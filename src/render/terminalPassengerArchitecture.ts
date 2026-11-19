@@ -3,8 +3,10 @@ import type {Gate} from '../data/airport';
 import {box,canvasTexture,instances,material,seeded} from './primitives';
 import {hallAreaLight} from './terminalPublicHalls';
 import {applyFacadeUV} from './surfaceDetail';
-import {T1_A_PASSENGER as L,T1_A_WAITING_ROOMS,t1DepartureLinkWalls,t1LoungeColumns,t1LoungeCore,t1LoungeSeatBanks,t1LoungeStairs,type T1WaitingRoom} from './terminalPassengerLayout';
+import {T1_A_PASSENGER as L,T1_A_WAITING_ROOMS,passengerWallSpans,t1DepartureLinkWalls,t1LoungeColumns,t1LoungeCore,t1LoungeSeatBanks,t1LoungeStairs,t1StairLanding,type T1WaitingRoom} from './terminalPassengerLayout';
 import {terminalSeatGeometry} from './terminalSeating';
+import {addFloorContactShadows,terminalFloorMaterial} from './terminalFloorLighting';
+import type {BuildingRect} from './terminalBuildingLayout';
 
 type Item=Parameters<typeof instances>[3][number];
 type ShellMaterials={glass:THREE.Material;cladding:THREE.Material;metal:THREE.Material;roof?:THREE.Material};
@@ -29,12 +31,12 @@ function finishes(){
    for(let i=0;i<14000;i++){const v=70+random()*110;ctx.fillStyle=`rgba(${v},${v+2},${v+1},${.035+random()*.08})`;ctx.fillRect(random()*512,random()*512,1+random()*2,1+random()*2);}
    ctx.strokeStyle='rgba(42,49,48,.3)';ctx.lineWidth=1.2;ctx.strokeRect(.6,.6,510.8,510.8);
   });map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.set(1/1.2,1/1.2);
-  stone=new THREE.MeshStandardMaterial({color:'#b1b7b0',map,roughness:.34,metalness:.025,bumpMap:map,bumpScale:.003});
+  stone=terminalFloorMaterial('polished',{color:'#b1b7b0',map,roughness:.34,bumpMap:map,bumpScale:.003});
   const blue=canvasTexture(512,512,ctx=>{
    ctx.fillStyle='#31778c';ctx.fillRect(0,0,512,512);
    for(let i=0;i<20000;i++){ctx.fillStyle=i%3?'rgba(26,63,71,.045)':'rgba(215,226,218,.13)';ctx.fillRect(random()*512,random()*512,.5+random()*1.6,.5+random()*1.6);}
   });blue.wrapS=blue.wrapT=THREE.RepeatWrapping;blue.repeat.set(1/2,1/2);
-  blueFloor=new THREE.MeshStandardMaterial({color:'#e5edef',map:blue,roughness:.61,bumpMap:blue,bumpScale:.002,metalness:.005});
+  blueFloor=terminalFloorMaterial('satin',{color:'#e5edef',map:blue,roughness:.61,bumpMap:blue,bumpScale:.002});
   const timber=canvasTexture(256,512,ctx=>{
    ctx.fillStyle='#956d42';ctx.fillRect(0,0,256,512);
    for(let i=0;i<500;i++){const x=random()*256;ctx.strokeStyle=i%4?'rgba(51,27,13,.13)':'rgba(227,195,144,.18)';ctx.lineWidth=.3+random();ctx.beginPath();ctx.moveTo(x,0);ctx.bezierCurveTo(x-3,180,x+4,330,x+1,512);ctx.stroke();}
@@ -61,18 +63,8 @@ function sign(parent:THREE.Object3D,text:string,x:number,y:number,z:number,width
 }
 
 const chair=terminalSeatGeometry();
-let contactShadow:THREE.MeshBasicMaterial|undefined;
-const contactPlane=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
-function seatContactMaterial(){
- if(contactShadow)return contactShadow;
- const map=canvasTexture(128,64,ctx=>{
-  ctx.translate(64,32);ctx.scale(1,.47);const gradient=ctx.createRadialGradient(0,0,8,0,0,61);gradient.addColorStop(0,'rgba(0,0,0,.25)');gradient.addColorStop(.55,'rgba(0,0,0,.14)');gradient.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gradient;ctx.fillRect(-64,-69,128,138);
- });
- contactShadow=new THREE.MeshBasicMaterial({map,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});return contactShadow;
-}
-
 function linkedSeats(parent:THREE.Object3D,room:T1WaitingRoom){
- const shells:Item[]=[],metal:Item[]=[],armrests:Item[]=[],contacts:Item[]=[];
+ const shells:Item[]=[],metal:Item[]=[],armrests:Item[]=[],contacts:BuildingRect[]=[];
  for(const bank of t1LoungeSeatBanks(room)){
   for(let i=0;i<bank.seats;i++){
    const x=bank.x+(i-(bank.seats-1)/2)*bank.pitch;
@@ -86,10 +78,10 @@ function linkedSeats(parent:THREE.Object3D,room:T1WaitingRoom){
    metal.push({x:bank.x+dx,y:L.loungeFloor+.23,z:bank.z-.07,sx:.06,sy:.35,sz:.065});
    metal.push({x:bank.x+dx,y:L.loungeFloor+.065,z:bank.z,sx:.43,sy:.06,sz:.56});
   }
-  contacts.push({x:bank.x,y:L.loungeFloor+.03,z:bank.z-.07,sx:bank.width+1.0,sz:1.6});
+  contacts.push({x:bank.x,z:bank.z-.07,width:bank.width,depth:1.1});
  }
  batch(parent,blackSeat,shells,chair);batch(parent,satinMetal,metal);batch(parent,darkMetal,armrests);
- const shadow=instances(parent,contactPlane,seatContactMaterial(),contacts);shadow.receiveShadow=false;shadow.renderOrder=1;
+ addFloorContactShadows(parent,L.loungeFloor+.030,contacts,.26);
 }
 
 function cofferGeometry(){
@@ -226,19 +218,24 @@ function sharedRoomCore(parent:THREE.Object3D,room:T1WaitingRoom){
  batch(parent,darkMetal,rails);batch(parent,darkMetal,grilles);
 }
 
+const stairGlass=new THREE.MeshPhysicalMaterial({color:'#b8ced0',roughness:.27,metalness:.05,transparent:true,opacity:.29,depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true});
 function stairs(parent:THREE.Object3D,room:T1WaitingRoom){
- const treads:Item[]=[],nosings:Item[]=[],posts:Item[]=[],steps=25;
+ const treads:Item[]=[],nosings:Item[]=[],posts:Item[]=[],steps=31;
  for(const stair of t1LoungeStairs(room)){
-  const stepRun=stair.run/steps,rise=(stair.topY-stair.bottomY)/steps;
+  const delta=stair.topY-stair.bottomY,stepRun=stair.run/steps,rise=delta/steps;
   for(let i=0;i<steps;i++){
    const z=stair.bottomZ+(i+.5)*stepRun,y=stair.bottomY+(i+1)*rise;
    treads.push({x:stair.x,y:y-.065,z,sx:stair.width,sy:.13,sz:stepRun+.01});
    nosings.push({x:stair.x,y:y+.006,z:z-stepRun/2+.035,sx:stair.width-.12,sy:.015,sz:.045});
   }
+  const stringer=new THREE.Shape();stringer.moveTo(0,0);stringer.lineTo(-stair.run,0);stringer.lineTo(-stair.run,delta-.14);stringer.closePath();
+  const backing=new THREE.Mesh(new THREE.ExtrudeGeometry(stringer,{depth:stair.width-.18,bevelEnabled:false}).rotateY(Math.PI/2),warmWhite);
+  backing.position.set(stair.x-(stair.width-.18)/2,stair.bottomY,stair.bottomZ);backing.castShadow=backing.receiveShadow=true;parent.add(backing);
   for(const side of [-1,1]){
    for(let i=0;i<=steps;i+=3){const t=i/steps;posts.push({x:stair.x+side*(stair.width/2+.04),y:stair.bottomY+(stair.topY-stair.bottomY)*t+.53,z:stair.bottomZ+stair.run*t,sx:.045,sy:1.04,sz:.05});}
-   const delta=stair.topY-stair.bottomY,rail=box(parent,.075,.075,Math.hypot(stair.run,delta),stair.x+side*(stair.width/2+.04),(stair.topY+stair.bottomY)/2+1.07,stair.z,satinMetal);
-   rail.rotation.x=-Math.atan2(delta,stair.run);
+   const x=stair.x+side*(stair.width/2+.04),mid=(stair.topY+stair.bottomY)/2,length=Math.hypot(stair.run,delta),angle=-Math.atan2(delta,stair.run);
+   box(parent,.075,.075,length,x,mid+1.07,stair.z,satinMetal).rotation.x=angle;
+   box(parent,.045,.76,length-.12,x,mid+.59,stair.z,stairGlass).rotation.x=angle;
   }
  }
  batch(parent,warmWhite,treads);batch(parent,darkMetal,nosings);batch(parent,satinMetal,posts);
@@ -248,7 +245,7 @@ function passageFeatureWall(parent:THREE.Object3D){
  // Several close/oblique references corroborate the cream calligraphy on
  // dark stone. These short, common words are newly typeset; the commissioned
  // handwritten artwork and complete poem are not copied or claimed exact.
- const phrases=['臺灣','旅途平安','出發'],positions=[465,457,449];
+ const phrases=['臺灣','旅途平安','出發'],positions=[471,462,453];
  for(let i=0;i<phrases.length;i++){
   const map=canvasTexture(1024,768,ctx=>{
    const random=seeded(8821+i);ctx.fillStyle='#202625';ctx.fillRect(0,0,1024,768);
@@ -272,22 +269,37 @@ function passage(parent:THREE.Object3D){
   ribs:Item[]=[],panels:Item[]=[],coves:Item[]=[],lights:Item[]=[],rails:Item[]=[],stoneJoints:Item[]=[];
  box(parent,width,.28,depth,x,L.passageFloor-.14,z,warmWhite);
  surface(parent,width,depth,x,L.passageFloor+.009,z,f.stone);
- box(parent,width,3.4,.28,x,L.passageFloor+1.7,p.far,material('#272c2b',.34,.12));
+ const wall=material('#272c2b',.34,.12);
+ for(const span of passengerWallSpans(p.left,p.right,[L.link]))box(parent,span.right-span.left,3.4,.28,(span.left+span.right)/2,L.passageFloor+1.7,p.far,wall);
  for(let cx=p.left+2.4;cx<p.right;cx+=4.8){
   panels.push({x:cx,y:L.passageCeiling+.05,z,sx:4.73,sy:.16,sz:depth-.35});
   ribs.push({x:cx-2.4,y:L.passageCeiling-.16,z,sx:.18,sy:.23,sz:depth-.2});
   for(const dz of [-3.4,3.4])coves.push({x:cx,y:L.passageCeiling-.11,z:z+dz,sx:4.65,sy:.035,sz:.22});
   if(Math.round((cx-p.left)/4.8)%2===0)lights.push({x:cx,y:L.passageCeiling-.18,z,sx:1.4,sy:.04,sz:.43});
  }
- for(let cx=p.left+3;cx<p.right;cx+=3)stoneJoints.push({x:cx,y:L.passageFloor+1.7,z:p.far-.16,sx:.018,sy:3.15,sz:.01});
+ for(let cx=p.left+3;cx<p.right;cx+=3)if(cx<L.link.left||cx>L.link.right)stoneJoints.push({x:cx,y:L.passageFloor+1.7,z:p.far-.16,sx:.018,sy:3.15,sz:.01});
  batch(parent,material('#bfc3bf',.5,.32),panels);batch(parent,satinMetal,ribs);batch(parent,blueCove,coves);batch(parent,lightPanel,lights);batch(parent,darkMetal,stoneJoints);
  passageFeatureWall(parent);
+ const stairMouths=T1_A_WAITING_ROOMS.flatMap(room=>t1LoungeStairs(room).map(t1StairLanding));
+ for(const span of passengerWallSpans(p.left,p.right,stairMouths)){
+  const mid=(span.left+span.right)/2,length=span.right-span.left;
+  box(parent,length,.87,.055,mid,L.passageFloor+.53,p.near,stairGlass);
+  rails.push({x:mid,y:L.passageFloor+1.06,z:p.near,sx:length,sy:.075,sz:.088});
+ }
  for(const room of T1_A_WAITING_ROOMS){
   const stairsFor=t1LoungeStairs(room),centerWidth=room.width-11;
   // Inner face of the upper mural wall: the A-side passage is a distinct
   // room-height circulation band within the separate lounge/service wing.
   if(room.kind!=='shared')box(parent,centerWidth,L.passageCeiling-L.passageFloor,.22,room.x,(L.passageCeiling+L.passageFloor)/2,p.near-.45,warmWhite);
-  for(const s of stairsFor)rails.push({x:s.x,y:L.passageFloor+.58,z:p.near-.18,sx:s.width+.3,sy:1.16,sz:.075});
+  for(const s of stairsFor){
+   const landing=t1StairLanding(s),depth=landing.far-landing.near,center=(landing.far+landing.near)/2;
+   box(parent,s.width,.24,depth,s.x,L.passageFloor-.12,center,warmWhite);
+   surface(parent,s.width,depth,s.x,L.passageFloor+.012,center,f.stone);
+   for(const side of [-1,1]){
+    box(parent,.045,.87,depth,s.x+side*s.width/2,L.passageFloor+.53,center,stairGlass);
+    rails.push({x:s.x+side*s.width/2,y:L.passageFloor+1.06,z:center,sx:.067,sy:.075,sz:depth});
+   }
+  }
   sign(parent,`↓ ${room.gateIds.join(' / ')}`,room.x,L.passageFloor+2.63,p.near-.29,room.kind==='shared'?6.8:4.3);
  }
  batch(parent,satinMetal,rails);
@@ -296,10 +308,11 @@ function passage(parent:THREE.Object3D){
  }
  // A short raised connection joins the terminal's 3F north end. The outer
  // main-hall door and this floor share the same elevation.
- const link=L.link,linkDepth=link.far-link.near,linkZ=(link.near+link.far)/2;
- box(parent,link.right-link.left,.27,linkDepth,440,L.passageFloor-.135,linkZ,warmWhite);
- surface(parent,link.right-link.left,linkDepth,440,L.passageFloor+.012,linkZ,f.stone);
- box(parent,link.right-link.left,.22,linkDepth,440,L.passageCeiling+.15,linkZ,ceilingWhite);
+ const link=L.link,linkDepth=link.far-p.far,linkZ=(p.far+link.far)/2,linkCenter=(link.left+link.right)/2;
+ box(parent,link.right-link.left,.27,linkDepth,linkCenter,L.passageFloor-.135,linkZ,warmWhite);
+ surface(parent,link.right-link.left,linkDepth,linkCenter,L.passageFloor+.012,linkZ,f.stone);
+ box(parent,link.right-link.left,.22,linkDepth,linkCenter,L.passageCeiling+.15,linkZ,ceilingWhite);
+ box(parent,link.right-link.left,.18,.34,linkCenter,L.passageCeiling-.12,p.far,satinMetal);
  for(const wall of t1DepartureLinkWalls()){
   const cx=(wall.left+wall.right)/2,cz=(wall.near+wall.far)/2,depth=wall.far-wall.near;
   box(parent,.12,3.3,depth,cx,L.passageFloor+1.65,cz,material('#a9bdc1',.3,.16));

@@ -5,7 +5,7 @@ import {operationsHTML,requestHTML,selectedOperationsHTML,drawGroundDebug,durati
 import {routineEnabled} from './sim/difficulty';
 import {explorationScenario} from './sim/exploration';
 import { Simulation } from './sim/Simulation';
-import { AirportScene } from './render/AirportScene';
+import type { AirportScene } from './render/AirportScene';
 import {primaryExploreSpots,detailExploreSpots,type ExploreSpotId} from './render/exploration';
 import { FLEET, AIRLINES } from './data/fleet';
 import { airport, airportSource } from './data/airport';
@@ -37,7 +37,8 @@ let scenario:Scenario={date:'2026-11-11',startTime:'17:00',duration:15,difficult
 let sim=new Simulation({...scenario,difficulty:'assisted',positions:[]});
 let running=false,intro=false,selectedId:string|null=null,role:Role='Ground',filter='all',query='',immersive=false,mode='new',graph=false;
 let scene:AirportScene;
-let last=performance.now(),uiElapsed=0,detailKey='',listKey='',toastTimer=0,introTimer=0,introSequence=0;
+let sceneReady:Promise<void>,sceneLoaded=false,frameId=0,last:number|undefined;
+let uiElapsed=0,detailKey='',listKey='',toastTimer=0;
 let tutorialStage=0,tutorialDep:string|null=null,tutorialArr:string|null=null;
 let previousScale=1;
 let trafficTab:'flights'|'requests'='flights';
@@ -54,24 +55,41 @@ function modal(title:string,body:string,footer='',wide=false){closeModal();const
 function toggleLanguage(){lang=lang==='en'?'zh':'en';persist('atc-language',lang);document.documentElement.lang=lang==='en'?'en':'zh-Hant';closeModal();if(running){if(mode==='explore')renderExploreHUD();else renderHUD();refreshUI();}else renderMenu();}
 
 function renderMenu(){
-  running=false;intro=false;immersive=false;audio.stop();scene?.setImmersive(false);closeModal();
+  const wasRunning=running;
+  running=false;intro=false;immersive=false;last=undefined;audio.stop();scene?.setImmersive(false);closeModal();
+  if(wasRunning)requestFrame();
   app.innerHTML=`<main class="menu"><header class="menu-header">${logoHTML()}<nav class="menu-nav"><button id="language">${lang==='en'?'繁體中文':'English'}</button><button id="settings">${t('settings')} <span aria-hidden="true">⚙</span></button></nav></header><div class="menu-content"><section class="menu-story"><div class="eyebrow"><span class="status-dot"></span>25°04′ N · 121°14′ E &nbsp; / &nbsp; TAIWAN</div><h1>Taoyuan<br><span>Tower.</span></h1><h2>${t('tagline')}</h2><p>${t('description')}</p><div class="location-line"><div><div class="number">RCTP</div><small>TAIPEI FIR</small></div><div class="divider"></div><small>05L / 23R<br><br>05R / 23L</small><div class="divider"></div><small>GROUND · TOWER<br><br>APPROACH · DEPARTURE</small></div></section><section class="briefing"><div class="briefing-tabs">${[['new','newShift'],['training','training'],['sandbox','sandbox'],['explore','exploreMode']].map(([m,k])=>`<button data-mode="${m}" class="${mode===m?'active':''}">${t(k)}</button>`).join('')}</div><div class="briefing-body"><div class="briefing-heading"><span class="eyebrow">${t('scenario')}</span><span class="mono">TPE / RCTP</span></div><form id="scenario-form"><div class="form-grid"><label class="field full">${t('preset')}<select name="preset">${options(['morning','midday','evening','night','custom'],scenario.startTime==='06:00'?'morning':scenario.startTime==='12:00'?'midday':scenario.startTime==='22:00'?'night':scenario.startTime==='17:00'?'evening':'custom')}</select></label><label class="field">${t('date')}<input type="date" name="date" required value="${scenario.date}" min="2026-01-01" max="2030-12-31"/></label><label class="field">${t('startTime')}<input type="time" name="time" required value="${scenario.startTime}"/></label><label class="field">${t('duration')}<select name="duration" ${mode!=='new'?'disabled':''}>${[15,30,60,0].map((n,i)=>`<option value="${n}" ${Number(mode!=='new'?0:scenario.duration)===n?'selected':''}>${t(['quick','standardShift','full','unlimited'][i])}</option>`).join('')}</select></label><label class="field">${t('difficulty')}<select name="difficulty" ${mode==='explore'?'disabled':''}>${options(['assisted','standard','advanced','hardcore'],mode==='explore'?'assisted':scenario.difficulty)}</select></label><p id="difficulty-note" class="difficulty-note">${mode==='explore'?t('exploreDescription'):difficultyDescription(scenario.difficulty)}</p><label class="field full">${t('weather')}<select name="weather">${options(['random',...weatherOptions],scenario.weather)}</select></label><div class="field full">${t('positions')}<div class="position-checks">${roles.map(r=>`<label><input type="checkbox" name="position" value="${r}" ${mode==='explore'?'disabled':''} ${mode!=='explore'&&scenario.positions.includes(r)?'checked':''}/>${t(r)}</label>`).join('')}</div></div></div><button class="primary start-button" type="submit"><span>${t(mode==='training'?'training':mode==='explore'?'exploreStart':'enter')}</span><span aria-hidden="true">↗</span></button></form><div class="dataset-note" id="schedule-source">${scheduleNoteHTML(scenario.date)}</div></div></section></div><footer class="menu-footer"><span>${t('snapshot')} &nbsp; / &nbsp; VERTICAL SLICE 01</span><button class="ghost" id="sources">${t('sources')} ↗</button><span>WEBGL 2 · LOCAL SIMULATION</span></footer></main>`;
   $('#language').onclick=toggleLanguage;$('#settings').onclick=settings;$('#sources').onclick=sources;
   document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach(b=>b.onclick=()=>{readScenario();mode=b.dataset.mode!;renderMenu();});
   const form=$<HTMLFormElement>('#scenario-form');form.onchange=e=>{const el=e.target as HTMLInputElement;if(el.name==='preset'){const values:Record<string,string>={morning:'06:00',midday:'12:00',evening:'17:00',night:'22:00'};if(values[el.value])(form.elements.namedItem('time') as HTMLInputElement).value=values[el.value];}readScenario();if($('#difficulty-note'))$('#difficulty-note').textContent=mode==='explore'?t('exploreDescription'):difficultyDescription(scenario.difficulty);if($('#schedule-source'))$('#schedule-source').innerHTML=scheduleNoteHTML(scenario.date);};
-  form.onsubmit=e=>{e.preventDefault();readScenario();begin();};
+  form.onsubmit=e=>{
+   e.preventDefault();readScenario();
+   if(sceneLoaded){begin();return;}
+   const button=form.querySelector<HTMLButtonElement>('.start-button')!;
+   if(button.disabled)return;
+   const label=button.firstElementChild!,originalLabel=label.textContent;
+   button.disabled=true;button.setAttribute('aria-busy','true');
+   label.textContent=bi('Loading RCTP…','載入桃園機場中…');
+   void audio.start().then(()=>{if(!running)audio.stop();},()=>{});
+   void sceneReady.then(()=>{
+    if(!form.isConnected)return;
+    button.disabled=false;button.removeAttribute('aria-busy');label.textContent=originalLabel;
+    begin();
+   },()=>{});
+  };
 }
 function readScenario(){const form=$<HTMLFormElement>('#scenario-form');if(!form)return;const data=new FormData(form);scenario={...scenario,date:String(data.get('date')||scenario.date),startTime:String(data.get('time')||scenario.startTime),duration:mode==='new'?Number(data.get('duration')??15):scenario.duration,difficulty:String(data.get('difficulty')??scenario.difficulty) as Scenario['difficulty'],weather:String(data.get('weather')) as Scenario['weather'],positions:mode==='explore'?scenario.positions:data.getAll('position') as Role[],tutorial:mode==='training'};}
 function begin(){
   if(mode!=='explore'&&!scenario.positions.length&&scenario.difficulty!=='assisted'){toast(lang==='en'?'Select at least one controlled position, or choose Assisted for an AI watch.':'請選擇至少一個管制席，或選用輔助模式觀察 AI 作業。');return;}
   const config=mode==='explore'?explorationScenario(scenario):{...scenario,exploration:false,tutorial:mode==='training',duration:mode==='new'?scenario.duration:0,incidents:mode==='training'?'off' as const:scenario.incidents};
   sim.reset(config);audio.reset(sim);
-  selectedId=null;role=scenario.positions.includes('Ground')?'Ground':scenario.positions[0]??'Ground';running=true;intro=true;tutorialStage=0;tutorialDep=null;tutorialArr=null;detailKey='';listKey='';void audio.start().catch(()=>{});
+  selectedId=null;role=scenario.positions.includes('Ground')?'Ground':scenario.positions[0]??'Ground';running=true;intro=true;last=undefined;uiElapsed=0;tutorialStage=0;tutorialDep=null;tutorialArr=null;detailKey='';listKey='';void audio.start().catch(()=>{});
+  requestFrame();
   if(mode==='explore'){intro=false;immersive=true;exploreLocation='runway';exploreLabels=false;scene.setImmersive(true);scene.goToExploreSpot(exploreLocation);sim.timeScale=1;renderExploreHUD();refreshExploreUI();return;}
-  sim.timeScale=0;const sequence=++introSequence;app.innerHTML=`<div class="intro-title"><div class="eyebrow">${t('airport')}</div><h2>${t('tower')}</h2><p>${esc(scenario.date)} &nbsp; ${esc(scenario.startTime)} LT &nbsp; / &nbsp; ${scheduleName(scenario.date)}</p></div><button class="intro-skip" id="skip-intro">${t('skipIntro')}</button>`;
-  $('#skip-intro').onclick=finishIntro;clearTimeout(introTimer);void scene.assetsReady.catch(()=>{}).then(()=>{if(!intro||sequence!==introSequence)return;scene.startIntro();introTimer=window.setTimeout(finishIntro,8500);});
+  sim.timeScale=0;app.innerHTML=`<div class="intro-title"><div class="eyebrow">${t('airport')}</div><h2>${t('tower')}</h2><p>${esc(scenario.date)} &nbsp; ${esc(scenario.startTime)} LT &nbsp; / &nbsp; ${scheduleName(scenario.date)}</p></div><button class="intro-skip" id="skip-intro">${t('skipIntro')}</button>`;
+  $('#skip-intro').onclick=finishIntro;scene.startIntro();
 }
-function finishIntro(){if(!intro)return;introSequence++;clearTimeout(introTimer);intro=false;scene.skipIntro();scene.setCamera('seat');sim.timeScale=1;renderHUD();refreshUI();}
+function finishIntro(){if(!intro)return;intro=false;scene.skipIntro();sim.timeScale=1;renderHUD();refreshUI();}
 
 function renderExploreHUD(){
  app.innerHTML=`<main class="explore-hud">
@@ -197,7 +215,7 @@ function refreshOperationsUI(){
 function vectorDialog(a:Aircraft,cmd:Command){const limits=cmd==='heading'?[0,360,1,Math.round(a.heading*180/Math.PI+319.08)%360]:cmd==='altitude'?[1500,20000,500,5000]:[130,300,10,180];modal(commandLabel(cmd,lang),`<label class="field">${cmd==='heading'?'TRUE °':cmd==='altitude'?'ALT FT':'IAS KT'}<input type="number" id="vector-value" min="${limits[0]}" max="${limits[1]}" step="${limits[2]}" value="${limits[3]}"/></label>`,`<button class="primary" id="vector-apply">${commandLabel(cmd,lang)}</button>`);$('#vector-apply').onclick=()=>{const input=$<HTMLInputElement>('#vector-value');if(!input.checkValidity()){input.reportValidity();return;}const value=Number(input.value);closeModal();issue(a.id,cmd,false,value);};}
 function settings(){modal(t('settings'),`<div class="row"><span>${t('language')}</span><button class="small" id="setting-language">${lang==='en'?'繁體中文':'English'}</button></div><div class="row"><label for="quality">${t('graphics')}</label><select id="quality">${options(['low','medium','high'],quality)}</select></div><div class="row"><label for="audio">${t('audio')}</label><input type="checkbox" id="audio" ${audio.enabled?'checked':''}/></div><div class="row"><label for="audio-volume">${bi('Volume','音量')}</label><input type="range" id="audio-volume" min="0" max="100" step="5" value="${Math.round(audio.volume*100)}"/></div><div class="row"><label for="radio-voice">${bi('Radio voice (local)','無線電語音（本機）')}</label><input type="checkbox" id="radio-voice" ${audio.radioVoice?'checked':''}/></div><div class="row"><label for="incidents">${t('incidents')}</label><select id="incidents">${[['off','off'],['rare','rare'],['normal','normal'],['training','incidentTraining']].map(([v,k])=>`<option value="${v}" ${(running?sim.scenario.incidents:scenario.incidents)===v?'selected':''}>${t(k)}</option>`).join('')}</select></div><div class="row"><label for="routine-automation">${bi('Routine engines, runway exits and handoffs','自動處理例行引擎、脫離與交接')}</label><input type="checkbox" id="routine-automation" ${routineEnabled(running?sim.scenario:scenario)?'checked':''} ${running&&sim.scenario.tutorial?'disabled':''}/></div><div class="row"><label for="scenario-seed">${t('seed')}</label><input id="scenario-seed" type="number" value="${scenario.seed}" ${running?'disabled':''}/></div><p class="info-note">${t('cameraHelp')}<br><span class="kbd">H</span> ${t('hud')} &nbsp; <span class="kbd">F3</span> ${t('debug')}</p>`,`<button id="setting-sources">${t('sources')}</button><button id="setting-debug">${t('debug')}</button><button class="primary" id="setting-done">${t('close')}</button>`);
   $<HTMLInputElement>('#routine-automation').onchange=e=>{const value=(e.target as HTMLInputElement).checked;scenario.routineAutomation=value;if(running)sim.scenario.routineAutomation=value;};
-  $('#setting-language').onclick=toggleLanguage;$<HTMLSelectElement>('#quality').onchange=e=>{quality=(e.target as HTMLSelectElement).value as typeof quality;persist('atc-quality',quality);scene.setQuality(quality);};$<HTMLInputElement>('#audio').onchange=e=>{audio.setEnabled((e.target as HTMLInputElement).checked);persist('atc-audio',audio.enabled);void audio.start().catch(()=>{});};$<HTMLInputElement>('#audio-volume').oninput=e=>{audio.setVolume(Number((e.target as HTMLInputElement).value)/100);persist('atc-volume',audio.volume);};$<HTMLInputElement>('#radio-voice').onchange=e=>{audio.setRadioVoice((e.target as HTMLInputElement).checked);persist('atc-radio-voice',audio.radioVoice);};$<HTMLSelectElement>('#incidents').onchange=e=>{const v=(e.target as HTMLSelectElement).value as Scenario['incidents'];scenario.incidents=v;sim.scenario.incidents=v;};$<HTMLInputElement>('#scenario-seed').onchange=e=>scenario.seed=Number((e.target as HTMLInputElement).value)||182731;$('#setting-done').onclick=closeModal;$('#setting-sources').onclick=sources;$('#setting-debug').onclick=()=>{if(!running){toast(lang==='en'?'Begin a shift to use scenario tools.':'請先開始值勤，再使用情境工具。');return;}debugDialog();};
+  $('#setting-language').onclick=toggleLanguage;$<HTMLSelectElement>('#quality').onchange=e=>{quality=(e.target as HTMLSelectElement).value as typeof quality;persist('atc-quality',quality);scene?.setQuality(quality);};$<HTMLInputElement>('#audio').onchange=e=>{audio.setEnabled((e.target as HTMLInputElement).checked);persist('atc-audio',audio.enabled);void audio.start().catch(()=>{});};$<HTMLInputElement>('#audio-volume').oninput=e=>{audio.setVolume(Number((e.target as HTMLInputElement).value)/100);persist('atc-volume',audio.volume);};$<HTMLInputElement>('#radio-voice').onchange=e=>{audio.setRadioVoice((e.target as HTMLInputElement).checked);persist('atc-radio-voice',audio.radioVoice);};$<HTMLSelectElement>('#incidents').onchange=e=>{const v=(e.target as HTMLSelectElement).value as Scenario['incidents'];scenario.incidents=v;sim.scenario.incidents=v;};$<HTMLInputElement>('#scenario-seed').onchange=e=>scenario.seed=Number((e.target as HTMLInputElement).value)||182731;$('#setting-done').onclick=closeModal;$('#setting-sources').onclick=sources;$('#setting-debug').onclick=()=>{if(!running){toast(lang==='en'?'Begin a shift to use scenario tools.':'請先開始值勤，再使用情境工具。');return;}debugDialog();};
 }
 function sources(){modal(t('sourcesHeading'),`<p>${t('sourcesText')}</p><p><a href="${airportSource.source}" target="_blank" rel="noreferrer">Taiwan CAA · eAIP AIRAC 05/26 ↗</a></p><p class="info-note">${lang==='en'?'Selected airport details use AIRAC 05/26, effective 29 October 2026, for published stand positions, taxiway pavement, runway dimensions, markings and lighting. The reduced taxi graph, stand lead-ins, terminal shells and interiors remain visual approximations; there is no live NOTAM feed. T3 is a completed-design visual preview. Flight data is exact to its dated snapshot; simulated movement and some stand matching are approximate.':'機場場景已採用 05/26（2026/10/29 生效）的停機位、滑行道鋪面、跑道尺寸、標線與燈光資料。簡化滑行圖、機位導引線、航廈外殼與室內配置仍是視覺近似，且未連接即時 NOTAM。第三航廈是完工設計視覺預覽。航班資料符合指定日期快照；滑行與部分機位對應仍為模擬近似。'}</p><p><a href="https://data.gov.tw/en/datasets/26194" target="_blank" rel="noreferrer">Taoyuan Airport flight data ↗</a> · <a href="https://data.gov.tw/en/license" target="_blank" rel="noreferrer">Open Government Data License v1.0 ↗</a></p><p><a href="docs/DATA_SOURCES.md" target="_blank">DATA_SOURCES.md</a> · <a href="docs/REALISM_NOTES.md" target="_blank">REALISM_NOTES.md</a> · <a href="docs/ASSET_PROVENANCE.md" target="_blank">ASSET_PROVENANCE.md</a></p>`);}
 function weatherDialog(){modal(t('weather'),`<div class="form-grid"><label class="field full">${t('weather')}<select id="weather-kind">${options(weatherOptions,sim.weather.kind)}</select></label><label class="field">${t('wind')} °<input id="wind-direction" type="number" min="0" max="359" value="${Math.round(sim.weather.windDirection)}"/></label><label class="field">KT<input id="wind-speed" type="number" min="0" max="45" value="${Math.round(sim.weather.windSpeed)}"/></label></div><div class="row"><span>${t('flow')}</span><select id="runway-direction"><option ${sim.activeDirection==='05'?'selected':''}>05</option><option ${sim.activeDirection==='23'?'selected':''}>23</option></select></div><p class="info-note">${t('flowNote')}</p>`,`<button id="queue-flow">${bi('Plan after traffic clears','排程至交通清空後變更')}</button><button id="apply-flow">${t('applyFlow')}</button><button class="primary" id="apply-weather">${t('changeWeather')}</button>`);
@@ -251,9 +269,40 @@ function updateTutorial(){const container=$('#tutorial-container');if(!container
 window.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes((e.target as HTMLElement)?.tagName))return;if(e.key==='Escape'){closeModal();return;}if(!running)return;if(mode==='explore'){if(e.code==='Space'){e.preventDefault();sim.timeScale=sim.timeScale?0:1;refreshExploreUI();}return;}if(e.key==='F3'){e.preventDefault();debugDialog();return;}if(intro){if(e.code==='Space')finishIntro();return;}if(document.querySelector('.modal-backdrop'))return;if(e.code==='Space'){e.preventDefault();sim.timeScale=sim.timeScale?0:1;refreshUI();}if(e.key.toLowerCase()==='t')camera('seat');if(e.key.toLowerCase()==='h')toggleImmersive();const n=Number(e.key);if(n>=1&&n<=8)camera(cameras[n-1][0]);});
 window.addEventListener('resize',()=>scene?.resize());
 
-try{
-  scene=new AirportScene($('#scene'),selectAircraft,()=>{if(running&&mode!=='explore'){immersive=false;scene.setImmersive(false);renderHUD();refreshUI();}});scene.setQuality(quality);renderMenu();document.querySelector('#loading')?.remove();document.documentElement.lang=lang==='en'?'en':'zh-Hant';
+function requestFrame(){
+ if(sceneLoaded&&!frameId)frameId=requestAnimationFrame(frame);
+}
+function frame(now:number){
+ frameId=0;
+ if(!running){
+  // The browser retains the last composited frame until a resize, setting
+  // change, or new session calls for another full-quality menu frame.
+  scene.update(sim,selectedId,0);
+  return;
+ }
+ const elapsed=last===undefined?0:(now-last)/1000,dt=Math.min(.1,elapsed);
+ last=now;
+ if(!intro)sim.update(dt);
+ scene.update(sim,selectedId,dt,intro?elapsed:dt);
+ if(intro&&scene.introFinished)finishIntro();
+ if(!intro)audio.update(sim,scene.audioPosition());
+ uiElapsed+=dt;
+ if(uiElapsed>=.25){uiElapsed=0;refreshUI();}
+ requestFrame();
+}
+
+async function initializeScene(){
+  const {AirportScene}=await import('./render/AirportScene');
+  scene=await AirportScene.create($('#scene'),selectAircraft,()=>{if(running&&mode!=='explore'){immersive=false;scene.setImmersive(false);renderHUD();refreshUI();}},requestFrame);
+  scene.setQuality(quality);
+  await scene.assetsReady;
+  sceneLoaded=true;
   // Read-only references plus explicit simulation hooks aid deterministic local QA.
   Object.assign(window,{__ATC:{get sim(){return sim;},get scene(){return scene;},get selected(){return selectedId;},begin:(config?:Partial<Scenario>)=>{scenario={...scenario,...config};mode=config?.tutorial?'training':config?.duration===0?'sandbox':'new';begin();finishIntro();},select:selectAircraft,camera,refresh:refreshUI,get tutorialStage(){return tutorialStage;}}});
-  function frame(now:number){const dt=Math.min(.1,(now-last)/1000);last=now;if(!intro)sim.update(dt);scene.update(sim,selectedId,dt);if(running&&!intro)audio.update(sim,scene.audioPosition());uiElapsed+=dt;if(uiElapsed>=.25){uiElapsed=0;refreshUI();}requestAnimationFrame(frame);}requestAnimationFrame(frame);
-}catch(error){document.querySelector('#loading')?.remove();console.error(error);app.innerHTML=`<div class="fatal"><h1>Taoyuan Tower</h1><p>The 3D renderer could not start. Enable hardware acceleration and WebGL 2 in a current Chrome or Edge browser, then reload.</p><pre>${esc(error instanceof Error?error.message:error)}</pre><button class="primary" onclick="location.reload()">Reload</button></div>`;}
+  requestFrame();
+}
+
+document.documentElement.lang=lang==='en'?'en':'zh-Hant';
+renderMenu();document.querySelector('#loading')?.remove();
+sceneReady=initializeScene();
+void sceneReady.catch(error=>{console.error(error);app.innerHTML=`<div class="fatal"><h1>Taoyuan Tower</h1><p>The 3D renderer could not start. Enable hardware acceleration and WebGL 2 in a current Chrome or Edge browser, then reload.</p><pre>${esc(error instanceof Error?error.message:error)}</pre><button class="primary" onclick="location.reload()">Reload</button></div>`;});

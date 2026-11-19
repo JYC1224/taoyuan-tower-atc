@@ -53,7 +53,7 @@ test('the upper departure link joins the passage without allowing a walker off t
  assert.deepEqual(moveExplorer(spot,{x:440,z:-192},{x:460,z:-192}),{x:460,z:-192},'both branches of the junction remain open');
  assert.deepEqual(moveExplorer(spot,{x:450,z:-190},{x:450,z:-184}),{x:450,z:-190},'outside the narrow link is open air');
  const stair=t1LoungeStairs(waitingRoom('A7'))[0],from={x:stair.x,z:-196.8};
- assert.deepEqual(moveExplorer(spot,from,{x:stair.x,z:-198}),from,'upper stair opening has a walking guard');
+ assert.deepEqual(moveExplorer(spot,from,{x:stair.x,z:stair.topZ+.1}),from,'flat movement must stop at the stair lip');
 });
 
 test('lounge walking blocks the linked seats and curved service core, while the window aisle stays open',()=>{

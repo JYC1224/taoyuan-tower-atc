@@ -8,7 +8,7 @@ export function createSky(){
   for(let bank=0;bank<32;bank++){const bx=rand()*2048,by=80+rand()*590,bw=80+rand()*190;
    for(let j=0;j<17;j++){const x=bx+(rand()-.5)*bw*2,y=by+(rand()-.5)*bw*.45,r=bw*(.10+rand()*.28);const g=ctx.createRadialGradient(x,y-r*.16,r*.12,x,y,r);g.addColorStop(0,'#ffffffbb');g.addColorStop(.48,'#d4d4d482');g.addColorStop(1,'#aaaaaa00');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}}
  });cloudMap.wrapS=THREE.RepeatWrapping;
- const mat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{zenith:{value:new THREE.Color('#609bce')},horizon:{value:new THREE.Color('#d9e3e9')},ground:{value:new THREE.Color('#869c8e')},cloudColor:{value:new THREE.Color('#ffffff')},cloudCoverage:{value:.4},cloudMap:{value:cloudMap},photoSky:{value:null},hasPhotoSky:{value:0},cloudTime:{value:0},sunDirection:{value:new THREE.Vector3(.5,.6,-.5).normalize()},sunColor:{value:new THREE.Color('#fff3d9')},sunStrength:{value:1},twilight:{value:0},daylight:{value:1}},vertexShader:`varying vec3 vDirection;void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,fragmentShader:`
+ const mat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{zenith:{value:new THREE.Color('#609bce')},horizon:{value:new THREE.Color('#d9e3e9')},ground:{value:new THREE.Color('#869c8e')},cloudColor:{value:new THREE.Color('#ffffff')},cloudCoverage:{value:.4},cloudMap:{value:cloudMap},photoSky:{value:null},hasPhotoSky:{value:0},cloudTime:{value:0},sunDirection:{value:new THREE.Vector3(.5,.6,-.5).normalize()},sunColor:{value:new THREE.Color('#fff3d9')},sunStrength:{value:1},twilight:{value:0},daylight:{value:1}},vertexShader:`varying vec3 vDirection;void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);gl_Position.z=gl_Position.w;}`,fragmentShader:`
  varying vec3 vDirection;uniform vec3 zenith,horizon,ground,cloudColor,sunDirection,sunColor;uniform sampler2D cloudMap,photoSky;uniform float cloudCoverage,cloudTime,sunStrength,hasPhotoSky,twilight,daylight;
  void main(){
  vec3 dir=normalize(vDirection);float h=dir.y;float altitude=clamp(h,0.0,1.0);
@@ -48,7 +48,9 @@ export function createSky(){
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
  }`});
- const sky=new THREE.Mesh(new THREE.SphereGeometry(14000,96,48),mat);sky.renderOrder=-10;sky.frustumCulled=false;return sky;
+ // Draw at the far depth after opaque geometry so the sky shader only runs
+ // through uncovered pixels. Glass and weather particles still blend over it.
+ const sky=new THREE.Mesh(new THREE.SphereGeometry(14000,96,48),mat);sky.renderOrder=100;sky.frustumCulled=false;return sky;
 }
 
 export function createRain(){

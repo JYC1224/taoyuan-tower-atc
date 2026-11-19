@@ -31,6 +31,23 @@ function createCanopy(shape:typeof treeShapes[number]){
  merged.computeVertexNormals();merged.computeBoundingSphere();return merged;
 }
 
+function plantBatches(parent:THREE.Group,geometry:THREE.BufferGeometry,material:THREE.Material,plants:Plant[],castShadow:boolean,windMargin=0){
+ const cellSize=1800,buckets=new Map<string,Plant[]>();
+ for(const plant of plants){
+  const key=`${Math.floor(plant.x/cellSize)},${Math.floor(plant.z/cellSize)}`;
+  const bucket=buckets.get(key);
+  if(bucket)bucket.push(plant);else buckets.set(key,[plant]);
+ }
+ for(const bucket of buckets.values()){
+  const mesh=instances(parent,geometry,material,bucket);
+  mesh.castShadow=castShadow;
+  mesh.computeBoundingSphere();
+  // The wind shader moves vertices before the per-instance scale. Leave the
+  // full sway inside each culling sphere, including at the edge of the view.
+  mesh.boundingSphere!.radius+=windMargin;
+ }
+}
+
 /** Instanced Taiwan-coastal-plain trees with distinct crowns and subtle wind response. */
 export function addRegionalVegetation(parent:THREE.Group,anchors:VegetationAnchor[],random:()=>number){
  const treeItems:Plant[][]=treeShapes.map(()=>[]),nearTreeItems:Plant[][]=treeShapes.map(()=>[]),shrubItems:Plant[]=[],trunks:Plant[]=[],nearTrunks:Plant[]=[];
@@ -66,8 +83,8 @@ export function addRegionalVegetation(parent:THREE.Group,anchors:VegetationAncho
  };
  foliage.customProgramCacheKey=()=> 'taoyuan-regional-foliage-wind-v1';
  const geometries=treeShapes.map(createCanopy);
- treeItems.forEach((items,index)=>{if(!items.length)return;const mesh=instances(parent,geometries[index],foliage,items);mesh.castShadow=false;mesh.receiveShadow=true;mesh.frustumCulled=true;});
- nearTreeItems.forEach((items,index)=>{if(!items.length)return;const mesh=instances(parent,geometries[index],foliage,items);mesh.castShadow=true;mesh.receiveShadow=true;mesh.frustumCulled=true;});
+ treeItems.forEach((items,index)=>plantBatches(parent,geometries[index],foliage,items,false,1.5));
+ nearTreeItems.forEach((items,index)=>plantBatches(parent,geometries[index],foliage,items,true,1.5));
  // Low, varied shrubs break up hard settlement and field boundaries without a dense grass-card layer.
  for(let i=0;i<Math.min(520,Math.max(300,anchors.length*44))&&anchors.length;i++){
   const anchor=anchors[Math.floor(random()*anchors.length)],angle=random()*Math.PI*2,radial=anchor.radius*(.12+random()*.92),x=anchor.x+Math.cos(angle)*radial,z=anchor.z+Math.sin(angle)*radial;
@@ -75,10 +92,11 @@ export function addRegionalVegetation(parent:THREE.Group,anchors:VegetationAncho
   const height=.75+random()*.75,ground=terrainSurfaceHeight(x,z),scale=1.15+random()*1.45;
   shrubItems.push({x,y:ground+height*.52,z,sx:scale,sy:height,sz:scale*(.72+random()*.55),ry:random()*Math.PI*2,color:canopyColors[Math.floor(random()*canopyColors.length)]});
  }
- if(shrubItems.length){const shrubs=instances(parent,geometries[0],foliage,shrubItems);shrubs.castShadow=false;shrubs.receiveShadow=true;}
+ plantBatches(parent,geometries[0],foliage,shrubItems,false,1.5);
  const trunkMaterial=new THREE.MeshStandardMaterial({color:'#fff',roughness:1});
- if(trunks.length){const wood=instances(parent,new THREE.CylinderGeometry(1,1,1,7),trunkMaterial,trunks);wood.castShadow=false;wood.receiveShadow=true;}
- if(nearTrunks.length){const wood=instances(parent,new THREE.CylinderGeometry(1,1,1,7),trunkMaterial,nearTrunks);wood.castShadow=true;wood.receiveShadow=true;}
+ const trunkGeometry=new THREE.CylinderGeometry(1,1,1,7);
+ plantBatches(parent,trunkGeometry,trunkMaterial,trunks,false);
+ plantBatches(parent,trunkGeometry,trunkMaterial,nearTrunks,true);
 
  return {update(time:number,windFromDegrees:number,windSpeed:number,wetness:number){
   const direction=(windFromDegrees+180)*Math.PI/180;

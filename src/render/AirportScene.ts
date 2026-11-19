@@ -12,13 +12,15 @@ import {createSky,createRain} from './atmosphere';
 import {HighQualityPass} from './HighQualityPass';
 import {realEnvironment,skyImage} from './realismAssets';
 import {prepareLiveries} from './liveries';
+import {updateTerminal2ArrivalClock} from './terminalArrivalSigns';
+import {ShadowReceivers} from './shadowReceivers';
 import {windsockAngles} from './supportLayout';
-import {exploreSpot,moveExplorer,type ExploreSpotId} from './exploration';
-import {HALL_REFLECTION_LAYER} from './terminalPublicHallLayout';
+import {exploreSpot,isIndoorExploreSpot,moveExplorerCamera,type ExploreSpotId} from './exploration';
 
 const Y_AXIS=new THREE.Vector3(0,1,0),nodeMap=new Map(taxiNodes.map(n=>[n.id,n]));
 const deg=Math.PI/180;
 const introEase=(n:number)=>n*n*(3-2*n);
+const INTRO_SECONDS=8.5;
 const NIGHT_ZENITH=new THREE.Color('#08152a'),NIGHT_HORIZON=new THREE.Color('#1c2c42'),NIGHT_GROUND=new THREE.Color('#1c2c35'),NIGHT_CLOUD=new THREE.Color('#283951'),WARM_HORIZON=new THREE.Color('#d9a982'),WARM_SUN=new THREE.Color('#ffbc82'),NIGHT_AMBIENT=new THREE.Color('#879fc4'),CLEAR_HAZE=new THREE.Color('#c8d3d9');
 
 /** Rendering owns presentation only; simulation remains deterministic and independently testable. */
@@ -26,36 +28,72 @@ export class AirportScene {
  public cameraMode:CameraMode='orbit';public fps=60;
  public readonly assetsReady:Promise<void>;
  private post:HighQualityPass|null=null;private readonly reflectionMaterials=new Set<THREE.MeshStandardMaterial>();
- private hallReflectionTimer=0;
+ private readonly terminalFloors=new Set<THREE.MeshStandardMaterial>();
+ private indoorWalk=false;
  private weatherVisualKey='';private cachedLightingKey='';private cachedLighting:ReturnType<typeof lightingState>|null=null;
  private readonly hallLights:THREE.RectAreaLight[]=[];
- private readonly hallReflectionTargets=new Map<string,{target:THREE.WebGLRenderTarget;lighting:string}>();
  private readonly scene=new THREE.Scene();private readonly camera=new THREE.PerspectiveCamera(53,1,.25,40000);private readonly renderer:THREE.WebGLRenderer;private readonly controls:OrbitControls;private readonly environment:Environment;
  private readonly introCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-2250,1100,1700),new THREE.Vector3(-650,390,420),new THREE.Vector3(tower.x+80,tower.cabHeight+24,tower.z+85),new THREE.Vector3(tower.x,tower.cabHeight+2.35,tower.z-2.2)]);private readonly introPosition=new THREE.Vector3();private readonly introLook=new THREE.Vector3();private readonly introCabLook=new THREE.Vector3(tower.x,tower.cabHeight+1.8,tower.z-130);
- private readonly ambient=new THREE.HemisphereLight('#c4e0e9','#596a56',2.25);private readonly sun=new THREE.DirectionalLight('#ffe5bb',3.6);private readonly raycaster=new THREE.Raycaster();private readonly pointer=new THREE.Vector2();private readonly visuals=new Map<string,AircraftVisual>();private readonly presentAircraftIds=new Set<string>();private readonly labels:HTMLDivElement;private readonly selection:THREE.Mesh;private readonly route:THREE.Line;private readonly sky:THREE.Mesh;private readonly rain:THREE.LineSegments;private reflection:THREE.WebGLRenderTarget;private readonly apronFill=new THREE.PointLight('#e9f1ff',0,240,2);private readonly apronFill2=new THREE.PointLight('#e9f1ff',0,240,2);private readonly cabLight=new THREE.PointLight('#ffe7c5',0,32,2);private readonly shadowFocus=new THREE.Vector3();private shadowExtent=0;
+ private readonly ambient=new THREE.HemisphereLight('#c4e0e9','#596a56',2.25);private readonly sun=new THREE.DirectionalLight('#ffe5bb',3.6);private readonly raycaster=new THREE.Raycaster();private readonly pointer=new THREE.Vector2();private readonly visuals=new Map<string,AircraftVisual>();private readonly presentAircraftIds=new Set<string>();private readonly labels:HTMLDivElement;private readonly selection:THREE.Mesh;private readonly route:THREE.Line;private readonly sky:THREE.Mesh;private readonly rain:THREE.LineSegments;private reflection:THREE.WebGLRenderTarget|null=null;private readonly apronFill=new THREE.PointLight('#e9f1ff',0,240,2);private readonly apronFill2=new THREE.PointLight('#e9f1ff',0,240,2);private readonly cabLight=new THREE.PointLight('#ffe7c5',0,32,2);private readonly shadowFocus=new THREE.Vector3();private shadowExtent=0;
  private readonly keys=new Set<string>();private readonly goalPosition=new THREE.Vector3();private readonly goalTarget=new THREE.Vector3();private readonly lookTarget=new THREE.Vector3();private readonly screenProjection=new THREE.Vector3();private readonly cameraForward=new THREE.Vector3();private readonly cameraRight=new THREE.Vector3();private readonly cameraMove=new THREE.Vector3();private readonly cameraDirection=new THREE.Vector3();private readonly followTarget=new THREE.Vector3();private readonly followBehind=new THREE.Vector3();private readonly labelBoxes:{x:number;y:number}[]=[];private readonly groundAircraft:Aircraft[]=[];private readonly aircraftByGate=new Map<string,Aircraft>();private readonly sunAnchor=new THREE.Vector3();private readonly groundTextDetails:THREE.Object3D[]=[];private readonly observer:ResizeObserver;
  private selectedId:string|null=null;private simulation:SimulationAPI|null=null;private elapsed=0;private screenTimer=1;private labelTimer=0;private fpsSampleStart=performance.now();private frames=0;private intro=-1;private immersive=false;private quality:'low'|'medium'|'high'='medium';private renderPixelRatio=0;private followShadowFrozen=false;private smoothedShadowExtent=0;private yaw=0;private pitch=0;private drag:{x:number;y:number;lastX:number;lastY:number;distance:number}|null=null;private transition=0;private routeKey='';private disposed=false;private exploreSpotId:ExploreSpotId='runway';
- constructor(private readonly container:HTMLElement,private readonly onSelect:(id:string)=>void,private readonly onWorkstation:()=>void) {
-  this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance',logarithmicDepthBuffer:true});this.renderer.setPixelRatio(Math.min(Math.max(1,window.devicePixelRatio)*1.1,1.65));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.AgXToneMapping;this.renderer.toneMappingExposure=1.1;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.domElement.style.cssText='display:block;width:100%;height:100%;outline:none;touch-action:none';this.renderer.domElement.tabIndex=0;this.renderer.domElement.setAttribute('aria-label','Interactive 3D Taoyuan Airport. Drag to look, scroll to zoom; select aircraft.');container.appendChild(this.renderer.domElement);
+ private viewWidth=0;private viewHeight=0;
+ private readonly displayBounds=new THREE.Box3();private readonly viewFrustum=new THREE.Frustum();private readonly viewProjection=new THREE.Matrix4();
+ private readonly shadowReceivers=new ShadowReceivers();private readonly shadowCullView=new THREE.Matrix4();private readonly shadowCullSun=new THREE.Vector3();private shadowCullMargin=-1;
+ static async create(container:HTMLElement,onSelect:(id:string)=>void,onWorkstation:()=>void,requestView:()=>void){
+  // Decode reference assets while the fixed scenery is built in stages.
+  void skyImage().catch(()=>{});void prepareLiveries().catch(()=>{});
+  const environment=await createEnvironment();
+  return new AirportScene(environment,container,onSelect,onWorkstation,requestView);
+ }
+ private constructor(environment:Environment,private readonly container:HTMLElement,private readonly onSelect:(id:string)=>void,private readonly onWorkstation:()=>void,private readonly requestView:()=>void) {
+  this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance',logarithmicDepthBuffer:true});this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.AgXToneMapping;this.renderer.toneMappingExposure=1.1;this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.domElement.style.cssText='display:block;width:100%;height:100%;outline:none;touch-action:none';this.renderer.domElement.tabIndex=0;this.renderer.domElement.setAttribute('aria-label','Interactive 3D Taoyuan Airport. Drag to look, scroll to zoom; select aircraft.');container.appendChild(this.renderer.domElement);
   this.labels=document.createElement('div');this.labels.className='world-labels';this.labels.style.cssText='position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2';container.appendChild(this.labels);this.injectStyles();
-  this.environment=createEnvironment();this.environment.group.traverse(o=>{if(o instanceof THREE.RectAreaLight&&o.userData.hallLightBounds)this.hallLights.push(o);if(o.userData.distantGroundText)this.groundTextDetails.push(o);});this.scene.add(this.environment.group);this.reflection=makeSkyEnvironment(this.renderer);this.applyReflections(this.environment.group);this.scene.add(this.ambient,this.sun,this.apronFill,this.apronFill2,this.cabLight);this.cabLight.position.set(tower.x,tower.cabHeight+4.6,tower.z);this.sun.position.set(-1500,2800,-2200);this.sun.castShadow=true;this.sun.shadow.mapSize.set(2048,2048);Object.assign(this.sun.shadow.camera,{left:-1600,right:1600,top:1400,bottom:-1400,near:100,far:6500});this.sun.shadow.bias=-.00010;this.sun.shadow.normalBias=.16;this.sun.shadow.radius=2;this.scene.add(this.sun.target);
-  this.scene.environment=this.reflection.texture;
-  this.assetsReady=Promise.all([realEnvironment(this.renderer),skyImage(),prepareLiveries()]).then(([environment,photo])=>{if(this.disposed){environment.dispose();return;}const previous=this.reflection;this.reflection=environment;this.weatherVisualKey='';this.scene.environment=this.quality==='high'?environment.texture:null;const sky=this.sky.material as THREE.ShaderMaterial;sky.uniforms.photoSky.value=photo;sky.uniforms.hasPhotoSky.value=1;for(const m of this.reflectionMaterials){m.envMap=(m.userData.reflectionMap as THREE.Texture|undefined)??environment.texture;m.needsUpdate=true;}this.updateTextureAnisotropy();previous.dispose();});
+  this.environment=environment;this.environment.group.traverse(o=>{if(o instanceof THREE.RectAreaLight&&o.userData.hallLightBounds)this.hallLights.push(o);if(o.userData.distantGroundText)this.groundTextDetails.push(o);});this.scene.add(this.environment.group);this.applyReflections(this.environment.group);this.scene.add(this.ambient,this.sun,this.apronFill,this.apronFill2,this.cabLight);this.cabLight.position.set(tower.x,tower.cabHeight+4.6,tower.z);this.sun.position.set(-1500,2800,-2200);this.sun.castShadow=true;this.sun.shadow.mapSize.set(2048,2048);Object.assign(this.sun.shadow.camera,{left:-1600,right:1600,top:1400,bottom:-1400,near:100,far:6500});this.sun.shadow.bias=-.00010;this.sun.shadow.normalBias=.16;this.sun.shadow.radius=2;this.scene.add(this.sun.target);
+  for(const display of this.environment.screens){display.updateWorldMatrix(true,false);this.displayBounds.expandByObject(display);}
   this.sky=createSky();this.scene.add(this.sky);this.scene.fog=new THREE.FogExp2('#c8d8e2',.000055);this.rain=createRain();this.scene.add(this.rain);
   const ring=new THREE.RingGeometry(34.6,35,96);this.selection=new THREE.Mesh(ring,new THREE.MeshBasicMaterial({color:'#9bc9c5',transparent:true,opacity:.35,depthWrite:false,side:THREE.DoubleSide}));this.selection.rotation.x=-Math.PI/2;this.selection.visible=false;this.scene.add(this.selection);this.route=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:'#62f7cf',transparent:true,opacity:.95,depthTest:false}));this.route.renderOrder=4;this.scene.add(this.route);
   this.camera.position.set(-2260,1460,2120);this.lookTarget.set(-130,0,-70);this.camera.lookAt(this.lookTarget);this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.target.copy(this.lookTarget);this.controls.enableDamping=true;this.controls.dampingFactor=.065;this.controls.maxPolarAngle=Math.PI*.488;this.controls.minDistance=22;this.controls.maxDistance=12500;this.controls.zoomSpeed=.65;this.controls.panSpeed=.65;this.controls.rotateSpeed=.45;
-  this.renderer.domElement.addEventListener('pointerdown',this.pointerDown);window.addEventListener('pointermove',this.pointerMove);window.addEventListener('pointerup',this.pointerUp);window.addEventListener('keydown',this.keyDown);window.addEventListener('keyup',this.keyUp);window.addEventListener('blur',this.blur);this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(container);this.resize();
+  this.renderer.domElement.addEventListener('pointerdown',this.pointerDown);window.addEventListener('pointermove',this.pointerMove);window.addEventListener('pointerup',this.pointerUp);window.addEventListener('keydown',this.keyDown);window.addEventListener('keyup',this.keyUp);window.addEventListener('blur',this.blur);this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(container);
+  this.assetsReady=this.loadAssets();
+ }
+ private async loadAssets(){
+  // Wait for the final HDR probe before the first frame. Build the procedural
+  // probe only when the HDR asset fails to load.
+  const [probe,photo]=await Promise.allSettled([realEnvironment(this.renderer),skyImage(),prepareLiveries()] as const);
+  if(this.disposed){if(probe.status==='fulfilled')probe.value.dispose();return;}
+  this.reflection=probe.status==='fulfilled'?probe.value:makeSkyEnvironment(this.renderer);
+  this.scene.environment=this.quality==='high'?this.reflection.texture:null;
+  if(photo.status==='fulfilled'){
+   const sky=this.sky.material as THREE.ShaderMaterial;
+   sky.uniforms.photoSky.value=photo.value;sky.uniforms.hasPhotoSky.value=1;
+  }
+  for(const m of this.reflectionMaterials){m.envMap=this.reflection.texture;m.needsUpdate=true;}
+  this.weatherVisualKey='';this.updateTextureAnisotropy();
  }
  private lightingFor(sim:SimulationAPI){const key=`${sim.time}|${sim.scenario.date}|${sim.weather.kind}`;if(key!==this.cachedLightingKey){this.cachedLightingKey=key;this.cachedLighting=lightingState((sim.time/3600)%24,sim.weather.kind,sim.scenario.date);}return this.cachedLighting!;}
  private injectStyles(){if(document.getElementById('airport-scene-styles'))return;const style=document.createElement('style');style.id='airport-scene-styles';style.textContent=`.aircraft-label{position:absolute;left:0;top:0;transform:translate(-50%,-100%);display:flex;align-items:center;gap:5px;border:1px solid #b8d0c733;border-radius:4px;background:#102b34d9;color:#deede9;padding:5px 7px;font:600 10px ui-monospace,SFMono-Regular,Consolas,monospace;white-space:nowrap;box-shadow:0 2px 8px #09202b33;cursor:pointer;pointer-events:auto;backdrop-filter:blur(8px);transition:background .15s,border-color .15s}.aircraft-label small{font:400 8px ui-monospace,monospace;color:#b0c7c7;padding-left:3px;border-left:1px solid #799c9c55}.aircraft-label .label-dot{width:4px;height:4px;border-radius:50%;background:#91d7c6}.aircraft-label.selected{border-color:#6ee7c0;background:#0c413eeb;color:#d0ffe9;z-index:3}.aircraft-label.selected .label-dot{background:#79ffd1}.aircraft-label:hover{border-color:#9cdbca;background:#163b43}.world-labels[hidden]{display:none}`;document.head.appendChild(style);}
- public resize(){const w=this.container.clientWidth,h=this.container.clientHeight;if(!w||!h)return;this.camera.aspect=w/h;this.camera.updateProjectionMatrix();this.renderer.setSize(w,h,false);this.post?.resize(w,h);}
- private updateRenderScale(){const dpr=Math.max(1,window.devicePixelRatio),factor=this.quality==='high'?2:1,max=this.quality==='high'?3:this.quality==='medium'?1.5:1,size=this.renderer.getSize(new THREE.Vector2()),textureLimit=this.renderer.capabilities.maxTextureSize/Math.max(size.x,size.y),ratio=Math.min(dpr*factor,max,textureLimit);if(Math.abs(ratio-this.renderPixelRatio)<.005)return;this.renderPixelRatio=ratio;this.renderer.setPixelRatio(ratio);this.resize();}
+ public resize(){
+  const w=this.container.clientWidth,h=this.container.clientHeight;
+  if(!w||!h)return;
+  const dpr=Math.max(1,window.devicePixelRatio),factor=this.quality==='high'?2:1,max=this.quality==='high'?3:this.quality==='medium'?1.5:1;
+  const ratio=Math.min(dpr*factor,max,this.renderer.capabilities.maxTextureSize/Math.max(w,h));
+  const changed=w!==this.viewWidth||h!==this.viewHeight||ratio!==this.renderPixelRatio;
+  if(changed){
+   this.viewWidth=w;this.viewHeight=h;this.renderPixelRatio=ratio;
+   this.camera.aspect=w/h;this.camera.updateProjectionMatrix();
+   this.renderer.setDrawingBufferSize(w,h,ratio);
+  }
+  this.post?.resize(w,h);
+  if(changed)this.requestView();
+ }
  private updateTextureAnisotropy(root:THREE.Object3D=this.scene){const anisotropy=Math.min(this.renderer.capabilities.getMaxAnisotropy(),this.quality==='high'?16:this.quality==='medium'?4:2),seen=new Set<THREE.Texture>();root.traverse(o=>{if(o instanceof THREE.Mesh)for(const m of Array.isArray(o.material)?o.material:[o.material]){const s=m as THREE.MeshStandardMaterial;for(const texture of [s.map,s.normalMap,s.roughnessMap,s.metalnessMap,s.emissiveMap,s.alphaMap])if(texture&&!seen.has(texture)){seen.add(texture);if(texture.anisotropy!==anisotropy){texture.anisotropy=anisotropy;texture.needsUpdate=true;}}}});}
- public setQuality(quality:'low'|'medium'|'high'){this.quality=quality;this.weatherVisualKey='';this.scene.environment=quality==='high'?this.reflection.texture:null;for(const material of this.environment.pavementMaterials)if(material.userData.groundDetailRange)material.userData.groundDetailRange.value=(quality==='high'?900:quality==='medium'?250:0)**2;this.renderer.shadowMap.enabled=quality!=='low';this.sun.shadow.mapSize.setScalar(quality==='high'?4096:2048);this.sun.shadow.map?.dispose();this.sun.shadow.map=null;this.sun.shadow.needsUpdate=true;this.followShadowFrozen=false;this.shadowExtent=0;this.smoothedShadowExtent=0;if(quality==='high'&&!this.post)this.post=new HighQualityPass(this.renderer,this.scene,this.camera);else if(quality!=='high'&&this.post){this.post.dispose();this.post=null;}this.updateTextureAnisotropy();this.updateRenderScale();}
+ public setQuality(quality:'low'|'medium'|'high'){this.quality=quality;this.weatherVisualKey='';this.scene.environment=quality==='high'?this.reflection?.texture??null:null;for(const material of this.environment.pavementMaterials)if(material.userData.groundDetailRange)material.userData.groundDetailRange.value=(quality==='high'?900:quality==='medium'?250:0)**2;this.renderer.shadowMap.enabled=quality!=='low';this.sun.shadow.mapSize.setScalar(quality==='high'?4096:2048);this.sun.shadow.map?.dispose();this.sun.shadow.map=null;this.sun.shadow.autoUpdate=true;this.sun.shadow.needsUpdate=true;this.followShadowFrozen=false;this.shadowExtent=0;this.smoothedShadowExtent=0;if(quality==='high'&&!this.post)this.post=new HighQualityPass(this.renderer,this.scene,this.camera);else if(quality!=='high'&&this.post){this.post.dispose();this.post=null;}this.updateTextureAnisotropy();this.resize();this.requestView();}
  public setGraphVisible(visible:boolean){this.environment.graph.visible=visible;}
  public setImmersive(value:boolean){this.immersive=value;this.labels.hidden=value;}
  public audioPosition(){return this.camera.position;}
  public startIntro(){this.introCurve.getLengths();this.intro=0;this.controls.enabled=false;this.camera.position.set(-2250,1100,1700);this.camera.lookAt(tower.x,20,tower.z);}
+ public get introFinished(){return this.intro>=INTRO_SECONDS;}
  public skipIntro(){this.intro=-1;this.setCamera('seat');this.camera.position.copy(this.goalPosition);this.lookTarget.copy(this.goalTarget);this.camera.lookAt(this.lookTarget);this.transition=0;}
  public setCamera(mode:CameraMode){if(mode==='explore'){this.goToExploreSpot(this.exploreSpotId);return;}this.intro=-1;this.cameraMode=mode;this.transition=1.15;const a=this.getSelected();this.controls.enabled=['orbit','runway','gate'].includes(mode);this.controls.enablePan=mode==='orbit';this.camera.fov=['seat','walk','window'].includes(mode)?70:53;this.camera.near=['seat','walk','window'].includes(mode)?.15:.7;this.camera.updateProjectionMatrix();
   switch(mode){
@@ -68,83 +106,109 @@ export class AirportScene {
    case 'runway':{const r=runways.find(r=>r.id===(a?.runway==='05R'||a?.runway==='23L'?'south':'north'))??runways[0],direction=this.simulation?.activeDirection??'05';this.goalPosition.set(r.x+(direction==='05'?-1:1)*(r.length/2+100),22,r.z+105);this.goalTarget.set(r.x,8,r.z);break;}
    case 'gate':{const g=gates.find(g=>g.id===a?.gate)??gates[0];this.goalPosition.set(g.x-90,42,g.z+(g.z<0?-85:85));this.goalTarget.set(g.x,6,g.z);break;}
   }
-  const d=new THREE.Vector3().subVectors(this.goalTarget,this.goalPosition).normalize();this.yaw=Math.atan2(-d.x,-d.z);this.pitch=Math.asin(d.y);if(mode==='follow')this.transition=.5;this.updateRenderScale();
+  const d=new THREE.Vector3().subVectors(this.goalTarget,this.goalPosition).normalize();this.yaw=Math.atan2(-d.x,-d.z);this.pitch=Math.asin(d.y);if(mode==='follow')this.transition=.5;
  }
  public goToExploreSpot(id:ExploreSpotId){
-  this.exploreSpotId=id;this.keys.clear();
+  this.exploreSpotId=id;this.keys.clear();this.indoorWalk=isIndoorExploreSpot(exploreSpot(id));
   if(id==='tower'){
    this.setCamera('walk');this.camera.position.copy(this.goalPosition);this.lookTarget.copy(this.goalTarget);this.camera.lookAt(this.lookTarget);this.transition=0;
   }else{
    const spot=exploreSpot(id);this.intro=-1;this.transition=0;this.cameraMode='explore';this.controls.enabled=false;this.camera.fov=70;this.camera.near=.15;this.camera.updateProjectionMatrix();
    this.camera.position.set(spot.position.x,spot.position.y,spot.position.z);this.lookTarget.set(spot.target.x,spot.target.y,spot.target.z);
-   const d=new THREE.Vector3().subVectors(this.lookTarget,this.camera.position).normalize();this.yaw=Math.atan2(-d.x,-d.z);this.pitch=Math.asin(d.y);this.camera.lookAt(this.lookTarget);this.updateRenderScale();
+   const d=new THREE.Vector3().subVectors(this.lookTarget,this.camera.position).normalize();this.yaw=Math.atan2(-d.x,-d.z);this.pitch=Math.asin(d.y);this.camera.lookAt(this.lookTarget);
   }
   this.renderer.domElement.focus({preventScroll:true});
+  this.sky.position.copy(this.camera.position);
   this.updateHallLights();
+  this.smoothedShadowExtent=0;
+  if(this.sunAnchor.lengthSq()>0)this.updateShadowFocus(0);
+  this.updateViewFrustum();
+  if(this.simulation)this.updateDisplays(this.simulation,0);
   // Present the new camera together with its HUD selection, including while
   // paused or when the next animation frame is throttled by the host browser.
   this.renderView();
-  this.refreshHallReflection(id);
  }
- private renderView(){if(this.post)this.post.render();else this.renderer.render(this.scene,this.camera);}
+ private renderView(){
+  this.cullStaticShadows();
+  if(this.post)this.post.render();else this.renderer.render(this.scene,this.camera);
+ }
  private updateHallLights(){
-  const p=this.camera.position;
-  for(const light of this.hallLights){const b=light.userData.hallLightBounds;light.visible=this.cameraMode==='explore'&&p.x>b.left&&p.x<b.right&&p.z>b.near&&p.z<b.far&&p.y>b.bottom&&p.y<b.top;}
- }
- /** Capture the built hall once on entry; no extra reflection render per frame. */
- private refreshHallReflection(id:ExploreSpotId){
-  const spot=exploreSpot(id),arrival=id==='t1-arrivals'||id==='t1-arrival-services',
-   profile=id.startsWith('t1-')&&spot.floor===0&&!arrival?'T1':id.startsWith('t2-')&&spot.floor===12.35?'T2':undefined,
-   zone='checkin',probeKey=`${profile}:${zone}`;
-  if(!profile||this.quality!=='high')return;
-  void this.assetsReady.then(()=>{
-   if(this.disposed||this.quality!=='high'||this.exploreSpotId!==id)return;
-   const lighting=`${Math.floor((this.simulation?.time??0)/3600)}:${this.simulation?.weather.kind??'clear'}`,previous=this.hallReflectionTargets.get(probeKey);
-   if(previous?.lighting===lighting)return;
-   const terminal=terminals.find(t=>t.id===profile)!,cube=new THREE.WebGLCubeRenderTarget(128,{type:THREE.HalfFloatType,generateMipmaps:true,minFilter:THREE.LinearMipmapLinearFilter}),probe=new THREE.CubeCamera(.3,250,cube),generator=new THREE.PMREMGenerator(this.renderer),autoShadow=this.renderer.shadowMap.autoUpdate;
-   // Probes sit above the public floor. They include the actual counters,
-   // ceiling and clerestory, instead of drawing an invented ceiling on a map.
-   probe.position.set(terminal.x+(profile==='T1'?37:-34),spot.floor+1.4,terminal.z);
-   probe.layers.set(HALL_REFLECTION_LAYER[profile]);this.ambient.layers.enableAll();this.sun.layers.enableAll();
-   try{
-    this.renderer.shadowMap.autoUpdate=false;probe.update(this.renderer,this.scene);
-    const target=generator.fromCubemap(cube.texture);
-    for(const floor of this.reflectionMaterials)if(floor.userData.terminalFloorProfile===profile&&floor.userData.terminalFloorZone===zone){
-     floor.userData.reflectionMap=target.texture;floor.envMap=target.texture;floor.needsUpdate=true;
-    }
-    this.hallReflectionTargets.set(probeKey,{target,lighting});previous?.target.dispose();
-   }finally{this.renderer.shadowMap.autoUpdate=autoShadow;generator.dispose();cube.dispose();if(this.exploreSpotId===id)this.renderView();}
-  }).catch(error=>console.warn('Interior reflection uses its existing fallback.',error));
- }
- /** Shared floor finishes outlive a watch; never leave a disposed probe in
-  * their cached material when the user exits and starts another session. */
- private releaseHallReflections(){
-  const textures=new Set([...this.hallReflectionTargets.values()].map(p=>p.target.texture));
-  for(const floor of this.reflectionMaterials)if(textures.has(floor.userData.reflectionMap)){
-   floor.userData.reflectionMap=floor.userData.fallbackReflectionMap;
-   floor.envMap=floor.userData.reflectionMap??null;floor.needsUpdate=true;
+  const p=this.camera.position,weather=this.cachedLighting;
+  const scale=weather?1+.54*weather.artificial+.14*weather.cloudiness*weather.daylight:1;
+  for(const light of this.hallLights){
+   const b=light.userData.hallLightBounds;
+   light.visible=this.cameraMode==='explore'&&p.x>b.left&&p.x<b.right&&p.z>b.near&&p.z<b.far&&p.y>b.bottom&&p.y<b.top;
+   if(light.visible)light.intensity=light.userData.hallLightIntensity*scale;
   }
-  for(const probe of this.hallReflectionTargets.values())probe.target.dispose();
-  this.hallReflectionTargets.clear();
  }
  private getSelected(){return this.simulation?.aircraft.find(a=>a.id===this.selectedId)??this.simulation?.aircraft.find(a=>!a.completed);}
- public update(sim:SimulationAPI,selectedId:string|null,dt:number){if(this.disposed)return;this.simulation=sim;this.selectedId=selectedId;this.elapsed+=dt;this.frames++;const now=performance.now(),fpsElapsed=now-this.fpsSampleStart;if(fpsElapsed>750){this.fps=Math.round(this.frames*1000/fpsElapsed);this.frames=0;this.fpsSampleStart=now;}
+ public update(sim:SimulationAPI,selectedId:string|null,dt:number,introDelta=dt){if(this.disposed)return;this.simulation=sim;this.selectedId=selectedId;this.elapsed+=dt;this.frames++;const now=performance.now(),fpsElapsed=now-this.fpsSampleStart;if(fpsElapsed>750){this.fps=Math.round(this.frames*1000/fpsElapsed);this.frames=0;this.fpsSampleStart=now;}
   const present=this.presentAircraftIds;present.clear();for(const a of sim.aircraft)if(!a.completed||a.state==='DOCKED')present.add(a.id);for(const[id]of this.visuals)if(!present.has(id))this.retireAircraft(id);
   const aircraftShadowStrength=this.quality==='low'?this.lightingFor(sim).shadowStrength:0;
   for(const a of sim.aircraft){if(a.completed&&a.state!=='DOCKED')continue;let v=this.visuals.get(a.id);if(v&&(v.group.userData.visualType!==a.type||v.group.userData.visualAirline!==a.airline||v.group.userData.visualFlightNumber!==a.flightNumber)){this.retireAircraft(a.id);v=undefined;}if(!v){const profile=FLEET[a.type]??FLEET.A320,airline=AIRLINES[a.airline]??AIRLINES.EVA;v=createAircraft(profile,airline,a,this.onSelect);this.applyReflections(v.group);this.updateTextureAnisotropy(v.group);this.visuals.set(a.id,v);this.scene.add(v.group,v.shadow);this.labels.appendChild(v.label);}updateAircraft(v,a,this.elapsed,dt,aircraftShadowStrength,dt*Math.min(3,Math.max(0,sim.timeScale)),sim.time);v.label.classList.toggle('selected',a.id===selectedId);const title=`${a.callsign} · ${a.state.replaceAll('_',' ')}`;if(v.label.title!==title)v.label.title=title;}
   const selected=sim.aircraft.find(a=>a.id===selectedId&&!a.completed);this.selection.visible=!!selected;if(selected){const span=(FLEET[selected.type]?.span??36);this.selection.scale.setScalar(span/55);this.selection.position.set(selected.position.x,selected.position.y+ .45,selected.position.z);(this.selection.material as THREE.MeshBasicMaterial).opacity=.35;}
-  this.updateRoute(selected);this.updateWeather(sim,dt);this.updateCamera(dt);this.updateHallLights();for(const v of this.visuals.values()){const distance=this.camera.position.distanceTo(v.group.position);v.nearDetail.visible=distance<(this.quality==='high'?900:this.quality==='low'?130:260);if(distance>(this.quality==='high'?900:450)){v.standService.group.visible=false;v.marshaller.visible=false;}}this.updateVehicles(sim,dt);this.screenTimer+=dt;if(this.screenTimer>.8){this.environment.updateScreens(sim);this.screenTimer=0;}
-  this.labelTimer+=dt;if(this.labelTimer>.045){this.updateLabels(sim);this.labelTimer=0;}this.sky.position.copy(this.camera.position);this.updateShadowFocus(dt);if(this.post)this.post.render();else this.renderer.render(this.scene,this.camera);
+  this.updateRoute(selected);this.updateWeather(sim,dt);this.updateCamera(dt,introDelta);this.updateViewFrustum();this.updateHallLights();for(const v of this.visuals.values()){const distance=this.camera.position.distanceTo(v.group.position);v.nearDetail.visible=distance<(this.quality==='high'?900:this.quality==='low'?130:260);if(distance>(this.quality==='high'?900:450)){v.standService.group.visible=false;v.marshaller.visible=false;}}this.updateVehicles(sim,dt);this.updateDisplays(sim,dt);
+  this.labelTimer+=dt;if(this.labelTimer>.045){this.updateLabels(sim);this.labelTimer=0;}this.sky.position.copy(this.camera.position);this.updateShadowFocus(dt);this.renderView();
+ }
+ private updateViewFrustum(){
+  this.camera.updateMatrixWorld();
+  this.viewFrustum.setFromProjectionMatrix(this.viewProjection.multiplyMatrices(this.camera.projectionMatrix,this.camera.matrixWorldInverse));
+ }
+ private updateDisplays(sim:SimulationAPI,dt:number){
+  updateTerminal2ArrivalClock(sim.time);
+  if(!this.viewFrustum.intersectsBox(this.displayBounds)){this.screenTimer=1;return;}
+  this.screenTimer+=dt;
+  if(this.screenTimer>.8){this.environment.updateScreens(sim);this.screenTimer=0;}
+ }
+ private cullStaticShadows(){
+  if(!this.sun.visible||!this.renderer.shadowMap.enabled||this.sunAnchor.lengthSq()===0)return;
+  const casters=this.environment.shadowCasters;
+  if(this.cameraMode==='follow'&&this.intro<0){
+   // Follow preserves the existing frozen shadow map as its camera moves.
+   if(this.shadowCullMargin>=0)for(const {mesh} of casters)mesh.castShadow=true;
+   this.shadowCullMargin=-1;return;
+  }
+  // Keep casters that can touch the PCF footprint, including the normal bias
+  // and depth comparison offset at the edge of the visible camera volume.
+  const margin=2+12*this.shadowExtent/this.sun.shadow.mapSize.x+this.sun.shadow.normalBias;
+  if(this.shadowCullMargin===margin&&this.shadowCullView.equals(this.viewProjection)&&this.shadowCullSun.equals(this.sunAnchor))return;
+  this.shadowCullMargin=margin;this.shadowCullView.copy(this.viewProjection);this.shadowCullSun.copy(this.sunAnchor);
+  this.shadowReceivers.set(this.viewFrustum,this.sunAnchor);
+  for(const {mesh,bounds} of casters)mesh.castShadow=this.shadowReceivers.intersects(bounds,margin);
  }
  private updateRoute(a:Aircraft|undefined){const key=a?a.id+':'+a.route.join(',')+':'+a.routeIndex:'';if(key===this.routeKey)return;this.routeKey=key;this.route.geometry.dispose();const points:THREE.Vector3[]=[];if(a&&a.position.y<10){points.push(new THREE.Vector3(a.position.x,1.8,a.position.z));for(const id of a.route.slice(Math.max(0,a.routeIndex))){const n=nodeMap.get(id);if(n)points.push(new THREE.Vector3(n.x,1.8,n.z));}}this.route.geometry=new THREE.BufferGeometry().setFromPoints(points);this.route.visible=points.length>1;}
- private applyReflections(object:THREE.Object3D){object.traverse(o=>{if(o instanceof THREE.Mesh){const mats=Array.isArray(o.material)?o.material:[o.material];for(const m of mats){if(m instanceof THREE.MeshStandardMaterial&&(m.userData.coastalWater||m.metalness>.05||(m as THREE.MeshPhysicalMaterial).clearcoat>0)&&m.roughness<.85){m.envMap=(m.userData.reflectionMap as THREE.Texture|undefined)??this.reflection.texture;m.envMapIntensity=m.userData.coastalWater?.65:typeof m.userData.reflectionIntensity==='number'?m.userData.reflectionIntensity:.7;if(!this.reflectionMaterials.has(m))this.weatherVisualKey='';this.reflectionMaterials.add(m);m.needsUpdate=true;}}}});}
+ private applyReflections(object:THREE.Object3D){
+  object.traverse(o=>{
+   if(!(o instanceof THREE.Mesh))return;
+   for(const m of Array.isArray(o.material)?o.material:[o.material]){
+    if(!(m instanceof THREE.MeshStandardMaterial))continue;
+    if(m.userData.terminalFloorLighting){this.terminalFloors.add(m);continue;}
+    if((m.userData.coastalWater||m.metalness>.05||(m as THREE.MeshPhysicalMaterial).clearcoat>0)&&m.roughness<.85){
+     m.envMap=this.reflection?.texture??null;
+     m.envMapIntensity=m.userData.coastalWater?.65:.7;
+     if(!this.reflectionMaterials.has(m))this.weatherVisualKey='';
+     this.reflectionMaterials.add(m);m.needsUpdate=true;
+    }
+   }
+  });
+ }
  private updateShadowFocus(dt:number){
+  if(!this.sun.visible||!this.renderer.shadowMap.enabled)return;
   if(this.cameraMode==='follow'&&this.followShadowFrozen){this.sun.position.copy(this.sunAnchor).add(this.shadowFocus);this.sun.target.position.copy(this.shadowFocus);return;}
   if(this.cameraMode!=='follow'&&this.followShadowFrozen){this.sun.shadow.autoUpdate=true;this.sun.shadow.needsUpdate=true;this.followShadowFrozen=false;}
-  const distance=this.camera.position.distanceTo(this.lookTarget),cab=['seat','walk','window'].includes(this.cameraMode),targetExtent=cab?1050:distance<450?260:distance<1300?800:2400;
+  const distance=this.camera.position.distanceTo(this.lookTarget),cab=['seat','walk','window'].includes(this.cameraMode);
+  const room=this.cameraMode==='explore'&&this.indoorWalk;
+  const targetExtent=room?72:cab?1050:distance<450?260:distance<1300?800:2400;
   this.smoothedShadowExtent=this.smoothedShadowExtent===0?targetExtent:THREE.MathUtils.damp(this.smoothedShadowExtent,targetExtent,2.8,Math.min(dt,.1));
-  const extent=Math.max(260,Math.round(this.smoothedShadowExtent/8)*8);
-  this.shadowFocus.copy(this.lookTarget);this.shadowFocus.y=0;const texel=extent*2/this.sun.shadow.mapSize.x;this.shadowFocus.x=Math.round(this.shadowFocus.x/texel)*texel;this.shadowFocus.z=Math.round(this.shadowFocus.z/texel)*texel;
+  const extent=Math.max(room?72:260,Math.round(this.smoothedShadowExtent/8)*8),texel=extent*2/this.sun.shadow.mapSize.x;
+  // A short indoor shadow frustum stays with the walker. The 100 m look
+  // vector would move the useful samples down the corridor when turning.
+  this.shadowFocus.copy(room?this.camera.position:this.lookTarget);
+  if(!room)this.shadowFocus.y=0;
+  this.shadowFocus.x=Math.round(this.shadowFocus.x/texel)*texel;
+  this.shadowFocus.z=Math.round(this.shadowFocus.z/texel)*texel;
+  this.sun.shadow.normalBias=room?Math.max(.022,texel*.77):.16;
+  this.sun.shadow.bias=room?-.000037:-.00010;
   this.sun.position.copy(this.sunAnchor).add(this.shadowFocus);this.sun.target.position.copy(this.shadowFocus);
   if(this.shadowExtent!==extent){Object.assign(this.sun.shadow.camera,{left:-extent,right:extent,top:extent,bottom:-extent,near:100,far:8000});this.sun.shadow.camera.updateProjectionMatrix();this.shadowExtent=extent;}
   if(this.cameraMode==='follow'&&this.transition<=0){this.sun.shadow.autoUpdate=false;this.sun.shadow.needsUpdate=true;this.followShadowFrozen=true;}
@@ -154,7 +218,6 @@ export class AirportScene {
   const weatherKey=`${sim.time}|${sim.scenario.date}|${weather}|${sim.weather.visibility}|${sim.weather.windDirection}|${sim.weather.windSpeed}|${sim.weather.wetness}|${this.quality}|${this.renderPixelRatio}`;
   const refreshWeather=weatherKey!==this.weatherVisualKey;
   this.environment.updateVegetation(this.elapsed,sim.weather.windDirection,sim.weather.windSpeed,sim.weather.wetness);
-  this.hallReflectionTimer+=dt;if(this.hallReflectionTimer>5){this.hallReflectionTimer=0;if(this.cameraMode==='explore')this.refreshHallReflection(this.exploreSpotId);}
   updateSurfaceAtmosphere(this.elapsed,cloudiness,sim.weather.windDirection,sim.weather.windSpeed,day);
   const mat=this.sky.material as THREE.ShaderMaterial,sea=this.environment.water;
   this.sunAnchor.set(light.x*4200,Math.max(140,light.up*4200),light.z*4200);this.sun.position.copy(this.sunAnchor);
@@ -167,33 +230,57 @@ export class AirportScene {
   this.weatherVisualKey=weatherKey;
   this.ambient.intensity=(this.quality==='high'?.25+day*.55:.40+day*.85)*light.daylight+.32*(1-light.daylight);this.ambient.color.set('#c8dcf0').lerp(NIGHT_AMBIENT,1-light.daylight);this.ambient.groundColor.set('#58614f');
   this.sun.intensity=day*4.1*(1-cloudiness*.73);this.sun.color.set('#fff0db').lerp(WARM_SUN,dusk*.75);this.renderer.toneMappingExposure=1+.12*light.artificial;this.scene.environmentIntensity=.055*(1-light.daylight)+(.24+day*.48)*light.daylight;
+  const sunVisible=this.sun.intensity>0;
+  if(this.sun.visible!==sunVisible){
+   this.sun.visible=sunVisible;
+   this.sun.shadow.autoUpdate=true;this.sun.shadow.needsUpdate=true;this.followShadowFrozen=false;
+  }
   mat.uniforms.zenith.value.set(cloudiness>.7?'#758b9b':'#387ab6').lerp(NIGHT_ZENITH,1-light.daylight);mat.uniforms.horizon.value.set(cloudiness>.7?'#aebdc7':'#c5dce9').lerp(WARM_HORIZON,dusk*.65).lerp(NIGHT_HORIZON,1-light.daylight);mat.uniforms.ground.value.set('#a0b1ad').lerp(NIGHT_GROUND,1-light.daylight);mat.uniforms.cloudColor.value.set(weather==='storm'?'#8699a6':'#edf1f3').lerp(NIGHT_CLOUD,1-light.daylight);mat.uniforms.cloudCoverage.value=cloudiness;mat.uniforms.sunStrength.value=day*(1-cloudiness*.75);mat.uniforms.sunColor.value.copy(this.sun.color);mat.uniforms.twilight.value=dusk;mat.uniforms.daylight.value=light.daylight;const fog=this.scene.fog as THREE.FogExp2;fog.color.copy(mat.uniforms.horizon.value).lerp(CLEAR_HAZE,.8*light.daylight*(1-cloudiness*.7)*(1-dusk));fog.density=1.05/Math.max(350,sim.weather.visibility)+light.artificial*.000008;
   for(const m of this.reflectionMaterials){
    if(m===this.environment.water.material){m.envMapIntensity=.24*(1-light.daylight)+(.48+day*.38)*(1-cloudiness*.38)*light.daylight;continue;}
-   const indoorScale=typeof m.userData.reflectionIntensity==='number'?m.userData.reflectionIntensity:1;
-   m.envMapIntensity=m.userData.indoorReflection ? (.58+.14*light.daylight)*indoorScale : (.055*(1-light.daylight)+(.26+day*.40)*light.daylight)*indoorScale;
-   if(m.userData.terminalFloorProfile){
-    const profile=m.userData.terminalFloorProfile,zone=m.userData.terminalFloorZone,polished=zone==='arrivals'||zone==='checkin';
-    if(polished)m.emissiveIntensity=.035+light.artificial*.12;
-    else if(profile==='T2'&&zone!=='lower')m.emissiveIntensity=.20+light.artificial*.34;
-    else m.emissiveIntensity=.08+light.artificial*(profile==='T2'?.16:.22);
-   }
+   m.envMapIntensity=.055*(1-light.daylight)+(.26+day*.40)*light.daylight;
   }
-  for(const surface of this.environment.pavementMaterials){surface.roughness=1-sim.weather.wetness*.50;surface.metalness=0;if(surface.userData.surfaceWetness)surface.userData.surfaceWetness.value=THREE.MathUtils.clamp(sim.weather.wetness,0,1);surface.envMapIntensity=(.04+sim.weather.wetness*.012)*(1-light.daylight)+(.18+sim.weather.wetness*.25)*light.daylight;surface.color.copy(surface.userData.dryColor).multiplyScalar(1-sim.weather.wetness*.27);const env=sim.weather.wetness>.1&&this.quality!=='low'?this.reflection.texture:null;if(surface.envMap!==env){surface.envMap=env;surface.needsUpdate=true;}}
-  for(const lamp of this.environment.lights)lamp.opacity=.85*light.artificial+dusk*.18;
-  this.environment.distantLights.opacity=light.artificial*.68;
+  for(const floor of this.terminalFloors){
+   const {bounce,emission}=floor.userData.terminalFloorLighting;
+   floor.envMapIntensity=bounce*(.78+.22*light.daylight);
+   floor.emissiveIntensity=emission*(1+.46*light.artificial);
+  }
+  for(const surface of this.environment.pavementMaterials){surface.roughness=1-sim.weather.wetness*.50;surface.metalness=0;if(surface.userData.surfaceWetness)surface.userData.surfaceWetness.value=THREE.MathUtils.clamp(sim.weather.wetness,0,1);surface.envMapIntensity=(.04+sim.weather.wetness*.012)*(1-light.daylight)+(.18+sim.weather.wetness*.25)*light.daylight;surface.color.copy(surface.userData.dryColor).multiplyScalar(1-sim.weather.wetness*.27);const env=sim.weather.wetness>.1&&this.quality!=='low'?this.reflection?.texture??null:null;if(surface.envMap!==env){surface.envMap=env;surface.needsUpdate=true;}}
+  const {apronLightPools,distantLights}=this.environment;
+  apronLightPools.material.opacity=.85*light.artificial+dusk*.18;apronLightPools.visible=apronLightPools.material.opacity>0;
+  distantLights.material.opacity=light.artificial*.68;distantLights.visible=distantLights.material.opacity>0;
   const windRadians=sim.weather.windDirection*Math.PI/180;sea.waveStrength.value=Math.min(1.3,.3+sim.weather.windSpeed*.038);sea.windDirection.value.set(Math.sin(windRadians),Math.cos(windRadians));sea.sunDirection.value.set(light.x,Math.max(.015,light.up),light.z).normalize();sea.sunColor.value.copy(this.sun.color);sea.sunIntensity.value=this.sun.intensity;sea.cloudiness.value=cloudiness;sea.material.roughness=.15+Math.min(.21,sim.weather.windSpeed*.0055)+cloudiness*.045;sea.material.color.set(weather==='storm'?'#304650':weather==='rain'?'#395460':weather==='cloudy'?'#0d3e4b':'#0a3c50');
   const wind=windsockAngles(sim.weather.windDirection,sim.weather.windSpeed,runways[0].trueBearing);for(const sock of this.environment.windsocks)sock.rotation.set(wind.droop,wind.yaw,0,'YXZ');
   this.environment.ceilingMaterial.emissiveIntensity=.025*light.artificial+(.08+day*.30)*light.daylight;
   this.environment.windowMaterial.emissiveIntensity=light.artificial*.25+dusk*.1;this.environment.airfieldLightMaterial.uniforms.night.value=Math.max(light.artificial,dusk*.45);this.environment.airfieldLightMaterial.uniforms.pixelRatio.value=this.renderer.getPixelRatio();
   this.environment.apronLensMaterial.emissiveIntensity=light.artificial*2.2+dusk*.35;this.environment.dockLightMaterial.emissiveIntensity=light.artificial*1.5+dusk*.25;
  }
- private updateCamera(dt:number){if(this.intro>=0){this.intro+=dt;const t=Math.min(1,this.intro/8.5);this.introCurve.getPointAt(introEase(t),this.introPosition);this.camera.position.copy(this.introPosition);this.introLook.set(tower.x,40,tower.z);if(t>.7)this.introLook.lerp(this.introCabLook,(t-.7)/.3);this.lookTarget.copy(this.introLook);this.camera.lookAt(this.introLook);return;}
+ private updateCamera(dt:number,introDelta:number){if(this.intro>=0){this.intro+=introDelta;const t=Math.min(1,this.intro/INTRO_SECONDS);this.introCurve.getPointAt(introEase(t),this.introPosition);this.camera.position.copy(this.introPosition);this.introLook.set(tower.x,40,tower.z);if(t>.7)this.introLook.lerp(this.introCabLook,(t-.7)/.3);this.lookTarget.copy(this.introLook);this.camera.lookAt(this.introLook);return;}
   if(this.transition>0){const factor=1-Math.exp(-dt*6);this.camera.position.lerp(this.goalPosition,factor);this.lookTarget.lerp(this.goalTarget,factor);this.camera.lookAt(this.lookTarget);this.controls.target.copy(this.lookTarget);this.transition-=dt;return;}
   if(this.cameraMode==='follow'){const a=this.getSelected();if(a){const h=a.heading,target=this.followTarget.set(a.position.x,a.position.y+6,a.position.z),behind=this.followBehind.set(a.position.x-Math.sin(h)*135,a.position.y+52,a.position.z+Math.cos(h)*135);this.camera.position.lerp(behind,1-Math.exp(-dt*2));this.lookTarget.lerp(target,1-Math.exp(-dt*5));this.camera.lookAt(this.lookTarget);}return;}
   if(['orbit','runway','gate'].includes(this.cameraMode)){this.controls.update();this.lookTarget.copy(this.controls.target);return;}
   const forward=this.cameraForward.set(-Math.sin(this.yaw),0,-Math.cos(this.yaw)),right=this.cameraRight.crossVectors(forward,Y_AXIS),move=this.cameraMove.set(0,0,0),speed=this.cameraMode==='free'?(this.keys.has('Shift')?500:140):this.cameraMode==='explore'?(this.keys.has('Shift')?8:4):(this.keys.has('Shift')?6:3);
-  if(this.cameraMode==='walk'||this.cameraMode==='free'||this.cameraMode==='explore'){if(this.keys.has('w')||this.keys.has('ArrowUp'))move.add(forward);if(this.keys.has('s')||this.keys.has('ArrowDown'))move.sub(forward);if(this.keys.has('d')||this.keys.has('ArrowRight'))move.add(right);if(this.keys.has('a')||this.keys.has('ArrowLeft'))move.sub(right);if(this.cameraMode==='free'){if(this.keys.has('e'))move.y++;if(this.keys.has('q'))move.y--;}if(move.lengthSq()){move.normalize().multiplyScalar(speed*dt);if(this.cameraMode==='explore'){const spot=exploreSpot(this.exploreSpotId),p=moveExplorer(spot,this.camera.position,{x:this.camera.position.x+move.x,z:this.camera.position.z+move.z});this.camera.position.set(p.x,spot.floor+1.7,p.z);}else this.camera.position.add(move);}if(this.cameraMode==='walk'){const dx=this.camera.position.x-tower.x,dz=this.camera.position.z-tower.z,d=Math.hypot(dx,dz);if(d>11.15){this.camera.position.x=tower.x+dx/d*11.15;this.camera.position.z=tower.z+dz/d*11.15;}this.avoidCabFurniture();this.camera.position.y=tower.cabHeight+2.35;}else if(this.cameraMode==='free')this.camera.position.y=Math.max(2,this.camera.position.y);}
+  if(this.cameraMode==='walk'||this.cameraMode==='free'||this.cameraMode==='explore'){
+   if(this.keys.has('w')||this.keys.has('ArrowUp'))move.add(forward);
+   if(this.keys.has('s')||this.keys.has('ArrowDown'))move.sub(forward);
+   if(this.keys.has('d')||this.keys.has('ArrowRight'))move.add(right);
+   if(this.keys.has('a')||this.keys.has('ArrowLeft'))move.sub(right);
+   if(this.cameraMode==='free'){if(this.keys.has('e'))move.y++;if(this.keys.has('q'))move.y--;}
+   if(move.lengthSq()){
+    move.normalize().multiplyScalar(speed*dt);
+    if(this.cameraMode==='explore'){
+     const position=this.camera.position,spot=exploreSpot(this.exploreSpotId);
+     const next=moveExplorerCamera(spot,position,{x:position.x+move.x,z:position.z+move.z});
+     position.set(next.x,next.y,next.z);
+     this.indoorWalk=isIndoorExploreSpot(spot,next);
+    }else this.camera.position.add(move);
+   }
+   if(this.cameraMode==='walk'){
+    const dx=this.camera.position.x-tower.x,dz=this.camera.position.z-tower.z,d=Math.hypot(dx,dz);
+    if(d>11.15){this.camera.position.x=tower.x+dx/d*11.15;this.camera.position.z=tower.z+dz/d*11.15;}
+    this.avoidCabFurniture();this.camera.position.y=tower.cabHeight+2.35;
+   }else if(this.cameraMode==='free')this.camera.position.y=Math.max(2,this.camera.position.y);
+  }
   const dir=this.cameraDirection.set(-Math.sin(this.yaw)*Math.cos(this.pitch),Math.sin(this.pitch),-Math.cos(this.yaw)*Math.cos(this.pitch));this.lookTarget.copy(this.camera.position).addScaledVector(dir,100);this.camera.lookAt(this.lookTarget);
  }
  private avoidCabFurniture(){let x=this.camera.position.x-tower.x,z=this.camera.position.z-tower.z;for(const rect of [{left:-6.45,right:6.45,near:-6.7,far:-4.5},{left:-3.3,right:3.3,near:4.15,far:8.8}]){if(x>rect.left&&x<rect.right&&z>rect.near&&z<rect.far){const distances=[x-rect.left,rect.right-x,z-rect.near,rect.far-z],minimum=Math.min(...distances),side=distances.indexOf(minimum);if(side===0)x=rect.left;else if(side===1)x=rect.right;else if(side===2)z=rect.near;else z=rect.far;}}this.camera.position.x=tower.x+x;this.camera.position.z=tower.z+z;}
@@ -208,5 +295,5 @@ export class AirportScene {
  private keyUp=(e:KeyboardEvent)=>{this.keys.delete(e.key.length===1?e.key.toLowerCase():e.key);};private blur=()=>this.keys.clear();
  private releaseObject(object:THREE.Object3D){const disposed=new Set<THREE.Material>(),textures=new Set<THREE.Texture>();object.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const mats=Array.isArray(o.material)?o.material:[o.material];for(const m of mats){if(m.userData.aircraftOwned&&!disposed.has(m)){const standard=m as THREE.MeshStandardMaterial;releaseAircraftSkin(m);for(const texture of [standard.map,standard.normalMap,standard.roughnessMap,standard.metalnessMap,standard.aoMap,standard.emissiveMap])if(texture&&!texture.userData.shared&&!textures.has(texture)){texture.dispose();textures.add(texture);}this.reflectionMaterials.delete(standard);m.dispose();disposed.add(m);}}}});}
  private retireAircraft(id:string){const v=this.visuals.get(id);if(!v)return;if(v.tug.parent!==v.group)v.group.add(v.tug);this.scene.remove(v.group,v.shadow);v.label.remove();this.visuals.delete(id);this.releaseObject(v.group);(v.shadow.material as THREE.MeshBasicMaterial).map?.dispose();(v.shadow.material as THREE.Material).dispose();v.shadow.geometry.dispose();}
- public dispose(){this.disposed=true;this.observer.disconnect();this.controls.dispose();this.renderer.domElement.removeEventListener('pointerdown',this.pointerDown);window.removeEventListener('pointermove',this.pointerMove);window.removeEventListener('pointerup',this.pointerUp);window.removeEventListener('keydown',this.keyDown);window.removeEventListener('keyup',this.keyUp);window.removeEventListener('blur',this.blur);for(const id of [...this.visuals.keys()])this.retireAircraft(id);this.scene.traverse(o=>{if(o instanceof THREE.Mesh||o instanceof THREE.Points||o instanceof THREE.Line){o.geometry.dispose();const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>m.dispose());}});this.environment.water.shoreMap.dispose();this.environment.water.surfTexture.dispose();this.environment.screenTexture.dispose();this.reflection.dispose();this.releaseHallReflections();this.post?.dispose();this.renderer.dispose();this.renderer.domElement.remove();this.labels.remove();}
+ public dispose(){this.disposed=true;this.observer.disconnect();this.controls.dispose();this.renderer.domElement.removeEventListener('pointerdown',this.pointerDown);window.removeEventListener('pointermove',this.pointerMove);window.removeEventListener('pointerup',this.pointerUp);window.removeEventListener('keydown',this.keyDown);window.removeEventListener('keyup',this.keyUp);window.removeEventListener('blur',this.blur);for(const id of [...this.visuals.keys()])this.retireAircraft(id);this.scene.traverse(o=>{if(o instanceof THREE.Mesh||o instanceof THREE.Points||o instanceof THREE.Line){o.geometry.dispose();const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>m.dispose());}});this.environment.water.shoreMap.dispose();this.environment.water.surfTexture.dispose();this.environment.screenTexture.dispose();this.reflection?.dispose();this.post?.dispose();this.renderer.dispose();this.renderer.domElement.remove();this.labels.remove();}
 }

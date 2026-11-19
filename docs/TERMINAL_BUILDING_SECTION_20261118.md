@@ -99,16 +99,36 @@ The baseline and post-change JPEGs, plus `verification.json`, are in
 the final reflection-card/dining-density adjustment; the final arrivals and
 food JPEGs were refreshed against the final build.
 
-This is **not** a complete measured replica. Public sources do not establish
-exact storey heights, structural grids, processing-room boundaries or every
-current finish. T1 3F processing, the T2 C/D concourse section and fully
-continuous stair walking still require further work. Changes of floor use the
-existing location selector; walking guards protect the openings. The earlier
-T1 A-wing research and limitations remain in
+Public sources establish floor uses and major passenger connections. Storey
+heights, structural grids, processing-room boundaries and many finishes still
+use scene estimates. The earlier T1 A-wing research remains in
 `TERMINAL_PASSENGER_REFERENCE_20261118.md`.
 
 ## Follow-up on Terminal 2 arrivals
 
 - The terminal-aligned [airport map](https://map.taoyuan-airport.com/) and [JAL arrival diagram](https://www.jal.co.jp/jp/en/inter/airport/tpe/info/) show the central exit, north–south belt sequence and apron-side 7 A/B and 8 A/B. The six main belts use a roughly 19 m pitch estimated from the map scale. Four escalator landings link the processing level to reclaim. The bay shapes and clearances are scene fits.
 - The [pickup guide's frontal and oblique photographs](https://www.hs-car.com/news_data.php?id=46) and the [2023 arrivals photograph](https://commons.wikimedia.org/wiki/File:Tpe_T2_Arrivals.jpg) support the continuous pickup rail, visible clerestory, paired meeting signs, red clock, recessed glazing and granite. The public gallery sits along the west edge with separate stair openings, opening the view over the pickup rail. Simulated minutes update the clock and the floor projects the illuminated panels with a local shader.
-- The [airport public-art gallery](https://www.taoyuan-airport.com/explorethefun/en.html) places the existing sculpture group in the 1F arrivals hall. Its photograph shows the north meeting-point column beside the group. The main passport, reclaim and customs viewpoints follow the public passenger sequence. Level changes use the location selector. The 1F path continues on foot to either modeled curb doorway around the pickup rail.
+- The [airport public-art gallery](https://www.taoyuan-airport.com/explorethefun/en.html) places the existing sculpture group in the 1F arrivals hall. Its photograph shows the north meeting-point column beside the group. The modeled passenger route continues on foot from 2F immigration via the reclaim escalators, then through customs and either curb door around the pickup rail.
+
+## Terminal 2 departure check-in
+
+- The aligned [airport 3F map](https://map.taoyuan-airport.com/) shows eight transverse islands in the central hall, from 6/7 through 20/21. Counters 1–5 and 22–26 sit in the end halls. The modeled main islands have a roughly 25–29 m pitch estimated from the map scale. The separate end banks turn along the hall, and the public cross-aisles and staffed queue entrances are walkable.
+- The [central hall photograph](https://commons.wikimedia.org/wiki/File:Taiwan_Taoyuan_International_Airport_Terminal_2_Check-in_Hall_20200815.jpg) shows the blue-violet counter numbers, dark steel frames, desks with exposed bag scales, and groups of freestanding kiosks. The [city's south expansion photographs](https://www.tycg.gov.tw/NewsPage_Content.aspx?n=10&s=637074) show the paired metal display frames and slim red trim near counter 20.
+- The airport-supplied photographs and counter list in the [2024 guide](https://www.xinmedia.com/article/301890) place dedicated self bag drop at 10/11 and 16/17. The modeled machines have pale curved housings, dark shutters and low loading belts. [EVA Air's service page](https://www.evaair.com/zh-tw/fly-prepare/at-the-airport/check-in/self-service-baggage-drop/) currently flags 16 as temporarily closed, so those machines are shown parked. The kiosks follow the separate [airport self check-in service](https://www.taoyuan-airport.com/selfcheckin). Individual station counts, exact equipment dimensions and kiosk spacing are scene estimates.
+
+## Terminal 2 D concourse and indoor lighting
+
+- The [airport 3F map](https://map.taoyuan-airport.com/) establishes the long north departure wing and gate order. The [D6 official gallery](https://www.taoyuan-airport.com/explorethefun/) shows the low paneled waiting-room ceiling and the division between seating and a polished path. The [recent north-wing photo essay](https://blog.jesselin.com/archives/172838/taoyuan-airport-toto-restroom-d-zone-dining/) supplies the two views of the D6/D7 travelator and skylight, plus front and window-side views of the D10 rest area. The model follows those visible features with open walkway ends, a shallow service and seating band, and a roof well above the D6/D7 pocket. Section dimensions and fit-out widths are scene estimates. The D concourse uses the existing boarding-bridge elevation.
+- The floor finishes use a shared diffuse indoor environment and separate polished stone, satin flooring and carpet responses. This supersedes the hall cubemap captures described above. The D spine and T2 check-in floor calculate highlights from their modeled ceiling fixtures. The T2 arrivals pickup signs retain a short, softly blurred local return. Sun shadows use a tighter indoor camera range, with separate low-cost contact shadows at fixed furniture and rail feet for artificial-light conditions.
+
+## Terminal 1 B and Terminal 2 C passenger connection
+
+- The [airport indoor map](https://map.taoyuan-airport.com/) places B9 and C1 at adjoining ends of the 3F departure route and shows the moving walkways and nearby vertical circulation. A [passenger walkthrough](https://blog.jesselin.com/archives/29671/taoyuan-airport-travel-between-tpe-t1-and-t2/) confirms the airside B–C route. The modeled landing and rail positions use the map scale as a guide. The common deck elevation is fitted to the scene and the existing aircraft bridge anchors remain at their original elevations. Both staircases and the cross-terminal passage are usable on foot.
+- The [airport's passenger area guide](https://www.taoyuan-airport.com/explorethefun/), the [2024 gate photographs](https://www.xinmedia.com/article/301731), and the [B1–B3 operator video](https://www.youtube.com/watch?v=L0VU-rvl8Ls) document the shared room. Its model follows the cream curved core, blue-grey floor, seating rows, high apron glazing and repeated louvered light bands.
+- The [C1 design team's photographs](https://www.jeancard.com/NewsDetail/NewsDetail/252) and the C1 view in the 2024 guide document its timber ceiling, light cross-ribs, planting, and the transition from timber to stone. The model follows the fit-out and opening proportions. Stair, register and furnishing dimensions are scene estimates from the public references.
+
+## Continuous passenger circulation
+
+- The north and south passenger openings at T1 and the airside C/D branches at T2 follow the [official 3F indoor maps](https://map.taoyuan-airport.com/). Rendering opens the matching glass, frames and floor landings. The short C ramp and covered D stair reconcile the elevations of the existing gate halls with the terminal floor. Their geometry is a scene fit. The existing B9–C1 link remains bidirectional.
+- T2 public arrivals retain their own glazed gallery and stairs, separate from the restricted passport-to-reclaim route shown in [JAL's arrival diagrams](https://www.jal.co.jp/jp/en/inter/airport/tpe/info/). The [pickup photo series](https://www.hs-car.com/news_data.php?id=46) supplied separate views of the glazed upper gallery, paired escalators and blue direction signs. Scene dimensions and checkpoint furniture remain approximate.
+- Movement from the location selector continues across joined floors. Landing widths, stair pitch, walls and rail openings share layout data with the renderer. Escalator treads are static. Elevators, service rooms and the complete landside MRT/Skytrain connections remain outside the walkable network.

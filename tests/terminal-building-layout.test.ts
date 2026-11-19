@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {terminals} from '../src/data/airport';
 import {exploreSpot,moveExplorer} from '../src/render/exploration';
 import {TERMINAL_FLOOR_PROGRAM,T1_FLOOR_LEVELS,T2_FLOOR_LEVELS,T2_PASSENGER_SECTION as S,terminalBuildingBounds,placeBuildingRect,buildingRectEdges,t2BaggageBelts,t2ArrivalFacade,t2ArrivalHallFixtures,t2CustomsBays,t2ProcessingFootprints,t2VerticalCores,t2EscalatorOpenings,t1ArrivalCeilingHeight,t2StructuralColumnCenters,T2_TRANSFER_AMENITIES,deckRailSpans,t2PublicArrivalVoids,type BuildingRect} from '../src/render/terminalBuildingLayout';
-import {T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,t2FourthFloorLoungeCenter,t2ThirdFloorCheckInBanks,t2FourthFloorDiningLayout,t2ThirdFloorRetailUnits} from '../src/render/terminalInteriorLayout';
+import {T2_FOURTH_FLOOR_LAYOUT,T2_FOURTH_FLOOR_LOUNGES,t2CheckInBankFootprint,t2FourthFloorLoungeCenter,t2ThirdFloorCheckInBanks,t2FourthFloorDiningLayout,t2ThirdFloorRetailUnits} from '../src/render/terminalInteriorLayout';
 
 const outer=terminals.find(t=>t.id==='T2')!,b=terminalBuildingBounds(outer,'T2');
 const overlaps=(a:BuildingRect,c:BuildingRect,margin=0)=>Math.abs(a.x-c.x)<(a.width+c.width)/2+margin&&Math.abs(a.z-c.z)<(a.depth+c.depth)/2+margin;
@@ -99,12 +99,11 @@ test('walkers can follow the same-floor arrival path to either curb exit through
 
 test('check-in, security, passport control and airside retail form successive non-overlapping bands',()=>{
  const banks=t2ThirdFloorCheckInBanks(b.x,b.z,b.depth),processing=t2ProcessingFootprints(b),retail=t2ThirdFloorRetailUnits(b.x,b.z,b.width);
- assert.equal(banks.length,13);assert.equal(banks[12].lastCounterNumber,26);
  for(const bank of banks){
-  const footprint={...bank,width:bank.rowWidth+1.8,depth:9.6};
+  const footprint=t2CheckInBankFootprint(bank);
   assert.ok(!overlaps(footprint,processing.departureSecurity,2));
   assert.ok(!overlaps(footprint,processing.departureImmigration,2));
-  assert.ok(Math.abs(bank.z-b.z)<98);
+  assert.ok(Math.abs(bank.z-b.z)+footprint.depth/2<b.depth/2-2);
  }
  assert.ok(processing.departureSecurity.x<processing.departureImmigration.x);
  assert.ok(!overlaps(processing.departureSecurity,processing.departureImmigration,2));
@@ -112,6 +111,19 @@ test('check-in, security, passport control and airside retail form successive no
   assert.ok(unit.frontX>processing.departureImmigration.x+processing.departureImmigration.width/2+8);
   assert.ok(unit.x+unit.depth/2<b.x+b.width/2-1);
  }
+});
+
+test('T2 uses paired transverse rows, longitudinal end banks and four dedicated self bag drops',()=>{
+ const banks=t2ThirdFloorCheckInBanks(b.x,b.z,b.depth);
+ const main=banks.filter(bank=>bank.axis==='x'),ends=banks.filter(bank=>bank.axis==='z');
+ const numbers=(bank:typeof banks[number])=>bank.faces.map(face=>face.number).sort((a,b)=>a-b);
+ assert.deepEqual(main.map(numbers),[[6,7],[8,9],[10,11],[12,13],[14,15],[16,17],[18,19],[20,21]]);
+ assert.deepEqual(ends.filter(bank=>bank.z<b.z).map(numbers),[[1],[2,3],[4,5]]);
+ assert.deepEqual(ends.filter(bank=>bank.z>b.z).map(numbers),[[22],[23,24],[25,26]]);
+ assert.ok(main.slice(1).every((bank,index)=>bank.z-main[index].z>=24),'leave broad aisles between the transverse rows');
+ const faces=banks.flatMap(bank=>bank.faces);
+ assert.deepEqual(faces.filter(face=>face.service==='bag-drop').map(face=>face.number).sort((a,b)=>a-b),[10,11,16,17]);
+ assert.equal(faces.filter(face=>face.service==='staffed').length,22);
 });
 
 test('upper lounges occupy the east side; south dining furniture remains on its own floor',()=>{
@@ -130,7 +142,7 @@ test('upper lounges occupy the east side; south dining furniture remains on its 
 });
 
 test('the structural grid stays outside counters, belts and the relocated transfer amenity',()=>{
- const counters=t2ThirdFloorCheckInBanks(b.x,b.z,b.depth).map(bank=>({...bank,width:bank.rowWidth+1.8,depth:9.6})),belts=t2BaggageBelts(b),amenity=placeBuildingRect(b,{x:T2_TRANSFER_AMENITIES.dx,z:T2_TRANSFER_AMENITIES.dz,width:T2_TRANSFER_AMENITIES.width,depth:T2_TRANSFER_AMENITIES.depth});
+ const counters=t2ThirdFloorCheckInBanks(b.x,b.z,b.depth).map(t2CheckInBankFootprint),belts=t2BaggageBelts(b),amenity=placeBuildingRect(b,{x:T2_TRANSFER_AMENITIES.dx,z:T2_TRANSFER_AMENITIES.dz,width:T2_TRANSFER_AMENITIES.width,depth:T2_TRANSFER_AMENITIES.depth});
  for(const p of t2StructuralColumnCenters(b.x,b.z,b.width,b.depth)){
   const column={...p,width:1.76,depth:1.76};
   for(const counter of counters)assert.ok(!overlaps(column,counter,1),'a column must not pass through a counter island');

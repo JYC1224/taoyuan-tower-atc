@@ -1,9 +1,8 @@
 import * as THREE from 'three';
-import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {runways,taxiNodes,taxiEdges,gates,terminals,tower} from '../data/airport';
 import {box,canvasTexture,cylinder,groundText,instances,line,material,pavement,seeded} from './primitives';
 import type {SimulationAPI} from '../types';
-import {surfaceMaterial,applyWorldUV,applyFacadeUV,facadeTexture,facadeRoughness,batchStatic} from './surfaceDetail';
+import {surfaceMaterial,applyFacadeUV,facadeTexture,facadeRoughness,batchStatic} from './surfaceDetail';
 import {towerSkin,terminalRoof,landsideDetail,apronLightTexture} from './architectureDetail';
 import {airfieldLights,type Lamp} from './airfieldLights';
 import {createJetbridge,type BridgeVisual} from './jetbridge';
@@ -25,26 +24,29 @@ import {buildT1APassengerArchitecture} from './terminalPassengerArchitecture';
 import {T1_A_PASSENGER} from './terminalPassengerLayout';
 import {GATE_CONCOURSES,GATE_CONCOURSE_INTERFACES} from './terminalConcourseLayout';
 import {buildGateConcourses} from './terminalGateConcourses';
-import {updateTerminal2ArrivalClock} from './terminalArrivalSigns';
-import {HALL_REFLECTION_LAYER} from './terminalPublicHallLayout';
 import {mergeStaticInstances} from './mergeStaticInstances';
 import {mergeStaticSigns} from './mergeStaticSigns';
+import {mergeStaticMeshes} from './mergeStaticMeshes';
+import {staticShadowCasters} from './shadowReceivers';
 
-export interface Environment {group:THREE.Group;graph:THREE.Group;screenTexture:THREE.CanvasTexture;screens:THREE.Mesh[];bridges:BridgeVisual[];vehicles:{group:THREE.Group;phase:number;speed:number;lane:number}[];windsocks:THREE.Group[];lights:THREE.MeshBasicMaterial[];distantLights:THREE.PointsMaterial;water:ReturnType<typeof createCoastalWater>;airfieldLightMaterial:THREE.ShaderMaterial;apronLensMaterial:THREE.MeshStandardMaterial;dockLightMaterial:THREE.MeshStandardMaterial;beacons:{bulb:THREE.MeshBasicMaterial;glow:THREE.PointsMaterial};windowMaterial:THREE.MeshStandardMaterial;ceilingMaterial:THREE.MeshStandardMaterial;pavementMaterials:THREE.MeshStandardMaterial[];updateScreens:(sim:SimulationAPI)=>void;updateVegetation:(time:number,windDirection:number,windSpeed:number,wetness:number)=>void}
+export interface Environment {group:THREE.Group;graph:THREE.Group;shadowCasters:ReturnType<typeof staticShadowCasters>;screenTexture:THREE.CanvasTexture;screens:THREE.Mesh[];bridges:BridgeVisual[];vehicles:{group:THREE.Group;phase:number;speed:number;lane:number}[];windsocks:THREE.Group[];apronLightPools:THREE.InstancedMesh<THREE.BufferGeometry,THREE.MeshBasicMaterial>;distantLights:ReturnType<typeof distantScenery>;water:ReturnType<typeof createCoastalWater>;airfieldLightMaterial:THREE.ShaderMaterial;apronLensMaterial:THREE.MeshStandardMaterial;dockLightMaterial:THREE.MeshStandardMaterial;beacons:{bulb:THREE.MeshBasicMaterial;glow:THREE.PointsMaterial};windowMaterial:THREE.MeshStandardMaterial;ceilingMaterial:THREE.MeshStandardMaterial;pavementMaterials:THREE.MeshStandardMaterial[];updateScreens:(sim:SimulationAPI)=>void;updateVegetation:(time:number,windDirection:number,windSpeed:number,wetness:number)=>void}
 const concrete=surfaceMaterial('concrete','#c3c6c6'),asphalt=surfaceMaterial('asphalt','#525b63'),runwayAsphalt=surfaceMaterial('runway','#a9b5bb'),taxiPave=surfaceMaterial('concrete','#b3b8b9'),taxiAsphalt=surfaceMaterial('asphalt','#687176'),taxiMixed=surfaceMaterial('concrete','#aeb4b6'),white=material('#e1e5e5',.72),metal=material('#a4b1b8',.42,.45),glass=material('#718b9e',.48,.12),curtainGlass=terminalCurtainGlass(),cladding=terminalCladdingMaterial(),roof=material('#c5cccf',.65,.25),yellow=material('#e0b544',.78);
 glass.envMapIntensity=1.25;glass.map=facadeTexture();glass.roughnessMap=facadeRoughness();glass.emissiveMap=facadeTexture(true);glass.emissive.set('#f5f3e9');glass.emissiveIntensity=0;glass.userData.facade=true;
 
-function consolidate(group:THREE.Group) {
- group.updateMatrixWorld(true);const batches=new Map<THREE.Material,Map<number,THREE.BufferGeometry[]>>(),remove:THREE.Object3D[]=[];
- group.traverse(o=>{if(o instanceof THREE.Mesh&&!(o instanceof THREE.InstancedMesh)&&!Array.isArray(o.material)&&!(o.material instanceof THREE.MeshBasicMaterial)&&o.geometry.index&&!o.material.transparent){const geo=o.geometry.clone().applyMatrix4(o.matrixWorld);if(o.material.userData.worldUV)applyWorldUV(geo,o.material.userData.worldUV);if(o.material.userData.facade)applyFacadeUV(geo);let byLayer=batches.get(o.material);if(!byLayer){byLayer=new Map();batches.set(o.material,byLayer);}let list=byLayer.get(o.layers.mask);if(!list){list=[];byLayer.set(o.layers.mask,list);}list.push(geo);remove.push(o);}});
- // Preserve visibility layers while batching: an indoor reflection probe must
- // not redraw the entire airport/region because materials happen to be shared.
- for(const o of remove){(o as THREE.Mesh).geometry.dispose();o.removeFromParent();}for(const[mat,byLayer]of batches)for(const[layerMask,geometries]of byLayer){const merged=mergeGeometries(geometries);if(merged){const mesh=new THREE.Mesh(merged,mat);mesh.layers.mask=layerMask;mesh.receiveShadow=true;mesh.castShadow=!mat.userData.noShadow&&mat!==concrete&&mat!==asphalt&&mat!==taxiPave;group.add(mesh);}for(const geo of geometries)geo.dispose();}
+// Yield between regions without waiting for background timer throttling.
+function yieldToBriefing(){
+ return new Promise<void>(resolve=>{
+  const task=new MessageChannel();
+  task.port1.onmessage=()=>{task.port1.close();task.port2.close();resolve();};
+  task.port2.postMessage(null);
+ });
 }
 
-export function createEnvironment():Environment {
+export async function createEnvironment():Promise<Environment> {
  const group=new THREE.Group(),staticGroup=new THREE.Group(),graph=new THREE.Group();group.add(staticGroup,graph);graph.visible=false;const rand=seeded(240906),screens:THREE.Mesh[]=[],bridges:Environment['bridges']=[],vehicles:Environment['vehicles']=[];
+ await yieldToBriefing();
  const distantLights=distantScenery(group),water=createCoastalWater(group);
+ await yieldToBriefing();
  // Regional terrain is the base outside the surveyed airfield; do not cover a
  // 12.5 km square of Taoyuan with synthetic airport grass.
  // The airport sits in a mixed coastal plain: towns, infrastructure, ponds and farm plots.
@@ -125,13 +127,12 @@ export function createEnvironment():Environment {
  }
  // The airport's paired terminal concourses retain the recognizable RCTP arrangement.
  landsideDetail(staticGroup);
- for(const t of terminals){const apronPadTop=t.id==='T1' ? .005 : .165;box(staticGroup,t.width+145,.09,t.depth+100,t.x,apronPadTop-.045,t.z,concrete);if(t.id==='T3'||t.id==='T3-S'){completedTerminal3(staticGroup,t,curtainGlass,cladding,concrete);continue;}
+ for(const t of terminals){await yieldToBriefing();const apronPadTop=t.id==='T1' ? .005 : .165;box(staticGroup,t.width+145,.09,t.depth+100,t.x,apronPadTop-.045,t.z,concrete);if(t.id==='T3'||t.id==='T3-S'){completedTerminal3(staticGroup,t,curtainGlass,cladding,concrete);continue;}
   const bounds:TerminalBounds={x:t.x,z:t.z,width:t.width,depth:t.depth,height:t.height},terminalGates=t.id==='T3-N'?gates.filter(g=>g.terminal==='T3 North'):[],profile=t.id==='T1'||t.id==='T2'||t.id==='T3-N'?t.id:undefined;
   const terminalRoot=new THREE.Group();staticGroup.add(terminalRoot);
   buildTerminalAtrium(terminalRoot,bounds,{glass:curtainGlass,cladding,concrete,metal},terminalGates,terminalGates.some(g=>g.z<t.z)?-1:1,profile);terminalRoof(terminalRoot,t);
-  if(t.id==='T1'||t.id==='T2')terminalRoot.traverse(o=>o.layers.enable(HALL_REFLECTION_LAYER[t.id as 'T1'|'T2']));
-
  }
+ await yieldToBriefing();
  const concourseMaterials={glass:curtainGlass,cladding,concrete,metal,roof},aWing=T1_A_PASSENGER.bounds;
  box(staticGroup,aWing.width+30,.05,155,aWing.x,.15,aWing.z,concrete);
  for(const {bounds,facadeZ} of GATE_CONCOURSES)box(staticGroup,bounds.width+30,.05,155,bounds.x,.15,facadeZ,concrete);
@@ -174,9 +175,14 @@ export function createEnvironment():Environment {
  const beacons=obstructionLights(group,beaconPositions);
  vehicles.push(...createServiceVehicles(group));
  const pools=new THREE.MeshBasicMaterial({map:apronLightTexture(),transparent:true,opacity:0,depthWrite:false,toneMapped:false});const poolItems=mastItems.map(p=>({x:p.x,y:.227,z:p.z,sx:260,sy:220,sz:1}));const poolGeo=new THREE.PlaneGeometry(1,1);poolGeo.rotateX(-Math.PI/2);const poolMesh=instances(group,poolGeo,pools,poolItems.map(p=>({...p,sy:1,sz:220})));poolMesh.renderOrder=2;
- mergeStaticInstances(staticGroup);mergeStaticSigns(staticGroup);consolidate(staticGroup);
- const updateScreens=(sim:SimulationAPI)=>{updateTerminal2ArrivalClock(sim.time);const ctx=screenCanvas.getContext('2d')!;ctx.fillStyle='#081b23';ctx.fillRect(0,0,1536,768);ctx.fillStyle='#80d7bd';ctx.font='600 27px monospace';ctx.fillText('TAOYUAN  /  SURFACE MOVEMENT',35,48);ctx.font='19px monospace';ctx.fillStyle='#adc1c6';ctx.fillText(`${Math.floor(sim.time/3600)%24}`.padStart(2,'0')+':'+`${Math.floor(sim.time/60)%60}`.padStart(2,'0')+' L  ·  RWY '+sim.activeDirection+'  ·  '+sim.weather.windDirection+'° / '+sim.weather.windSpeed+' KT',36,82);
+ await yieldToBriefing();
+ mergeStaticInstances(staticGroup);mergeStaticSigns(staticGroup);mergeStaticMeshes(staticGroup);
+ // The airport shells, roads and fixed fixtures only change materials. Keep
+ // their world transforms cached through the colour and shadow passes.
+ staticGroup.updateWorldMatrix(true,true);
+ staticGroup.traverse(object=>{object.matrixAutoUpdate=false;object.matrixWorldAutoUpdate=false;});
+ const updateScreens=(sim:SimulationAPI)=>{const ctx=screenCanvas.getContext('2d')!;ctx.fillStyle='#081b23';ctx.fillRect(0,0,1536,768);ctx.fillStyle='#80d7bd';ctx.font='600 27px monospace';ctx.fillText('TAOYUAN  /  SURFACE MOVEMENT',35,48);ctx.font='19px monospace';ctx.fillStyle='#adc1c6';ctx.fillText(`${Math.floor(sim.time/3600)%24}`.padStart(2,'0')+':'+`${Math.floor(sim.time/60)%60}`.padStart(2,'0')+' L  ·  RWY '+sim.activeDirection+'  ·  '+sim.weather.windDirection+'° / '+sim.weather.windSpeed+' KT',36,82);
   const px=(x:number)=>520+x*.18,pz=(z:number)=>405+z*.28;ctx.strokeStyle='#35585c';ctx.lineWidth=3;for(const e of taxiEdges){const a=nodes.get(e.from),b=nodes.get(e.to);if(a&&b){ctx.beginPath();ctx.moveTo(px(a.x),pz(a.z));ctx.lineTo(px(b.x),pz(b.z));ctx.stroke();}}ctx.strokeStyle='#93bab4';ctx.lineWidth=9;for(const r of runways){ctx.beginPath();ctx.moveTo(px(r.x-r.length/2),pz(r.z));ctx.lineTo(px(r.x+r.length/2),pz(r.z));ctx.stroke();ctx.fillStyle='#9cbdbe';ctx.fillText(r.ends.join(' / '),px(r.x-200),pz(r.z)-14);}for(const a of sim.aircraft){ctx.fillStyle=a.state==='HOLDING_SHORT'?'#f3b462':'#6fe0c1';ctx.beginPath();ctx.arc(px(a.position.x),pz(a.position.z),5,0,Math.PI*2);ctx.fill();ctx.font='15px monospace';ctx.fillText(a.flightNumber,px(a.position.x)+8,pz(a.position.z)-6);}
   ctx.fillStyle='#142d35';ctx.fillRect(1050,110,456,618);ctx.fillStyle='#779fa5';ctx.font='22px monospace';ctx.fillText('FLIGHT STRIPS  /  LIVE',1070,145);sim.aircraft.slice(0,10).forEach((a,i)=>{const y=185+i*49;ctx.fillStyle='#76d7be';ctx.font='bold 21px monospace';ctx.fillText(a.flightNumber,1070,y);ctx.fillStyle='#b4c5c6';ctx.font='16px monospace';ctx.fillText(a.type+'  '+a.state.replaceAll('_',' '),1070,y+21);});ctx.fillStyle='#7fa2a8';ctx.font='18px monospace';ctx.fillText('SELECT A SCREEN TO OPEN CONTROLLER WORKSPACE',35,741);screenTexture.needsUpdate=true;};
- return {group,graph,screenTexture,screens,bridges,vehicles,windsocks,lights:[pools],distantLights,water,airfieldLightMaterial,apronLensMaterial,dockLightMaterial,beacons,windowMaterial:glass,ceilingMaterial,pavementMaterials:[asphalt,runwayAsphalt,taxiPave,taxiAsphalt,taxiMixed,concrete],updateScreens,updateVegetation:vegetation.update};
+ return {group,graph,shadowCasters:staticShadowCasters(staticGroup),screenTexture,screens,bridges,vehicles,windsocks,apronLightPools:poolMesh,distantLights,water,airfieldLightMaterial,apronLensMaterial,dockLightMaterial,beacons,windowMaterial:glass,ceilingMaterial,pavementMaterials:[asphalt,runwayAsphalt,taxiPave,taxiAsphalt,taxiMixed,concrete],updateScreens,updateVegetation:vegetation.update};
 }

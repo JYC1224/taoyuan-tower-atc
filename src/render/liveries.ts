@@ -5,15 +5,19 @@ import {canvasTexture} from './primitives';
 // carriers now use local brand vectors; no web photographs are runtime textures.
 const files={evaWord:'eva-wordmark.svg',eva:'eva-symbol.svg',cal:'cal-plum.png',calWord:'cal-wordmark.svg',star:'starlux-symbol.png',starWord:'starlux-wordmark.svg',tiger:'tigerair-brand.svg',airIndiaWord:'air-india-2023.svg',cathayLogo:'cathay-pacific-logo.svg',siaLogo:'singapore-airlines-logo.svg',siaWord:'singapore-airlines-wordmark.svg',siaBird:'singapore-airlines-bird.svg',koreanShort:'korean-air-2025-short.svg',koreanTaegeuk:'korean-air-taegeuk.svg',emiratesGold:'emirates-gold.svg',thaiLogo:'thai-airways-logo.svg',thaiOrchid:'thai-airways-orchid.svg',turkishLogo:'turkish-airlines-2019.svg',jalWord:'japan-airlines-wordmark.svg',jalTsurumaru:'japan-airlines-tsurumaru.svg',airNzLogo:'air-new-zealand-logo.svg',anaLogo:'ana-logo.svg',klmLogo:'klm-logo.svg',peachLogo:'peach-current-logo.svg'} as const;
 type Art=keyof typeof files;
-const art=new Map<Art,HTMLImageElement>();let ready:Promise<void>|undefined;
+const art=new Map<Art,HTMLImageElement>();let ready:Promise<void>|undefined,artLoaded=false;
 export function prepareLiveries(){
  return ready??=Promise.all(Object.entries(files).map(([key,file])=>new Promise<void>((resolve,reject)=>{
   const image=new Image();image.onload=()=>{art.set(key as Art,image);resolve();};image.onerror=()=>reject(new Error('Local airline artwork could not load: '+file));image.src=new URL('assets/liveries/'+file,document.baseURI).href;
- }))).then(()=>{});
+ }))).then(()=>{artLoaded=true;});
 }
 export function liveryTexture(width:number,height:number,paint:(ctx:CanvasRenderingContext2D)=>void){
- const texture=canvasTexture(width,height,paint);let retired=false;texture.addEventListener('dispose',()=>{retired=true;});
- void prepareLiveries().then(()=>{if(!retired){paint((texture.image as HTMLCanvasElement).getContext('2d')!);texture.needsUpdate=true;}});return texture;
+ const texture=canvasTexture(width,height,paint);
+ if(!artLoaded){
+  let retired=false;texture.addEventListener('dispose',()=>{retired=true;});
+  void prepareLiveries().then(()=>{if(!retired){paint((texture.image as HTMLCanvasElement).getContext('2d')!);texture.needsUpdate=true;}},()=>{});
+ }
+ return texture;
 }
 
 type Band='low'|'wave'|'swoosh'|'cheatline'|'slashes'|'tricolor'|'sunset'|'full'|'black'|'tailOnly'|'narrowStripe'|'tailSweep'|'fullBody'|'faceted'|'cathayStripe'|'siaStripe'|'koreanTop';

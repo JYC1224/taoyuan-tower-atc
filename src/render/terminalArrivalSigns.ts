@@ -78,15 +78,19 @@ export function addArrivalPickupReflections(parent:THREE.Object3D,panels:Reflect
     vec2 signUV = vec2(0.5 - visibleSide * (hit.z - panelCenter.z) / panelWidth,
                       0.5 + (panelCenter.y - hit.y - 0.53) / 0.66);
     if (min(signUV.x, signUV.y) < 0.0 || max(signUV.x, signUV.y) > 1.0) discard;
-    vec2 smear = vec2(0.006, 0.013) * smoothstep(1.0, 1.48, t);
+    float distance = length(ray) * t;
+    vec2 smear = vec2(0.017, 0.052) * (1.0 + 0.65 * smoothstep(4.0, 17.0, distance));
     vec3 glow = (texture2D(face, signUV).rgb * 2.0 +
-                 texture2D(face, signUV + smear).rgb + texture2D(face, signUV - smear).rgb) * 0.25;
-    float edges = smoothstep(0.0, 0.05, min(signUV.x, 1.0 - signUV.x)) *
-                  smoothstep(0.0, 0.10, min(signUV.y, 1.0 - signUV.y));
+                 texture2D(face, signUV + smear).rgb + texture2D(face, signUV - smear).rgb +
+                 texture2D(face, signUV + vec2(-smear.x, smear.y)).rgb +
+                 texture2D(face, signUV + vec2(smear.x, -smear.y)).rgb) / 6.0;
+    float edges = smoothstep(0.0, 0.11, min(signUV.x, 1.0 - signUV.x)) *
+                  smoothstep(0.0, 0.20, min(signUV.y, 1.0 - signUV.y));
     float coverage = smoothstep(0.0, 0.17, min(footprint.x, 1.0 - footprint.x)) *
                      smoothstep(0.0, 0.09, min(footprint.y, 1.0 - footprint.y));
     float grazing = pow(1.0 - abs(normalize(ray).y), 4.0);
-    gl_FragColor = vec4(glow * vec3(0.78, 0.85, 0.90), (0.15 + 0.35 * grazing) * edges * coverage);
+    float strength = (0.055 + 0.17 * grazing) * (1.0 - smoothstep(7.0, 22.0, distance));
+    gl_FragColor = vec4(glow * vec3(0.78, 0.85, 0.90), strength * edges * coverage);
     #include <colorspace_fragment>
    }`,
  }));

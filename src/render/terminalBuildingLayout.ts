@@ -74,15 +74,25 @@ export function t2BaggageBelts(b:Pick<BuildingBounds,'x'|'z'>){
 }
 
 export interface TerminalCore {x:number;z:number;direction:1|-1;restricted?:boolean}
+export const ESCALATOR_TREAD_WIDTH=1.14;
+export const ESCALATOR_LANE_OFFSET=.82;
+export const escalatorRun=(rise:number)=>rise/Math.tan(Math.PI/6);
 /** Both flights of a normal up/down pair share a geometric slope. Their
  * travel directions differ; their upper landings do not swap ends. */
 export function t2VerticalCores(b:Pick<BuildingBounds,'x'|'z'>,fromIndex:number):TerminalCore[]{
  const pair=(x:number,z:number,restricted=false):TerminalCore[]=>[-1,1].map(side=>({x:b.x+x,z:b.z+side*z,direction:(-side) as 1|-1,restricted}));
  if(fromIndex===2)return [...pair(-69.35,22),...pair(7.8,69,true),...pair(51,21,true)];
  if(fromIndex===1)return pair(-47,122);
- if(fromIndex===0)return pair(-62,110);
- return pair(-64,116);
+ if(fromIndex===0)return [
+  {x:b.x-62,z:b.z-110,direction:1},
+  {x:b.x-66,z:b.z+22,direction:-1},
+ ];
+ // Alternate their positions on adjacent floors. Otherwise the start of one
+ // flight lands in the open stairwell of the flight from the floor below.
+ return pair(-69.35,fromIndex===4?92:116);
 }
+
+export const T2_ARRIVAL_AED_Z_OFFSETS=[-57,34] as const;
 
 export function t2PublicArrivalVoids(b:Pick<BuildingBounds,'x'|'z'>):DeckOpening[]{
  return T2_PASSENGER_SECTION.publicVoids.map(r=>placeBuildingRect(b,r));
@@ -120,15 +130,22 @@ export function t2ArrivalArtFixtures(b:Pick<BuildingBounds,'x'|'z'>){
 /** Openings in a FINISHED floor for the escalator flight arriving at it. */
 export function t2EscalatorOpenings(b:Pick<BuildingBounds,'x'|'z'>,levelIndex:number):DeckOpening[]{
  if(levelIndex<1)return [];
- const rise=T2_FLOOR_LEVELS[levelIndex]-T2_FLOOR_LEVELS[levelIndex-1],run=rise/Math.tan(Math.PI/6);
- return t2VerticalCores(b,levelIndex-1).map(core=>({x:core.x,z:core.z,width:3.5,depth:run-.3,landing:{edge:core.direction>0?'far':'near',x:core.x,width:3.28}}));
+ const run=escalatorRun(T2_FLOOR_LEVELS[levelIndex]-T2_FLOOR_LEVELS[levelIndex-1]);
+ return t2VerticalCores(b,levelIndex-1).map(core=>escalatorOpening(core,run));
+}
+
+export function escalatorOpening(core:TerminalCore,run:number):DeckOpening{
+ // The open upper edge coincides with the comb plate. Allow extra room only
+ // at the lower end of the void where the flight passes beneath the slab.
+ return {x:core.x,z:core.z-core.direction*.14,width:3.5,depth:run+.28,
+  landing:{edge:core.direction>0?'far':'near',x:core.x,width:3.28}};
 }
 
 /** Major fixed objects shared by the public hall renderer and walker. */
-export function t2ArrivalHallFixtures(b:Pick<BuildingBounds,'x'|'z'>){
+export function t2ArrivalHallFixtures(b:Pick<BuildingBounds,'x'|'z'|'depth'>){
  const plaza=T2_PASSENGER_SECTION,exit={...plaza.customsExit,x:b.x+plaza.customsExit.x,z:b.z+plaza.customsExit.z};
  const lowBarriers=[{z:-69,depth:32},{z:0,depth:58},{z:69,depth:32}].map(r=>placeBuildingRect(b,{x:-41,width:.52,...r}));
- const edge=plaza.publicHall.depth/2,halfExit=exit.span/2;
+ const edge=(b.depth-2.4)/2,halfExit=exit.span/2;
  const partitionPanels=[[-edge,-halfExit],[halfExit,edge]].map(([near,far])=>placeBuildingRect(b,{x:plaza.customsExit.x,z:(near+far)/2,width:.7,depth:far-near}));
  const seats=[-63,66,98].map(z=>placeBuildingRect(b,{x:-53.2,z,width:7.2,depth:2.2}));
  const information=placeBuildingRect(b,{x:-55,z:38.4,width:6.3,depth:3.25});

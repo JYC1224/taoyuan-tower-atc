@@ -6,6 +6,8 @@ import {roofMaterial} from './roofMaterial';
 import {T2_FLOOR_LEVELS,T2_OBSERVATION_DECK_LAYOUT} from './terminalInteriorLayout';
 import {terminalBuildingBounds,T2_PASSENGER_SECTION,T2_ROOF_GRID} from './terminalBuildingLayout';
 import {t1RoofHeight} from './terminalPublicHallLayout';
+import {passengerWallSpans,t1GateOpeningForSide} from './terminalPassengerLayout';
+import {t2GateLinkForSide} from './terminalGateLinks';
 
 const pearl=material('#d3d8d8',.62,.18),silver=material('#aab7bf',.4,.58),dark=material('#566b78',.38,.25);
 const roofPearl=roofMaterial('#d6d8d3',.62,.14),roofSilver=roofMaterial('#615c52',.68,.14);
@@ -261,22 +263,27 @@ export function terminalRoof(parent:THREE.Group,t:Terminal){
  const facade=terminalBuildingBounds(t,t.id);
  // Facade floors and mullions give human scale without extra transparent sorting.
  for(const side of [-1,1]){
-  const wallZ=t.z+side*(t.depth/2+.12),doorFloor=T2_FLOOR_LEVELS[6],doorCenter=T2_OBSERVATION_DECK_LAYOUT.accessXOffset,doorHalf=T2_OBSERVATION_DECK_LAYOUT.accessWidth/2;
+  const wallZ=t.z+side*(t.depth/2+.12),doorFloor=T2_FLOOR_LEVELS[6],doorCenter=t.x+T2_OBSERVATION_DECK_LAYOUT.accessXOffset,doorHalf=T2_OBSERVATION_DECK_LAYOUT.accessWidth/2;
+  const openings=t.id==='T2'?[t2GateLinkForSide(side).opening,{left:doorCenter-doorHalf,right:doorCenter+doorHalf,bottom:doorFloor,top:doorFloor+T2_OBSERVATION_DECK_LAYOUT.accessHeight}]:
+   t.id==='T1'?[t1GateOpeningForSide(side)]:[];
   const transoms=t.id==='T2'?T2_FLOOR_LEVELS.filter(y=>y>1):Array.from({length:Math.floor((t.height-.01)/5)},(_,i)=>(i+1)*5);
   for(const y of transoms){
-   if(t.id==='T2'&&y>doorFloor&&y<doorFloor+T2_OBSERVATION_DECK_LAYOUT.accessHeight){
-    const left=-facade.width/2,right=facade.width/2,openingLeft=doorCenter-doorHalf,openingRight=doorCenter+doorHalf;
-    box(parent,openingLeft-left,.28,.22,t.x+(left+openingLeft)/2,y,wallZ,pearl);
-    box(parent,right-openingRight,.28,.22,t.x+(openingRight+right)/2,y,wallZ,pearl);
-   }else if(t.id==='T1'){
+   if(t.id==='T1'){
     // Stop facade transoms where the real roof has already dropped to its eave.
     for(let x=-t.width/2;x<t.width/2;x+=4)if(y<t1RoofHeight(x+2,t.width,t.height)-.45)box(parent,4,.18,.2,t.x+x+2,y,wallZ,pearl);
-   }else box(parent,facade.width,.28,.22,t.x,y,wallZ,pearl);
+   }else{
+    const openAtHeight=openings.filter(door=>y+.145>=door.bottom&&y-.145<=door.top);
+    for(const span of passengerWallSpans(t.x-facade.width/2,t.x+facade.width/2,openAtHeight))
+     box(parent,span.right-span.left,.28,.22,(span.left+span.right)/2,y,wallZ,pearl);
+   }
   }
   for(let x=-facade.width/2;x<=facade.width/2;x+=4){
-   if(t.id==='T2'&&Math.abs(x-doorCenter)<doorHalf)continue;
    const height=t.id==='T1'?t1RoofHeight(x,t.width,t.height)-.4:t.height;
-   box(parent,.14,height,.22,t.x+x,height/2,wallZ,silver);
+   const door=openings.find(door=>t.x+x+.07>door.left&&t.x+x-.07<door.right);
+   if(door){
+    box(parent,.14,door.bottom,.22,t.x+x,door.bottom/2,wallZ,silver);
+    box(parent,.14,height-door.top,.22,t.x+x,(height+door.top)/2,wallZ,silver);
+   }else box(parent,.14,height,.22,t.x+x,height/2,wallZ,silver);
   }
  }
  if(t.id==='T2')terminal2CurbsideCanopy(parent,facade);

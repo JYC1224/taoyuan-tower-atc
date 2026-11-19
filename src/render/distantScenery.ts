@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {canvasTexture,instances,material,seeded} from './primitives';
 import {isSea} from './coastline';
-import {addTerrain,regionalGroundMaterial,terrainSurfaceHeight} from './terrain';
+import {REGIONAL_DATUM,addTerrain,regionalGroundMaterial,terrainSurfaceHeight} from './terrain';
 import {addRegionalFeatures,regionalSettlements} from './regionalScenery';
 import {createRegionalLandcover,LOCAL_LANDCOVER_EXTENT} from './regionalLandcover';
 
@@ -35,7 +35,7 @@ export function distantScenery(parent:THREE.Group){
  texture.wrapS=texture.wrapT=THREE.ClampToEdgeWrapping;texture.repeat.set(1,1);texture.anisotropy=8;
  const localLandcover=createRegionalLandcover(),groundMaterial=regionalGroundMaterial(texture,localLandcover,LOCAL_LANDCOVER_EXTENT);
  const ground=new THREE.Mesh(new THREE.PlaneGeometry(extent,extent),groundMaterial);
- ground.rotation.x=-Math.PI/2;ground.position.y=-.19;ground.receiveShadow=false;parent.add(ground);
+ ground.rotation.x=-Math.PI/2;ground.position.y=REGIONAL_DATUM;ground.receiveShadow=false;parent.add(ground);
  addTerrain(parent,groundMaterial,extent);
  addRegionalFeatures(parent);
 
@@ -62,6 +62,7 @@ export function distantScenery(parent:THREE.Group){
  }
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(lights,3));
  const nightLights=new THREE.PointsMaterial({color:'#ffdc9c',size:1.6,sizeAttenuation:false,transparent:true,opacity:0,depthWrite:false,toneMapped:false});
- parent.add(new THREE.Points(geometry,nightLights));
- return nightLights;
+ const lightsMesh=new THREE.Points(geometry,nightLights);
+ parent.add(lightsMesh);
+ return lightsMesh;
 }

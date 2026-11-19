@@ -46,11 +46,11 @@ Sources:
   The passage's short cream-lettering panels are newly typeset interpretations
   of the dark calligraphy-wall colour/design field; they do not reproduce the
   artist's handwriting or complete poem.
-- The upper connecting passage can be walked continuously. Stairs are modeled
-  with landings, individual treads and handrails, but changing between the lower
-  waiting rooms and the upper passage still uses the existing location menu.
-  Walking guards prevent stepping off the upper slab or into the stairs at a
-  fixed camera elevation.
+- The 3F main terminal joins the A-side passage through the central portal.
+  Both stairs in each modeled waiting room now connect to the upper passage.
+  Walking follows the stair pitch while glass guards retain the exposed edges.
+  The metal and glass landing detail follows the separate A8 stair and
+  overhead waiting-room views in the [A-side photo essay](https://eric218.pixnet.net/blog/posts/8185478879).
 - New seat banks, round columns, core and stairs share layout data with walking
   collision. Floor textures use metre-based UVs. Seats, reveals, mullions,
   louvered luminaires and handrails are instanced; local fill lights activate

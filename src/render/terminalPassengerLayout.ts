@@ -23,6 +23,14 @@ export const T1_A_PASSENGER={
  link:{left:432,right:448,near:-198,far:-177.5},
 } as const;
 
+export const T1_B_DEPARTURE_LINK={left:432.7,right:447.3,near:86.1,far:96.2,headroom:3.08} as const;
+
+export function t1GateOpeningForSide(side:number){
+ const bottom=T1_A_PASSENGER.passageFloor,top=side<0?T1_A_PASSENGER.passageCeiling:bottom+T1_B_DEPARTURE_LINK.headroom;
+ const {left,right}=side<0?T1_A_PASSENGER.link:T1_B_DEPARTURE_LINK;
+ return {left,right,bottom,top};
+}
+
 export interface T1WaitingRoom {
  id:string;gateIds:readonly string[];x:number;width:number;
  kind:'shared'|'mountain'|'typical';
@@ -58,6 +66,22 @@ export function t1LoungeStairs(room:T1WaitingRoom){
   topY:T1_A_PASSENGER.passageFloor,bottomY:T1_A_PASSENGER.loungeFloor}));
 }
 
+export function t1StairLanding(stair:ReturnType<typeof t1LoungeStairs>[number]):PassengerRect{
+ return {left:stair.x-stair.width/2,right:stair.x+stair.width/2,near:stair.topZ-.06,far:T1_A_PASSENGER.passage.near+.38};
+}
+
+/** Horizontal wall or guard spans between clear public openings. */
+export function passengerWallSpans(left:number,right:number,openings:readonly Pick<PassengerRect,'left'|'right'>[]){
+ const spans:{left:number;right:number}[]=[];
+ for(const opening of [...openings].sort((a,b)=>a.left-b.left)){
+  const edge=Math.min(right,opening.left);
+  if(edge>left)spans.push({left,right:edge});
+  left=Math.max(left,opening.right);
+ }
+ if(right>left)spans.push({left,right});
+ return spans;
+}
+
 /** Seat banks leave a central aisle, window aisle and stair landing clear. */
 export function t1LoungeSeatBanks(room:T1WaitingRoom){
  const blocks=room.kind==='shared'?6:4,spacing=room.kind==='shared'?16:room.kind==='mountain'?9.5:12,
@@ -82,7 +106,7 @@ export function t1LoungeObstacles(room:T1WaitingRoom):PassengerRect[]{
  const obstacles=[
   ...t1LoungeSeatBanks(room).map(b=>passengerRect(b.x,b.z,b.width,b.depth,.3)),
   ...columns.map(c=>passengerRect(c.x,c.z,c.radius*2,c.radius*2,.25)),
-  // Stairs remain a visual connection; floor changes use the location menu.
+  // The sides are solid. The 3D walker enters the slope only at its mouth.
   ...stairs.map(s=>passengerRect(s.x,s.z,s.width+.4,s.run,.2)),
   passengerRect(room.x,-200.25,room.width-10,1.05,.25),
  ];
@@ -101,9 +125,9 @@ export function t1LoungeObstacles(room:T1WaitingRoom):PassengerRect[]{
 export function t1PassageObstacles():PassengerRect[]{
  return T1_A_WAITING_ROOMS.flatMap(room=>{
   const stairs=t1LoungeStairs(room);
-  // Guard the openings into the lower rooms. A walker cannot step out of the
-  // upper deck into open air; the stair connection is inspected separately.
-  return stairs.map(s=>passengerRect(s.x,-198.35,s.width+.6,1.1,.2));
+  // At passage elevation the 3D walker must enter one of the stair mouths.
+  // Keeping the footprint blocked for flat movement prevents stepping off it.
+  return stairs.map(s=>passengerRect(s.x,s.topZ-.54,s.width,.96,.27));
  });
 }
 

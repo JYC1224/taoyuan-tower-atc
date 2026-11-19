@@ -5,12 +5,14 @@ import {surfaceImages} from './realismAssets';
 
 const surfaceAtmosphere={time:{value:0},cloudStrength:{value:0},windDirection:{value:new THREE.Vector2(0,1)},windSpeed:{value:0}};
 const cloudShadowChunk=`
- float cloudTravel=surfaceTime*surfaceWindSpeed*.00018;
- vec2 cloudUv=surfaceWorld.xz*.00035+surfaceWindDirection*cloudTravel;
- float cloudA=sin(cloudUv.x*2.2+sin(cloudUv.y*1.25)*1.3);
- float cloudB=sin(cloudUv.y*1.8+cos(cloudUv.x*1.45)*.95);
- float cloudShape=smoothstep(.02,.88,cloudA*cloudB*.5+.5);
- diffuseColor.rgb*=1.0-cloudShape*surfaceCloudStrength*.18;
+ if(surfaceCloudStrength>0.0){
+  float cloudTravel=surfaceTime*surfaceWindSpeed*.00018;
+  vec2 cloudUv=surfaceWorld.xz*.00035+surfaceWindDirection*cloudTravel;
+  float cloudA=sin(cloudUv.x*2.2+sin(cloudUv.y*1.25)*1.3);
+  float cloudB=sin(cloudUv.y*1.8+cos(cloudUv.x*1.45)*.95);
+  float cloudShape=smoothstep(.02,.88,cloudA*cloudB*.5+.5);
+  diffuseColor.rgb*=1.0-cloudShape*surfaceCloudStrength*.18;
+ }
 `;
 
 /** Updates the slow, wind-driven cloud shade shared by airport ground materials. */
@@ -29,9 +31,8 @@ function turf(ctx:CanvasRenderingContext2D,size:number){
  for(let y=0;y<size;y++)for(let x=0;x<size;x++){const broad=sample(x,y,layers[0]),soil=Math.max(0,.46-broad),value=1+(broad-.5)*.25+(sample(x,y,layers[1])-.5)*.14+(sample(x,y,layers[2])-.5)*.065+(sample(x,y,layers[3])-.5)*.035+Math.sin(y/size*Math.PI*24)*.018,i=(y*size+x)*4;image.data[i]=176*value+soil*25;image.data[i+1]=184*value-soil*18;image.data[i+2]=150*value;image.data[i+3]=255;}
  ctx.putImageData(image,0,0);
 }
-export function surfaceMaterial(kind:'grass',color:string):THREE.MeshStandardMaterial;
-export function surfaceMaterial(kind:'concrete'|'asphalt'|'runway',color:string):THREE.MeshStandardMaterial;
-export function surfaceMaterial(kind:'concrete'|'asphalt'|'runway'|'grass',color:string){
+type SurfaceKind='concrete'|'asphalt'|'runway'|'grass';
+function proceduralSurface(kind:SurfaceKind){
  const rand=seeded(kind==='concrete'?491:kind==='asphalt'?92:503),size=512;
  const map=canvasTexture(size,size,ctx=>{
   if(kind==='grass'){turf(ctx,size);return;}
@@ -39,7 +40,11 @@ export function surfaceMaterial(kind:'concrete'|'asphalt'|'runway'|'grass',color
   for(let i=0;i<22000;i++){const n=rand(),v=Math.round(100+n*100);ctx.fillStyle=`rgba(${v},${v},${v},.1)`;ctx.fillRect(rand()*size,rand()*size,1+rand()*2,1+rand()*2);}
   if(kind==='concrete'){ctx.strokeStyle='#858b8850';ctx.lineWidth=1.1;for(let x=0;x<=size;x+=128){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,size);ctx.moveTo(0,x);ctx.lineTo(size,x);ctx.stroke();}ctx.strokeStyle='#e9e9e430';ctx.strokeRect(2,2,124,124);}
  });map.wrapS=map.wrapT=THREE.RepeatWrapping;map.anisotropy=4;
- const m=new THREE.MeshStandardMaterial({color,map,roughness:1,metalness:0});
+ return map;
+}
+
+export function surfaceMaterial(kind:SurfaceKind,color:string){
+ const m=new THREE.MeshStandardMaterial({color,map:kind==='grass'?proceduralSurface(kind):null,roughness:1,metalness:0});
  m.userData.worldUV=kind==='grass'?1/110:kind==='runway'?1/15:1/3;m.userData.dryColor=m.color.clone();m.userData.noShadow=true;
  if(kind==='grass'){
   m.onBeforeCompile=shader=>{
@@ -72,8 +77,11 @@ export function surfaceMaterial(kind:'concrete'|'asphalt'|'runway'|'grass',color
     float macroWear=sin(surfaceWorld.x*.0073+sin(surfaceWorld.z*.0041))*sin(surfaceWorld.z*.0087+surfaceWorld.x*.0032);
     float aggregate=sin(surfaceWorld.x*.73+sin(surfaceWorld.z*.51))*sin(surfaceWorld.z*.91+surfaceWorld.x*.27);
     diffuseColor.rgb*=1.0+macroWear*${runway?'.035':'.018'}+aggregate*${runway?'.018':'.012'};
-    float dampPattern=sin(surfaceWorld.x*.045+sin(surfaceWorld.z*.021))*sin(surfaceWorld.z*.039+sin(surfaceWorld.x*.016));
-    float dampPatch=smoothstep(.15,.75,dampPattern)*surfaceWetness;
+    float dampPatch=0.0;
+    if(surfaceWetness>0.0){
+     float dampPattern=sin(surfaceWorld.x*.045+sin(surfaceWorld.z*.021))*sin(surfaceWorld.z*.039+sin(surfaceWorld.x*.016));
+     dampPatch=smoothstep(.15,.75,dampPattern)*surfaceWetness;
+    }
     diffuseColor.rgb*=1.0-dampPatch*.12;
    `);
    shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
@@ -81,7 +89,12 @@ export function surfaceMaterial(kind:'concrete'|'asphalt'|'runway'|'grass',color
    `);
   };
   m.customProgramCacheKey=()=>`real-surface-${kind}`;
-  const pbr=m as THREE.MeshStandardMaterial;surfaceImages(kind).then(images=>{const fallback=pbr.map;pbr.map=images.color;pbr.normalMap=images.normal;pbr.normalScale.setScalar(kind==='concrete'?.16:kind==='runway'?.22:.25);pbr.roughnessMap=images.roughness;pbr.needsUpdate=true;fallback?.dispose();});
+  // The first scene frame already waits for the reference textures. Generate
+  // the procedural pavement only if the matching asset is unavailable.
+  void surfaceImages(kind).then(images=>{
+   m.map=images.color;m.normalMap=images.normal;m.normalScale.setScalar(kind==='concrete'?.16:kind==='runway'?.22:.25);
+   m.roughnessMap=images.roughness;m.needsUpdate=true;
+  },()=>{m.map=proceduralSurface(kind);m.needsUpdate=true;});
  }
  return m;
 }

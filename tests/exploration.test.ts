@@ -4,7 +4,7 @@ import {terminals} from '../src/data/airport';
 import {explorationScheduleAfter} from '../src/data/schedule';
 import {explorationScenario} from '../src/sim/exploration';
 import {Simulation} from '../src/sim/Simulation';
-import {exploreSpot,exploreSpots,moveExplorer} from '../src/render/exploration';
+import {exploreSpot,exploreSpots,isIndoorExploreSpot,moveExplorer,moveExplorerCamera} from '../src/render/exploration';
 import {terminalBuildingBounds} from '../src/render/terminalBuildingLayout';
 import type {Scenario} from '../src/types';
 
@@ -53,13 +53,36 @@ test('continued sightseeing traffic uses deterministic future synthetic days',()
  assert.ok(first.every(f=>f.time>after&&!f.exact&&f.id.startsWith('roam-2-')));
 });
 
-test('a pedestrian stays on the selected terminal floor and outdoor walls stop entry',()=>{
- const spot=exploreSpot('t2-departures'),terminal=terminalBuildingBounds(terminals.find(t=>t.id==='T2')!,'T2');
- const acrossAtrium=moveExplorer(spot,spot.position,{x:terminal.x,z:spot.position.z});
- assert.ok(acrossAtrium.x<terminal.x-terminal.width*.08);
+test('the arrivals gallery stays above its open void and the exterior facade blocks entry',()=>{
+ const spot=exploreSpot('t2-arrival-gallery'),terminal=terminalBuildingBounds(terminals.find(t=>t.id==='T2')!,'T2');
+ const acrossAtrium=moveExplorerCamera(spot,spot.position,{x:terminal.x-40,z:spot.position.z});
+ assert.ok(acrossAtrium.x<terminal.x-65);
+ assert.equal(acrossAtrium.y,spot.position.y);
  const outside={x:terminal.x-terminal.width/2-3,z:terminal.z};
  const towardWall={x:terminal.x-terminal.width/2+1,z:terminal.z};
  assert.equal(moveExplorer(exploreSpot('runway'),outside,towardWall).x,outside.x);
+});
+
+test('the T2 queue can be entered from the cross-aisle and stops at the counter',()=>{
+ const spot=exploreSpot('t2-departures'),terminal=terminalBuildingBounds(terminals.find(t=>t.id==='T2')!,'T2');
+ const x=terminal.x-30;
+ let p={x,z:terminal.z-24};
+ for(let z=-23.75;z<=-17.25;z+=.25){
+  p=moveExplorer(spot,p,{x,z:terminal.z+z});
+  assert.equal(p.z,terminal.z+z);
+ }
+ assert.deepEqual(moveExplorer(spot,p,{x,z:terminal.z-17}),p);
+ const corridorSide={x:terminal.x-34,z:terminal.z-20.35};
+ assert.deepEqual(moveExplorer(spot,corridorSide,{...corridorSide,z:terminal.z-20.15}),corridorSide);
+});
+
+test('terminal shadow focus excludes the runway, curb and open-air decks',()=>{
+ for(const id of ['t1-checkin','t2-arrivals','t2-departures','t2-d-gates','t2-d10'] as const){
+  assert.ok(isIndoorExploreSpot(exploreSpot(id)),id);
+ }
+ for(const id of ['runway','apron','t2-arrival-curb','t2-forecourt','t2-north-deck','t2-south-deck'] as const){
+  assert.ok(!isIndoorExploreSpot(exploreSpot(id)),id);
+ }
 });
 
 test('interior viewpoints start on the selected floor outside major solid fixtures',()=>{

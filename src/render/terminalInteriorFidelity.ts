@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type {Gate} from '../data/airport';
 import {box,canvasTexture,instances,material} from './primitives';
 import {T2_FOURTH_FLOOR_PUBLIC_FEATURES as T2_PUBLIC} from './terminalInteriorLayout';
+import {t2CheckInPendantRows} from './terminalPublicHallLayout';
 
 type Bounds={x:number;z:number;width:number;depth:number;height:number};
 type Instance={x:number;y:number;z:number;sx:number;sy:number;sz:number;ry?:number;color?:THREE.ColorRepresentation};
@@ -104,12 +105,12 @@ export function decorateTerminal2(parent:THREE.Object3D,b:Bounds){
  // space frame. Build them as open concentric rings with discrete diffusers;
  // a filled six-lobed plate read as a flower and produced star-shaped floor
  // reflections that are absent from the photographed hall.
- const fixtureCount=12,luminaire=new THREE.MeshBasicMaterial({color:'#fff9e7',toneMapped:false,side:THREE.DoubleSide}),pendantOuter=new THREE.TorusGeometry(3.35,.065,8,72),pendantInner=new THREE.TorusGeometry(2.55,.045,8,64),pendantCenter=new THREE.CircleGeometry(1.18,48),pendantRingMat=material('#c4c7bd',.42,.5),pendantDiffuserMat=new THREE.MeshBasicMaterial({color:'#fff4cf',transparent:true,opacity:.72,toneMapped:false,side:THREE.DoubleSide}),
+ const fixtureLayout=t2CheckInPendantRows(b.x,b.z,b.height),fixtureCount=12,luminaire=new THREE.MeshBasicMaterial({color:'#fff9e7',toneMapped:false,side:THREE.DoubleSide}),pendantOuter=new THREE.TorusGeometry(3.35,.065,8,72),pendantInner=new THREE.TorusGeometry(2.55,.045,8,64),pendantCenter=new THREE.CircleGeometry(1.18,48),pendantRingMat=material('#c4c7bd',.42,.5),pendantDiffuserMat=new THREE.MeshBasicMaterial({color:'#fff4cf',transparent:true,opacity:.72,toneMapped:false,side:THREE.DoubleSide}),
   housingMesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(.28,.28,.2,24),luminaire,fixtureCount),outerMesh=new THREE.InstancedMesh(pendantOuter,pendantRingMat,fixtureCount),innerMesh=new THREE.InstancedMesh(pendantInner,pendantRingMat,fixtureCount),centerMesh=new THREE.InstancedMesh(pendantCenter,pendantDiffuserMat,fixtureCount),barMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),pendantDiffuserMat,fixtureCount*12),cableMesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(.018,.018,1,6),steel,fixtureCount*4),fixtureDummy=new THREE.Object3D();
  let barIndex=0,cableIndex=0;
  const mark=(mesh:THREE.InstancedMesh,index:number,x:number,y:number,z:number,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0)=>{fixtureDummy.position.set(x,y,z);fixtureDummy.rotation.set(rx,ry,rz);fixtureDummy.scale.set(sx,sy,sz);fixtureDummy.updateMatrix();mesh.setMatrixAt(index,fixtureDummy.matrix);};
  for(let row=0;row<4;row++)for(let col=0;col<3;col++){
-  const x=b.x-34+(col-1)*17,z=b.z-75+row*50,y=b.height-7,ceilingY=b.height-.32,cableLength=ceilingY-y-.18,index=row*3+col;
+  const x=fixtureLayout.rows[col],z=fixtureLayout.first+row*fixtureLayout.pitch,y=fixtureLayout.height,ceilingY=b.height-.32,cableLength=ceilingY-y-.18,index=row*3+col;
   mark(housingMesh,index,x,y+.06,z);mark(outerMesh,index,x,y-.02,z,1,1,1,-Math.PI/2);mark(innerMesh,index,x,y-.02,z,1,1,1,-Math.PI/2);mark(centerMesh,index,x,y-.005,z,1,1,1,-Math.PI/2);
   for(let lamp=0;lamp<12;lamp++){const angle=lamp*Math.PI/6;mark(barMesh,barIndex++,x+Math.cos(angle)*2.96,y-.012,z+Math.sin(angle)*2.96,1.02,.045,.13,0,angle+Math.PI/2);}
   for(const dx of [-1,1])for(const dz of [-1,1])mark(cableMesh,cableIndex++,x+dx*2.15,(ceilingY+y)/2,z+dz*2.15,1,cableLength,1);

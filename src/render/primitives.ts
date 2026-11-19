@@ -21,6 +21,6 @@ export function groundText(parent:THREE.Object3D,text:string,x:number,z:number,w
  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:texture,transparent:true,depthWrite:false,roughness:.9,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));mesh.rotation.x=-Math.PI/2;mesh.rotation.z=rotation;mesh.position.set(x,.218,z);mesh.userData.distantGroundText=true;parent.add(mesh);return mesh;
 }
 export function seeded(seed:number) {let value=seed;return()=>{value=(Math.imul(1664525,value)+1013904223)>>>0;return value/4294967296;};}
-export function instances(parent:THREE.Object3D,geometry:THREE.BufferGeometry,mat:THREE.Material,items:{x:number;y:number;z:number;sx?:number;sy?:number;sz?:number;ry?:number;color?:THREE.ColorRepresentation}[]) {
+export function instances<M extends THREE.Material>(parent:THREE.Object3D,geometry:THREE.BufferGeometry,mat:M,items:{x:number;y:number;z:number;sx?:number;sy?:number;sz?:number;ry?:number;color?:THREE.ColorRepresentation}[]) {
  const instanced=new THREE.InstancedMesh(geometry,mat,items.length),dummy=new THREE.Object3D(),tint=new THREE.Color();items.forEach((p,i)=>{dummy.position.set(p.x,p.y,p.z);dummy.scale.set(p.sx??1,p.sy??1,p.sz??1);dummy.rotation.y=p.ry??0;dummy.updateMatrix();instanced.setMatrixAt(i,dummy.matrix);if(p.color){tint.set(p.color);instanced.setColorAt(i,tint);}});if(instanced.instanceColor)instanced.instanceColor.needsUpdate=true;instanced.receiveShadow=true;parent.add(instanced);return instanced;
 }

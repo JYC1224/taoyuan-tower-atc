@@ -1,4 +1,5 @@
 /** Public-map proportions for built terminal interior footprints. */
+import {T2_PASSENGER_SECTION,type BuildingRect} from './terminalBuildingLayout';
 export {T1_FLOOR_LEVELS,T2_FLOOR_LEVELS,t2StructuralColumnCenters} from './terminalBuildingLayout';
 /**
  * Public-service points marked on the current T1 1F airport map. The map
@@ -270,24 +271,7 @@ export const T2_TEMPLE_AVENUE_LAYOUT={
  ceilingFeatureDiameter:20,
 } as const;
 
-/** T2's official 3F map names five separate airside retail/service frontages. */
 export const T2_THIRD_FLOOR_LAYOUT={
- checkIn:{
-  centerXOffset:-34,
-  centerZOffset:0,
-  bankCount:13,
-  bankSpacingRatio:.04656,
-  maxBankSpacing:13.5,
-  numbersPerBank:2,
-  stationsPerNumber:10,
-  stationSpacing:2.8,
-  islandDepth:5.8,
-  counterFaceOffset:2,
-  queueLaneCount:6,
-  queueBarrierOffset:3,
-  queueNearOffset:3.6,
-  queueFarOffset:4.8,
- },
  retail:{centerZOffset:0,frontOffsetRatio:.37,span:120,gap:1.5},
  services:[
   {id:'nursing',dx:-24,dz:-125,width:14,depth:10,label:'NURSING ROOM  哺集乳室',kind:'nursing',facing:-1 as const},
@@ -302,17 +286,113 @@ export const T2_THIRD_FLOOR_LAYOUT={
  aeds:[{dx:55,dz:-5}]
 } as const;
 
-/** The T2 3F map numbers opposite faces in pairs (for example, 12/13 and 14/15). */
-export function t2ThirdFloorCheckInBanks(centerX:number,centerZ:number,terminalDepth:number){
- const layout=T2_THIRD_FLOOR_LAYOUT.checkIn,spacing=Math.min(layout.maxBankSpacing,terminalDepth*layout.bankSpacingRatio);
- return Array.from({length:layout.bankCount},(_,index)=>({
-  x:centerX+layout.centerXOffset,
-  z:centerZ+(index-(layout.bankCount-1)/2)*spacing,
-  counterCount:layout.numbersPerBank,
-  firstCounterNumber:index*layout.numbersPerBank+1,
-  lastCounterNumber:(index+1)*layout.numbersPerBank,
-  rowWidth:layout.stationsPerNumber*layout.stationSpacing,
- }));
+type CheckInAxis='x'|'z';
+type CheckInSide=-1|1;
+const T2_BAG_DROP_COUNTERS=new Set([10,11,16,17]);
+const t2CheckInCenterX=T2_PASSENGER_SECTION.checkInX;
+
+// Aligned airport 3F map: eight transverse islands in the main hall, two
+// longitudinal pairs and a short counter at each end. Fit-out sizes and the
+// number of rendered stations per face are estimated from the map and photos.
+const t2CheckInRows=[
+ {x:-59,z:-131,axis:'z',numbers:[null,1],stations:4},
+ {x:t2CheckInCenterX,z:-121,axis:'z',numbers:[2,3],stations:8},
+ {x:-8,z:-120,axis:'z',numbers:[4,5],stations:6},
+ {x:t2CheckInCenterX,z:-91,axis:'x',numbers:[6,7],stations:10},
+ {x:t2CheckInCenterX,z:-66,axis:'x',numbers:[8,9],stations:10},
+ {x:t2CheckInCenterX,z:-40,axis:'x',numbers:[10,11],stations:10},
+ {x:t2CheckInCenterX,z:-14,axis:'x',numbers:[12,13],stations:10},
+ {x:t2CheckInCenterX,z:15,axis:'x',numbers:[14,15],stations:10},
+ {x:t2CheckInCenterX,z:41,axis:'x',numbers:[16,17],stations:10},
+ {x:t2CheckInCenterX,z:66,axis:'x',numbers:[18,19],stations:10},
+ {x:t2CheckInCenterX,z:91,axis:'x',numbers:[20,21],stations:10},
+ {x:-59,z:131,axis:'z',numbers:[null,22],stations:4},
+ {x:t2CheckInCenterX,z:121,axis:'z',numbers:[23,24],stations:8},
+ {x:-8,z:120,axis:'z',numbers:[25,26],stations:6},
+] as const;
+
+export interface T2CheckInFace {
+ number:number;
+ side:CheckInSide;
+ service:'staffed'|'bag-drop';
+}
+export interface T2CheckInBank {
+ x:number;
+ z:number;
+ axis:CheckInAxis;
+ frame:'main'|'extension';
+ rowWidth:number;
+ stations:number;
+ faces:T2CheckInFace[];
+}
+
+export function t2ThirdFloorCheckInBanks(centerX:number,centerZ:number,terminalDepth:number):T2CheckInBank[]{
+ const fit=Math.min(1,terminalDepth/290);
+ return t2CheckInRows.map(row=>{
+  const faces:T2CheckInFace[]=[];
+  for(const side of [-1,1] as const){
+   const number=row.numbers[side===-1?0:1];
+   if(number!==null)faces.push({number,side,service:T2_BAG_DROP_COUNTERS.has(number)?'bag-drop':'staffed'});
+  }
+  return {
+   x:centerX+row.x,z:centerZ+row.z*fit,axis:row.axis,
+   frame:row.axis==='z'||row.numbers[0]===20?'extension':'main',
+   rowWidth:row.stations*2.85,stations:row.stations,faces,
+  };
+ });
+}
+
+export function t2CheckInPoint(origin:{x:number;z:number;axis:CheckInAxis},along:number,across:number){
+ return origin.axis==='x'
+  ?{x:origin.x+along,z:origin.z+across}
+  :{x:origin.x+across,z:origin.z-along};
+}
+
+export function t2CheckInRect(origin:{x:number;z:number;axis:CheckInAxis},along:number,across:number,length:number,depth:number):BuildingRect{
+ return {...t2CheckInPoint(origin,along,across),width:origin.axis==='x'?length:depth,depth:origin.axis==='x'?depth:length};
+}
+
+export function t2CheckInBankFootprint(bank:T2CheckInBank){
+ return t2CheckInRect(bank,0,0,bank.rowWidth+.85,5.45);
+}
+
+export function t2CheckInQueueRails(bank:T2CheckInBank){
+ const rails:{along:number;across:number;length:number}[]=[];
+ // Open-ended lanes leave access from the cross-aisle and alongside the island.
+ const railLength=bank.axis==='x'?2.7:1.9;
+ for(const face of bank.faces){
+  if(face.service!=='staffed')continue;
+  for(const fraction of [-.35,0,.35])rails.push({along:bank.rowWidth*fraction,across:face.side*(3.14+railLength/2),length:railLength});
+ }
+ return rails;
+}
+
+// Freestanding common-use check-in kiosks are clustered in the public aisles.
+// These machines print boarding passes/tags and have no bag conveyor.
+const t2CheckInKioskGroups=[
+ {x:-20,z:-110,axis:'z',side:1,count:3},
+ {x:-52,z:-96,axis:'z',side:1,count:2},
+ {x:-36,z:-50,axis:'x',side:-1,count:7},
+ {x:-39.5,z:-30,axis:'x',side:1,count:3},
+ {x:-32,z:-30,axis:'x',side:1,count:3},
+ {x:-52,z:-36,axis:'z',side:1,count:1},
+ {x:-55,z:-15,axis:'z',side:1,count:3},
+ {x:-39.5,z:31,axis:'x',side:-1,count:3},
+ {x:-33,z:31,axis:'x',side:-1,count:2},
+ {x:-39.5,z:51,axis:'x',side:1,count:3},
+ {x:-32,z:51,axis:'x',side:1,count:3},
+ {x:-51,z:116,axis:'z',side:1,count:3},
+ {x:-20,z:119,axis:'z',side:1,count:3},
+] as const;
+
+export function t2CheckInKiosks(centerX:number,centerZ:number,terminalDepth:number){
+ const fit=Math.min(1,terminalDepth/290);
+ return t2CheckInKioskGroups.flatMap(group=>{
+  const origin={x:centerX+group.x,z:centerZ+group.z*fit,axis:group.axis};
+  return Array.from({length:group.count},(_,index)=>({
+   ...t2CheckInPoint(origin,(index-(group.count-1)/2)*1.8,0),axis:group.axis,side:group.side,
+  }));
+ });
 }
 
 /**
@@ -390,7 +470,6 @@ export const T2_BASEMENT_LAYOUT={
  aeds:[{dx:-63,dz:-68},{dx:-42,dz:-5}],
  restroom:{dx:82,dz:118,width:16,depth:11,facing:-1 as const},
  mrtLink:{zOffset:-40,width:18,length:38},
- escalators:[{dx:-.26,zOffset:5},{dx:-.26,zOffset:40}],
 } as const;
 
 export function t2BasementAisleX(centerX:number,terminalWidth:number){

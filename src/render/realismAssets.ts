@@ -19,5 +19,9 @@ export function skyImage(){
  hdr??=new HDRLoader().loadAsync(root()+'kloppenheim_06_puresky-hdri.hdr').then(texture=>{texture.mapping=THREE.EquirectangularReflectionMapping;return texture;});return hdr;
 }
 export async function realEnvironment(renderer:THREE.WebGLRenderer){
- const texture=await skyImage(),generator=new THREE.PMREMGenerator(renderer);generator.compileEquirectangularShader();const environment=generator.fromEquirectangular(texture);generator.dispose();await Promise.all(pending);return environment;
+ const [image]=await Promise.allSettled([skyImage(),...pending] as const);
+ if(image.status==='rejected')throw image.reason;
+ const generator=new THREE.PMREMGenerator(renderer);
+ try{return generator.fromEquirectangular(image.value);}
+ finally{generator.dispose();}
 }
